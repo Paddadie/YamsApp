@@ -5,8 +5,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const playerForm = document.getElementById('player-form');
   const playerNameInput = document.getElementById('player-name');
   const playerList = document.getElementById('player-list');
+  const startGameBtn = document.getElementById('start-game-btn');
 
   const players = [];
+
+  function updateStartGameBtn() {
+    startGameBtn.disabled = players.length < 2; // Minimum 2 joueurs
+  }
 
   function renderPlayers() {
     playerList.innerHTML = "";
@@ -23,11 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
         players.splice(idx, 1);
         renderPlayers();
         savePlayers();
+        updateStartGameBtn();
       });
 
       li.appendChild(removeBtn);
       playerList.appendChild(li);
     });
+    updateStartGameBtn();
   }
 
   function savePlayers() {
@@ -56,6 +63,12 @@ document.addEventListener('DOMContentLoaded', () => {
       renderPlayers();
       savePlayers();
       playerNameInput.value = "";
+      updateStartGameBtn();
     }
+  });
+
+  startGameBtn.addEventListener('click', () => {
+    // Ici, vous pouvez afficher l'écran de jeu ou démarrer la partie
+    alert("La partie commence !");
   });
 });

@@ -78,3 +78,16 @@ button {
 button:hover {
   background: #155a8a;
 }
+
+#start-game-btn {
+  margin-top: 1em;
+  width: 100%;
+  font-size: 1.1em;
+  background: #43a047;
+}
+
+#start-game-btn:disabled {
+  background: #ccc;
+  color: #888;
+  cursor: not-allowed;
+}
