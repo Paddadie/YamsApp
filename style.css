@@ -7,7 +7,7 @@ body {
 
 .screen {
   display: none;
-  padding: 2em 1em 4em 1em;
+  padding: 1em 1em 2em 1em;
 }
 
 .screen.active {
@@ -16,6 +16,7 @@ body {
 
 h1, h2 {
   text-align: center;
+  margin: 0.5em 0;
 }
 
 #home-screen {
@@ -93,19 +94,25 @@ button:hover {
   cursor: not-allowed;
 }
 
+#start-game-btn {
+  display: block;
+  margin: 2em auto 0;
+}
+
 .player-nav {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1em;
-  margin-bottom: 1em;
+  gap: 0.5em;
+  margin: 0.5em 0;
 }
 
 #current-player-name {
   flex-grow: 1;
   text-align: center;
   margin: 0;
-  font-size: 1.4em;
+  font-size: 1.2em;
+  line-height: 1.3em;
 }
 
 .score-table {
@@ -113,6 +120,7 @@ button:hover {
   max-width: 400px;
   margin: 0.5em auto;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .score-table td {
@@ -120,12 +128,18 @@ button:hover {
   border: 1px solid #ddd;
 }
 
+.score-table td:nth-child(2) {
+  width: 120px;
+}
+
+.dropdown-container {
+  width: 100%;
+}
+
 .score-select {
+  width: 100%;
   font-size: 1em;
-  padding: 0.2em 0.4em;
+  padding: 0.3em;
   border-radius: 4px;
   border: 1px solid #ccc;
-  cursor: pointer;
-  width: 100%;
-  box-sizing: border-box;
 }
