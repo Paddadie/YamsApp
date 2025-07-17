@@ -1,50 +1,41 @@
-body, html {
-  height: 100%;
-  margin: 0;
-  padding: 0;
+body {
   font-family: Arial, sans-serif;
   background: #f7f7f7;
+  margin: 0;
+  padding: 0;
 }
 
-/* Transitions entre écrans */
 .screen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  min-height: 100%;
-  padding: 2em;
-  box-sizing: border-box;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
+  display: none;
+  padding: 2em 1em 4em 1em;
 }
 
 .screen.active {
-  opacity: 1;
-  pointer-events: auto;
-  z-index: 1;
-}
-
-/* Accueil centré */
-#home-screen {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  text-align: center;
+  display: block;
 }
 
 h1, h2 {
   text-align: center;
 }
 
-/* Formulaire joueurs */
+#home-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+}
+
+#start-btn {
+  margin-top: 2em;
+  font-size: 1.2em;
+}
+
 #player-form {
   display: flex;
   gap: 0.5em;
   margin-bottom: 1em;
+  justify-content: center;
 }
 
 #player-name {
@@ -57,6 +48,8 @@ h1, h2 {
 #player-list {
   list-style: none;
   padding: 0;
+  margin: 0 auto;
+  max-width: 300px;
 }
 
 #player-list li {
@@ -82,7 +75,6 @@ h1, h2 {
   color: #900;
 }
 
-/* Boutons */
 button {
   padding: 0.5em 1em;
   border-radius: 4px;
@@ -99,10 +91,8 @@ button:hover {
 }
 
 #start-game-btn {
-  margin-top: 1em;
-  width: 100%;
-  font-size: 1.1em;
-  background: #43a047;
+  display: block;
+  margin: 1em auto;
 }
 
 #start-game-btn:disabled {
@@ -111,56 +101,60 @@ button:hover {
   cursor: not-allowed;
 }
 
-/* Écran de jeu */
-#game-screen {
-  padding: 2em 1em;
-}
-
 .player-nav {
-  display: grid;
-  grid-template-columns: 50px 1fr 50px;
+  display: flex;
+  justify-content: center;
   align-items: center;
-  margin-bottom: 2em;
-  max-width: 100%;
+  gap: 1em;
+  margin-bottom: 1em;
 }
 
-.player-nav h2 {
-  margin: 0;
-  font-size: 1.5em;
+#current-player-name {
+  flex-grow: 1;
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.player-nav button {
-  font-size: 1.5em;
-  background: none;
-  border: none;
-  color: #1976d2;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.player-nav button:hover {
-  color: #0d47a1;
+  margin: 0;
+  font-size: 1.4em;
 }
 
 .score-table {
   width: 100%;
   max-width: 400px;
-  margin: 0 auto 1em auto;
+  margin: 0.5em auto;
   border-collapse: collapse;
 }
 
 .score-table td {
-  border: 1px solid #ccc;
   padding: 0.5em;
-  font-size: 1.1em;
-  text-align: left;
+  border: 1px solid #ddd;
 }
 
-h3 {
-  text-align: center;
-  margin-top: 1em;
+.dropdown-container {
+  position: relative;
+}
+
+.dropdown-btn {
+  background: #e0e0e0;
+  border: none;
+  padding: 0.3em 0.5em;
+  cursor: pointer;
+  font-size: 1em;
+  border-radius: 4px;
+}
+
+.dropdown-btn:hover {
+  background: #d0d0d0;
+}
+
+.score-select {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: 100%;
+  display: none;
+  font-size: 1em;
+}
+
+.score-select.open {
+  display: block;
 }
