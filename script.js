@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const players = [];
   let currentPlayerIndex = 0;
 
+  // Scores stored per player, initialized empty at game start
+  let playerScores = {};
+
   function switchToScreen(screen) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     screen.classList.add('active');
@@ -64,9 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   startBtn.addEventListener('click', () => {
-    homeScreen.style.display = 'none';  
     switchToScreen(playersScreen);
     loadPlayers();
+    homeScreen.style.display = 'none';
   });
 
   playerForm.addEventListener('submit', (e) => {
@@ -83,6 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   startGameBtn.addEventListener('click', () => {
     currentPlayerIndex = 0;
+    players.forEach(name => {
+      playerScores[name] = {};
+    });
     showCurrentPlayer();
     generateScoreTables();
     switchToScreen(gameScreen);
@@ -91,11 +97,13 @@ document.addEventListener('DOMContentLoaded', () => {
   prevPlayerBtn.addEventListener('click', () => {
     currentPlayerIndex = (currentPlayerIndex - 1 + players.length) % players.length;
     showCurrentPlayer();
+    generateScoreTables();
   });
 
   nextPlayerBtn.addEventListener('click', () => {
     currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
     showCurrentPlayer();
+    generateScoreTables();
   });
 
   const scoreConfig = {
@@ -127,6 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function generateScoreTables() {
     scoreTables.innerHTML = "";
 
+    const playerName = players[currentPlayerIndex];
+    const scores = playerScores[playerName];
+
     for (const section in scoreConfig) {
       const table = document.createElement('table');
       table.className = 'score-table';
@@ -139,20 +150,51 @@ document.addEventListener('DOMContentLoaded', () => {
         labelCell.textContent = lineName;
 
         const scoreCell = document.createElement('td');
+
         if (values.length > 0) {
+          const container = document.createElement('div');
+          container.className = 'dropdown-container';
+
+          const button = document.createElement('button');
+          button.className = 'dropdown-btn';
+          button.textContent = scores[lineName] !== undefined ? scores[lineName] : '▼';
+
           const select = document.createElement('select');
           select.className = 'score-select';
-
           select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
-          select.value = "";
 
-          select.addEventListener('change', () => {
-            // Ici tu peux gérer la valeur sélectionnée si besoin
+          if (scores[lineName] !== undefined) {
+            select.value = scores[lineName];
+          }
+
+          container.appendChild(button);
+          container.appendChild(select);
+          scoreCell.appendChild(container);
+
+          button.addEventListener('click', () => {
+            select.classList.add('show');
+            select.focus();
+            select.size = Math.min(values.length, 6);
           });
 
-          scoreCell.appendChild(select);
+          select.addEventListener('change', () => {
+            if (select.value === "") {
+              delete scores[lineName];
+              button.textContent = '▼';
+            } else {
+              scores[lineName] = parseInt(select.value, 10);
+              button.textContent = select.value;
+            }
+            select.classList.remove('show');
+            updateTotals();
+          });
+
+          select.addEventListener('blur', () => {
+            select.classList.remove('show');
+          });
         } else {
-          scoreCell.textContent = '-';
+          scoreCell.textContent = getCalculatedScore(playerName, lineName);
+          scoreCell.style.fontWeight = 'bold';
         }
 
         tr.appendChild(labelCell);
@@ -162,5 +204,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
       scoreTables.appendChild(table);
     }
+  }
+
+  function getCalculatedScore(playerName, lineName) {
+    const scores = playerScores[playerName];
+    if (!scores) return '';
+
+    if (lineName === 'Bonus') {
+      let sum = 0;
+      for (let i = 1; i <= 6; i++) {
+        sum += scores[i] || 0;
+      }
+      return sum >= 63 ? 35 : 0;
+    } else if (lineName === 'Total Haut') {
+      let sum = 0;
+      for (let i = 1; i <= 6; i++) {
+        sum += scores[i] || 0;
+      }
+      sum += getCalculatedScore(playerName, 'Bonus') || 0;
+      return sum;
+    } else if (lineName === 'Total Bas') {
+      const basLines = ['Brelan', 'Full', 'Carré', 'Petite Suite', 'Grande Suite', 'Chance', 'Yams'];
+      let sum = 0;
+      basLines.forEach(name => {
+        sum += scores[name] || 0;
+      });
+      return sum;
+    } else if (lineName === 'Total') {
+      const haut = getCalculatedScore(playerName, 'Total Haut') || 0;
+      const bas = getCalculatedScore(playerName, 'Total Bas') || 0;
+      return haut + bas;
+    }
+    return '';
+  }
+
+  function updateTotals() {
+    generateScoreTables();
   }
 });
