@@ -1,28 +1,38 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f7f7f7;
+/* Structure de base */
+body, html {
+  height: 100%;
   margin: 0;
   padding: 0;
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
 }
 
+/* Gestion des écrans */
 .screen {
-  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 100%;
   padding: 2em;
-  max-width: 400px;
-  margin: 2em auto;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
 }
 
 .screen.active {
-  display: block;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 1;
 }
 
+/* Titres */
 h1, h2 {
   text-align: center;
 }
 
+/* Formulaire joueur */
 #player-form {
   display: flex;
   gap: 0.5em;
@@ -36,6 +46,17 @@ h1, h2 {
   border: 1px solid #ccc;
 }
 
+/* Page d'accueil */
+#home-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+/* Liste des joueurs */
 #player-list {
   list-style: none;
   padding: 0;
@@ -50,6 +71,7 @@ h1, h2 {
   font-size: 1.1em;
 }
 
+/* Bouton suppression */
 .remove-player {
   background: none;
   border: none;
@@ -64,6 +86,7 @@ h1, h2 {
   color: #900;
 }
 
+/* Boutons */
 button {
   padding: 0.5em 1em;
   border-radius: 4px;

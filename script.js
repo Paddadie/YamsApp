@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const players = [];
 
   function updateStartGameBtn() {
-    startGameBtn.disabled = players.length < 2; // Minimum 2 joueurs
+    startGameBtn.disabled = players.length < 2;
   }
 
   function renderPlayers() {
@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const li = document.createElement('li');
       li.textContent = name;
 
-      // Bouton suppression
       const removeBtn = document.createElement('button');
       removeBtn.innerHTML = "&#10060;";
       removeBtn.className = "remove-player";
@@ -68,7 +67,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   startGameBtn.addEventListener('click', () => {
-    // Ici, vous pouvez afficher l'écran de jeu ou démarrer la partie
     alert("La partie commence !");
   });
 });
