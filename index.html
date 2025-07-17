@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yams</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ffffff" />
+</head>
+<body>
+  <h1>Bienvenue dans mon App</h1>
+  <p>Ceci est une Progressive Web App.</p>
+
+  <script src="script.js"></script>
+  <script>
+    // Enregistrement du service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('✅ Service Worker enregistré', reg))
+          .catch(err => console.log('❌ Échec enregistrement SW', err));
+      });
+    }
+  </script>
+</body>
+</html>
