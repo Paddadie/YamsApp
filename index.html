@@ -3,14 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yams</title>
+  <title>Yams - Compteur de Points</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ffffff" />
 </head>
 <body>
-  <h1>Bienvenue dans mon App</h1>
-  <p>Ceci est une Progressive Web App.</p>
+  <div id="home-screen" class="screen active">
+    <h1>Bienvenue au Yams</h1>
+    <button id="start-btn">Commencer</button>
+  </div>
+
+  <div id="players-screen" class="screen">
+    <h2>Ajouter des joueurs</h2>
+    <form id="player-form">
+      <input type="text" id="player-name" placeholder="Nom du joueur" required />
+      <button type="submit">Ajouter</button>
+    </form>
+    <ul id="player-list"></ul>
+  </div>
 
   <script src="script.js"></script>
   <script>
