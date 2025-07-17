@@ -136,38 +136,9 @@ button:hover {
   text-align: center;
 }
 
-.dropdown-container {
-  display: flex;
-  justify-content: center;
-  position: relative;
-}
-
-.dropdown-btn {
-  background: #e0e0e0;
-  border: none;
-  padding: 0.3em 0.6em;
-  cursor: pointer;
-  font-size: 1em;
-  border-radius: 4px;
-  user-select: none;
-}
-
-.dropdown-btn:hover {
-  background: #d0d0d0;
-}
-
 .score-select {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 10;
   width: 100%;
   font-size: 1em;
-  display: none;
-  margin-top: 0.1em;
-}
-
-.score-select.show {
-  display: block;
-  height: auto;
+  padding: 0.3em 0.6em;
+  border-radius: 4px;
 }
