@@ -84,7 +84,7 @@ button {
 }
 
 button:hover {
-  background: #155a8a;
+  background: #155a8a;  
 }
 
 #start-game-btn {
@@ -129,16 +129,16 @@ button:hover {
   padding: 0.5em;
   border: 1px solid #ddd;
   word-wrap: break-word;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .score-table td:first-child {
-  width: 60%;
-  text-align: left;
+  width: 50%;
 }
 
 .score-table td:last-child {
-  width: 40%;
-  text-align: center;
+  width: 50%;
 }
 
 .score-select {
@@ -146,4 +146,6 @@ button:hover {
   font-size: 1em;
   padding: 0.3em 0.6em;
   border-radius: 4px;
+  text-align: center;
+  text-align-last: center;
 }
