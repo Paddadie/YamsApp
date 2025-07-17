@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   startBtn.addEventListener('click', () => {
-    homeScreen.style.display = 'none';
+    homeScreen.style.display = 'none';  
     switchToScreen(playersScreen);
     loadPlayers();
   });
@@ -140,30 +140,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const scoreCell = document.createElement('td');
         if (values.length > 0) {
-          const container = document.createElement('div');
-          container.className = 'dropdown-container';
-
-          const button = document.createElement('button');
-          button.className = 'dropdown-btn';
-          button.textContent = '▼';
-
           const select = document.createElement('select');
           select.className = 'score-select';
-          select.innerHTML = `<option value=\"\">--</option>` + values.map(v => `<option value=\"${v}\">${v}</option>`).join('');
 
-          container.appendChild(button);
-          container.appendChild(select);
-          scoreCell.appendChild(container);
-
-          button.addEventListener('click', () => {
-            document.querySelectorAll('.score-select').forEach(sel => sel.classList.remove('open'));
-            select.classList.toggle('open');
-          });
+          select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join('');
+          select.value = "";
 
           select.addEventListener('change', () => {
-            button.textContent = select.value || '▼';
-            select.classList.remove('open');
+            // Ici tu peux gérer la valeur sélectionnée si besoin
           });
+
+          scoreCell.appendChild(select);
         } else {
           scoreCell.textContent = '-';
         }
