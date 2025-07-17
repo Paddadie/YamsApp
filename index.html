@@ -24,6 +24,40 @@
     <button id="start-game-btn">Lancer la partie</button>
   </div>
 
+  <div id="game-screen" class="screen">
+    <div class="player-nav">
+      <button id="prev-player-btn" aria-label="Joueur précédent">⏴</button>
+      <h2 id="current-player-name">Nom du joueur</h2>
+      <button id="next-player-btn" aria-label="Joueur suivant">⏵</button>
+    </div>
+
+    <table class="score-table">
+      <tr><td>1</td><td></td></tr>
+      <tr><td>2</td><td></td></tr>
+      <tr><td>3</td><td></td></tr>
+      <tr><td>4</td><td></td></tr>
+      <tr><td>5</td><td></td></tr>
+      <tr><td>6</td><td></td></tr>
+      <tr><td>Bonus</td><td></td></tr>
+      <tr><td>Total Haut</td><td></td></tr>
+    </table>
+
+    <table class="score-table">
+      <tr><td>Brelan</td><td></td></tr>
+      <tr><td>Full</td><td></td></tr>
+      <tr><td>Carré</td><td></td></tr>
+      <tr><td>Petite Suite</td><td></td></tr>
+      <tr><td>Grande Suite</td><td></td></tr>
+      <tr><td>Chance</td><td></td></tr>
+      <tr><td>Yams</td><td></td></tr>
+      <tr><td>Total Bas</td><td></td></tr>
+    </table>
+
+    <table class="score-table">
+      <tr><td>Score final</td><td></td></tr>
+    </table>
+  </div>
+
   <script src="script.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

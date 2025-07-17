@@ -2,12 +2,24 @@ document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('start-btn');
   const homeScreen = document.getElementById('home-screen');
   const playersScreen = document.getElementById('players-screen');
+  const gameScreen = document.getElementById('game-screen');
+
   const playerForm = document.getElementById('player-form');
   const playerNameInput = document.getElementById('player-name');
   const playerList = document.getElementById('player-list');
   const startGameBtn = document.getElementById('start-game-btn');
 
+  const currentPlayerName = document.getElementById('current-player-name');
+  const prevPlayerBtn = document.getElementById('prev-player-btn');
+  const nextPlayerBtn = document.getElementById('next-player-btn');
+
   const players = [];
+  let currentPlayerIndex = 0;
+
+  function switchToScreen(screen) {
+    document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+    screen.classList.add('active');
+  }
 
   function updateStartGameBtn() {
     startGameBtn.disabled = players.length < 2;
@@ -48,9 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function showCurrentPlayer() {
+    currentPlayerName.textContent = players[currentPlayerIndex];
+  }
+
   startBtn.addEventListener('click', () => {
-    homeScreen.classList.remove('active');
-    playersScreen.classList.add('active');
+    switchToScreen(playersScreen);
     loadPlayers();
   });
 
@@ -67,6 +82,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   startGameBtn.addEventListener('click', () => {
-    alert("La partie commence !");
+    currentPlayerIndex = 0;
+    showCurrentPlayer();
+    switchToScreen(gameScreen);
+  });
+
+  prevPlayerBtn.addEventListener('click', () => {
+    currentPlayerIndex = (currentPlayerIndex - 1 + players.length) % players.length;
+    showCurrentPlayer();
+  });
+
+  nextPlayerBtn.addEventListener('click', () => {
+    currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    showCurrentPlayer();
   });
 });

@@ -1,4 +1,3 @@
-/* Structure de base */
 body, html {
   height: 100%;
   margin: 0;
@@ -7,7 +6,7 @@ body, html {
   background: #f7f7f7;
 }
 
-/* Gestion des écrans */
+/* Transitions entre écrans */
 .screen {
   position: absolute;
   top: 0;
@@ -27,12 +26,21 @@ body, html {
   z-index: 1;
 }
 
-/* Titres */
+/* Accueil centré */
+#home-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
 h1, h2 {
   text-align: center;
 }
 
-/* Formulaire joueur */
+/* Formulaire joueurs */
 #player-form {
   display: flex;
   gap: 0.5em;
@@ -46,17 +54,6 @@ h1, h2 {
   border: 1px solid #ccc;
 }
 
-/* Page d'accueil */
-#home-screen {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  text-align: center;
-}
-
-/* Liste des joueurs */
 #player-list {
   list-style: none;
   padding: 0;
@@ -71,7 +68,6 @@ h1, h2 {
   font-size: 1.1em;
 }
 
-/* Bouton suppression */
 .remove-player {
   background: none;
   border: none;
@@ -113,4 +109,58 @@ button:hover {
   background: #ccc;
   color: #888;
   cursor: not-allowed;
+}
+
+/* Écran de jeu */
+#game-screen {
+  padding: 2em 1em;
+}
+
+.player-nav {
+  display: grid;
+  grid-template-columns: 50px 1fr 50px;
+  align-items: center;
+  margin-bottom: 2em;
+  max-width: 100%;
+}
+
+.player-nav h2 {
+  margin: 0;
+  font-size: 1.5em;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.player-nav button {
+  font-size: 1.5em;
+  background: none;
+  border: none;
+  color: #1976d2;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.player-nav button:hover {
+  color: #0d47a1;
+}
+
+.score-table {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 1em auto;
+  border-collapse: collapse;
+}
+
+.score-table td {
+  border: 1px solid #ccc;
+  padding: 0.5em;
+  font-size: 1.1em;
+  text-align: left;
+}
+
+h3 {
+  text-align: center;
+  margin-top: 1em;
 }
