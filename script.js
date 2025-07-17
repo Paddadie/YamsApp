@@ -58,7 +58,7 @@ playerForm.addEventListener("submit", (e) => {
     players.push(player);
     updatePlayerList();
     playerNameInput.value = "";
-    startGameBtn.disabled = players.length === 0;
+    startGameBtn.disabled = players.length < 2;
   }
 });
 
@@ -73,7 +73,7 @@ function updatePlayerList() {
     removeBtn.addEventListener("click", () => {
       players.splice(index, 1);
       updatePlayerList();
-      startGameBtn.disabled = players.length === 0;
+      startGameBtn.disabled = players.length < 2;
     });
     li.appendChild(removeBtn);
     playerList.appendChild(li);
@@ -104,7 +104,7 @@ function displayCurrentPlayer() {
 }
 
 function generateScoreTables(player) {
-  const tables = [upperSection, lowerSection, { Total: [] }];
+  const tables = [upperSection, lowerSection, { "Score final": [] }];
   tables.forEach((section) => {
     const table = document.createElement("table");
     table.className = "score-table";
