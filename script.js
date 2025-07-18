@@ -14,7 +14,6 @@ const scoreTablesContainer = document.getElementById("score-tables");
 const prevPlayerBtn = document.getElementById("prev-player-btn");
 const nextPlayerBtn = document.getElementById("next-player-btn");
 const currentPlayerName = document.getElementById("current-player-name");
-const finalRankingTable = document.getElementById("final-ranking").querySelector("tbody");
 
 let players = [];
 let currentPlayerIndex = 0;
@@ -208,7 +207,6 @@ function getUpperSum(player) {
 }
 
 function updateCalculatedScores(player) {
-  // Met à jour et stocke tous les scores calculés
   calculateSpecialScore("Bonus", player);
   calculateSpecialScore("Total Haut", player);
   calculateSpecialScore("Total Bas", player);
@@ -236,26 +234,39 @@ function checkIfGameFinished() {
 function showFinalScreen() {
   const results = players.map(player => ({
     name: player.name,
-    bonus: (player.scores["Bonus"] || 0) > 0 ? "Oui" : "Non",
-    totalHaut: player.scores["Total Haut"] || 0,
-    totalBas: player.scores["Total Bas"] || 0,
-    total: player.scores["Score Final"] || 0
+    total: calculateSpecialScore("Score Final", player)
   }));
 
   const sorted = results.sort((a, b) => b.total - a.total);
 
-  finalRankingTable.innerHTML = "";
+  const podiumSlots = [document.getElementById("podium-1"), document.getElementById("podium-2"), document.getElementById("podium-3")];
+  podiumSlots.forEach(slot => slot.textContent = "");
+
+  for (let i = 0; i < 3; i++) {
+    if (sorted[i]) {
+      podiumSlots[i].textContent = sorted[i].name;
+    }
+  }
+
+  const tableBody = document.querySelector("#ranking-table tbody");
+  tableBody.innerHTML = "";
+
   sorted.forEach((p, i) => {
     const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${p.name}</td>
-      <td>${p.bonus}</td>
-      <td>${p.totalHaut}</td>
-      <td>${p.totalBas}</td>
-      <td>${p.total}</td>
-    `;
-    finalRankingTable.appendChild(row);
+
+    const rankCell = document.createElement("td");
+    rankCell.textContent = `${i + 1}.`;
+
+    const nameCell = document.createElement("td");
+    nameCell.textContent = p.name;
+
+    const scoreCell = document.createElement("td");
+    scoreCell.textContent = `${p.total} pts`;
+
+    row.appendChild(rankCell);
+    row.appendChild(nameCell);
+    row.appendChild(scoreCell);
+    tableBody.appendChild(row);
   });
 
   switchScreen(screens.game, screens.end);

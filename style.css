@@ -150,3 +150,51 @@ button:hover {
   text-align: center;
   text-align-last: center;
 }
+
+#podium-container {
+  position: relative;
+  width: 300px;
+  margin: 0 auto;
+}
+
+#podium-image {
+  width: 100%;
+}
+
+.podium-slot {
+  position: absolute;
+  text-align: center;
+  font-weight: bold;
+}
+
+#podium-1 {
+  top: 1.5em;
+  text-align: center;
+  width: 100%;
+}
+
+#podium-2 {
+  top: 5em;
+  left: 0em;
+  width: 35%;
+}
+
+#podium-3 {
+  top: 6em;
+  right: 0em;
+  width: 30%;
+}
+
+#ranking-table {
+  width: 100%;
+  max-width: 400px;
+  margin: 30px auto;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 16px;
+}
+
+#ranking-table td {
+  padding: 4px 8px;
+  border: none;
+}
