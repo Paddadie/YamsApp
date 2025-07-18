@@ -84,7 +84,7 @@ button {
 }
 
 button:hover {
-  background: #155a8a;  
+  background: #155a8a;
 }
 
 #start-game-btn {
@@ -125,7 +125,8 @@ button:hover {
   table-layout: fixed;
 }
 
-.score-table td {
+.score-table td,
+.score-table th {
   padding: 0.5em;
   border: 1px solid #ddd;
   word-wrap: break-word;
