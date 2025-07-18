@@ -169,7 +169,14 @@ function calculateSpecialScore(name, player) {
   if (name === "Bonus") {
     const total = getUpperSum(player);
     const allFilled = ["1", "2", "3", "4", "5", "6"].every(k => player.scores[k] !== undefined);
-    const value = total >= 63 ? 35 : allFilled ? 0 : `Manque ${63 - total} point(s)`;
+    let value;
+    if (total >= 63) {
+      value = 35;
+    } else if (allFilled) {
+      value = 0;
+    } else {
+      value = `Manque ${63 - total} point(s)`;
+    }
     if (typeof value === "number") {
       player.scores["Bonus"] = value;
     }
@@ -231,43 +238,34 @@ function checkIfGameFinished() {
   }
 }
 
+function renderPodium(players) {
+  const podiumSlots = [document.getElementById("podium-1"), document.getElementById("podium-2"), document.getElementById("podium-3")];
+  podiumSlots.forEach((slot, i) => {
+    slot.textContent = players[i] ? players[i].name : "";
+  });
+}
+
+function renderRanking(players) {
+  const tableBody = document.querySelector("#ranking-table tbody");
+  tableBody.innerHTML = "";
+  players.forEach((p, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${i + 1}.</td>
+      <td>${p.name}</td>
+      <td>${p.total} pts</td>
+    `;
+    tableBody.appendChild(row);
+  });
+}
+
 function showFinalScreen() {
   const results = players.map(player => ({
     name: player.name,
     total: calculateSpecialScore("Score Final", player)
-  }));
+  })).sort((a, b) => b.total - a.total);
 
-  const sorted = results.sort((a, b) => b.total - a.total);
-
-  const podiumSlots = [document.getElementById("podium-1"), document.getElementById("podium-2"), document.getElementById("podium-3")];
-  podiumSlots.forEach(slot => slot.textContent = "");
-
-  for (let i = 0; i < 3; i++) {
-    if (sorted[i]) {
-      podiumSlots[i].textContent = sorted[i].name;
-    }
-  }
-
-  const tableBody = document.querySelector("#ranking-table tbody");
-  tableBody.innerHTML = "";
-
-  sorted.forEach((p, i) => {
-    const row = document.createElement("tr");
-
-    const rankCell = document.createElement("td");
-    rankCell.textContent = `${i + 1}.`;
-
-    const nameCell = document.createElement("td");
-    nameCell.textContent = p.name;
-
-    const scoreCell = document.createElement("td");
-    scoreCell.textContent = `${p.total} pts`;
-
-    row.appendChild(rankCell);
-    row.appendChild(nameCell);
-    row.appendChild(scoreCell);
-    tableBody.appendChild(row);
-  });
-
+  renderPodium(results);
+  renderRanking(results);
   switchScreen(screens.game, screens.end);
 }
