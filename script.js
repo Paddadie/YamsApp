@@ -170,7 +170,7 @@ function calculateSpecialScore(name, player) {
   if (name === "Bonus") {
     const total = getUpperSum(player);
     const allFilled = ["1", "2", "3", "4", "5", "6"].every(k => player.scores[k] !== undefined);
-    const value = allFilled ? (total >= 63 ? 35 : 0) : `Manque ${63 - total} point(s)`;
+    const value = total >= 63 ? 35 : allFilled ? 0 : `Manque ${63 - total} point(s)`;
     if (typeof value === "number") {
       player.scores["Bonus"] = value;
     }
