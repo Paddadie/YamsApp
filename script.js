@@ -1,3 +1,4 @@
+// === Gestion des écrans ===
 const screens = {
   home: document.getElementById("home-screen"),
   players: document.getElementById("players-screen"),
@@ -5,6 +6,7 @@ const screens = {
   end: document.getElementById("end-screen"),
 };
 
+// === Éléments DOM ===
 const startBtn = document.getElementById("start-btn");
 const playerForm = document.getElementById("player-form");
 const playerNameInput = document.getElementById("player-name");
@@ -14,11 +16,11 @@ const scoreTablesContainer = document.getElementById("score-tables");
 const prevPlayerBtn = document.getElementById("prev-player-btn");
 const nextPlayerBtn = document.getElementById("next-player-btn");
 const currentPlayerName = document.getElementById("current-player-name");
+const firstPodium = document.getElementById("podium-1");
+const secondPodium = document.getElementById("podium-2");
+const thirdPodium = document.getElementById("podium-3");
 
-let players = [];
-let currentPlayerIndex = 0;
-let autoAdvanceTimeout;
-
+// === Configuration des sections ===
 const upperSection = {
   "1": [0, 1, 2, 3, 4, 5],
   "2": [0, 2, 4, 6, 8, 10],
@@ -41,8 +43,23 @@ const lowerSection = {
   "Total Bas": [],
 };
 
-const totalSection = { "Score Final": [] };
+const totalSection = {
+  "Score Final": []
+};
 
+// === Noms dynamiques dérivés des sections ===
+const getScoringKeys = section => Object.keys(section).filter(k => section[k].length > 0);
+const upperScoringNames = getScoringKeys(upperSection);
+const lowerScoringNames = getScoringKeys(lowerSection);
+const upperSectionNames = Object.keys(upperSection);
+const lowerSectionNames = Object.keys(lowerSection);
+
+// === Variables de jeu ===
+let players = [];
+let currentPlayerIndex = 0;
+let autoAdvanceTimeout;
+
+// === Navigation ===
 function switchScreen(from, to) {
   from.classList.remove("active");
   to.classList.add("active");
@@ -53,6 +70,7 @@ startBtn.addEventListener("click", () => {
   switchScreen(screens.home, screens.players);
 });
 
+// === Gestion des joueurs ===
 playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = playerNameInput.value.trim();
@@ -99,6 +117,7 @@ nextPlayerBtn.addEventListener("click", () => {
   displayCurrentPlayer();
 });
 
+// === Affichage et gestion des scores ===
 function displayCurrentPlayer() {
   const player = players[currentPlayerIndex];
   currentPlayerName.textContent = player.name;
@@ -168,7 +187,7 @@ function generateScoreTables(player) {
 function calculateSpecialScore(name, player) {
   if (name === "Bonus") {
     const total = getUpperSum(player);
-    const allFilled = ["1", "2", "3", "4", "5", "6"].every(k => player.scores[k] !== undefined);
+    const allFilled = upperScoringNames.every(k => player.scores[k] !== undefined);
     let value;
     if (total >= 63) {
       value = 35;
@@ -192,8 +211,7 @@ function calculateSpecialScore(name, player) {
   }
 
   if (name === "Total Bas") {
-    const value = ["Brelan", "Full", "Carré", "Petite Suite", "Grande Suite", "Chance", "Yams"]
-      .map(k => player.scores[k] || 0).reduce((a, b) => a + b, 0);
+    const value = lowerScoringNames.reduce((sum, k) => sum + (player.scores[k] || 0), 0);
     player.scores["Total Bas"] = value;
     return value;
   }
@@ -208,9 +226,7 @@ function calculateSpecialScore(name, player) {
 }
 
 function getUpperSum(player) {
-  return ["1", "2", "3", "4", "5", "6"]
-    .map(k => player.scores[k] || 0)
-    .reduce((a, b) => a + b, 0);
+  return upperScoringNames.reduce((sum, key) => sum + (player.scores[key] || 0), 0);
 }
 
 function updateCalculatedScores(player) {
@@ -224,10 +240,7 @@ function updateCalculatedScores(player) {
 
 function isGameFinished() {
   return players.every(player => {
-    const required = [
-      ...Object.keys(upperSection).filter(k => !["Bonus", "Total Haut"].includes(k)),
-      ...Object.keys(lowerSection).filter(k => k !== "Total Bas")
-    ];
+    const required = [...upperScoringNames, ...lowerScoringNames];
     return required.every(k => player.scores[k] !== undefined);
   });
 }
@@ -238,8 +251,9 @@ function checkIfGameFinished() {
   }
 }
 
+// === Écran final et classement ===
 function renderPodium(players) {
-  const podiumSlots = [document.getElementById("podium-1"), document.getElementById("podium-2"), document.getElementById("podium-3")];
+  const podiumSlots = [firstPodium, secondPodium, thirdPodium];
   podiumSlots.forEach((slot, i) => {
     slot.textContent = players[i] ? players[i].name : "";
   });
