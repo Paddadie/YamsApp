@@ -17,7 +17,7 @@ self.addEventListener("install", event => {
 });
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').then(reg => {
+  navigator.serviceWorker.register('sw.js?v=7').then(reg => {
     if (reg.waiting) {
       reg.waiting.postMessage("SKIP_WAITING");
     }
