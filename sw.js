@@ -1,10 +1,11 @@
-const CACHE_NAME = "mon-app-cache-v1";
+const CACHE_NAME = "yams-app-cache";
 const ASSETS = [
-  "/",
-  "/index.html",
-  "/style.css",
-  "/script.js",
-  "/manifest.json"
+  "./",
+  "./index.html",
+  "./style.css",
+  "./script.js",
+  "./manifest.json",
+  "./assets/de.png"
 ];
 
 self.addEventListener("install", event => {
