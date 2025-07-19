@@ -385,6 +385,8 @@ function getVariantIcon(variant) {
 }
 
 quitBtn.addEventListener("click", () => {
+  saveBestAndWorstScores();
+
   // Réinitialiser les variables globales
   players = [];
   currentPlayerIndex = 0;
@@ -395,7 +397,7 @@ quitBtn.addEventListener("click", () => {
   playerNameInput.value = "";
   startGameBtn.disabled = true;
 
-  // Réinitialiser les cases à cocher (remettre "Classique" coché par défaut)
+  // Réinitialiser les cases à cocher 
   variantCheckboxes.forEach(cb => {
     cb.checked = (cb.value === "Classique");
   });
@@ -404,3 +406,42 @@ quitBtn.addEventListener("click", () => {
   switchScreen(screens.end, screens.home);
   screens.home.style.display = 'block';
 });
+
+function saveBestAndWorstScores() {
+  // Récupérer l'existant depuis le localStorage
+  const bestScores = JSON.parse(localStorage.getItem("bestScores")) || [];
+  const worstScores = JSON.parse(localStorage.getItem("worstScores")) || [];
+
+  const date = new Date().toLocaleDateString("fr-FR");
+
+  const allScores = [];
+
+  players.forEach(player => {
+    selectedVariants.forEach(variant => {
+      const score = player.scores?.[variant]?.["Score Final"];
+      if (typeof score === "number") {
+        allScores.push({
+          name: player.name,
+          score: score,
+          date: date,
+        });
+      }
+    });
+  });
+
+  // Ajouter à la liste des meilleurs/pires
+  bestScores.push(...allScores);
+  worstScores.push(...allScores);
+
+  // Trier et garder seulement les 5 meilleurs/pires
+  const sortedBest = bestScores
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+  const sortedWorst = worstScores
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 5);
+
+  // Enregistrer dans localStorage
+  localStorage.setItem("bestScores", JSON.stringify(sortedBest));
+  localStorage.setItem("worstScores", JSON.stringify(sortedWorst));
+}
