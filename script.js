@@ -46,6 +46,7 @@ const variantCheckboxes = document.querySelectorAll("input[name='variant']");
 const firstPodium = document.getElementById("podium-1");
 const secondPodium = document.getElementById("podium-2");
 const thirdPodium = document.getElementById("podium-3");
+const quitBtn = document.getElementById("quit-btn");
 
 // === Navigation ===
 function switchScreen(from, to) {
@@ -382,3 +383,24 @@ function getVariantIcon(variant) {
     default: return variant;
   }
 }
+
+quitBtn.addEventListener("click", () => {
+  // Réinitialiser les variables globales
+  players = [];
+  currentPlayerIndex = 0;
+  selectedVariants = [];
+
+  // Réinitialiser les listes et champs
+  playerList.innerHTML = "";
+  playerNameInput.value = "";
+  startGameBtn.disabled = true;
+
+  // Réinitialiser les cases à cocher (remettre "Classique" coché par défaut)
+  variantCheckboxes.forEach(cb => {
+    cb.checked = (cb.value === "Classique");
+  });
+
+  // Afficher l'écran d'accueil
+  switchScreen(screens.end, screens.home);
+  screens.home.style.display = 'block';
+});
