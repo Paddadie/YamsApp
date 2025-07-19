@@ -49,6 +49,12 @@ h2 {
   font-size: 1.2em;
 }
 
+#start-btn:disabled {
+  background: #ccc;
+  color: #888;
+  cursor: not-allowed;
+}
+
 #player-form {
   display: flex;
   gap: 0.5em;
