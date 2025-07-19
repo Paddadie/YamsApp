@@ -166,6 +166,11 @@ button:hover {
   width: 50%;
 }
 
+.spacer-row td {
+  border: none;
+  background: transparent;
+}
+
 .score-select {
   width: 100%;
   font-size: 1em;

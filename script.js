@@ -119,7 +119,7 @@ function displayCurrentPlayer() {
   table.className = "score-table";
 
   const sectionOrder = [upperSection, lowerSection, totalSection];
-  const allLines = sectionOrder.flatMap(section => Object.keys(section));
+  const allSections = sectionOrder.map(section => Object.keys(section));
 
   // En-tête
   const headerRow = document.createElement("tr");
@@ -145,47 +145,65 @@ function displayCurrentPlayer() {
 
   table.appendChild(headerRow);
 
-  // Lignes de catégories
-  for (const lineName of allLines) {
-    const row = document.createElement("tr");
-    const nameCell = document.createElement("td");
-    nameCell.textContent = lineName;
-    row.appendChild(nameCell);
+  // Parcours des sections
+  for (let s = 0; s < allSections.length; s++) {
+    const sectionLines = allSections[s];
 
-    for (const variant of selectedVariants) {
-      const cell = document.createElement("td");
-      const scores = player.scores[variant];
-      const values = (upperSection[lineName] || lowerSection[lineName] || totalSection[lineName] || []);
+    for (const lineName of sectionLines) {
+      const row = document.createElement("tr");
+      const nameCell = document.createElement("td");
+      nameCell.textContent = lineName;
+      row.appendChild(nameCell);
 
-      if (values.length > 0) {
-        const select = document.createElement("select");
-        select.className = "score-select";
-        select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join("");
-        if (scores[lineName] !== undefined) {
-          select.value = scores[lineName];
+      for (const variant of selectedVariants) {
+        const cell = document.createElement("td");
+        const scores = player.scores[variant];
+        const values = (upperSection[lineName] || lowerSection[lineName] || totalSection[lineName] || []);
+
+        if (values.length > 0) {
+          const select = document.createElement("select");
+          select.className = "score-select";
+          select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join("");
+          if (scores[lineName] !== undefined) {
+            select.value = scores[lineName];
+          }
+          select.addEventListener("change", () => {
+            if (select.value === "") delete scores[lineName];
+            else scores[lineName] = parseInt(select.value);
+
+            updateCalculatedScores(scores);
+
+            if (autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
+            autoAdvanceTimeout = setTimeout(() => {
+              if (!isGameFinished()) nextPlayerBtn.click();
+              else showFinalScreen();
+            }, 800);
+          });
+          cell.appendChild(select);
+        } else {
+          const val = calculateSpecialScore(lineName, scores);
+          cell.textContent = val;
         }
-        select.addEventListener("change", () => {
-          if (select.value === "") delete scores[lineName];
-          else scores[lineName] = parseInt(select.value);
 
-          updateCalculatedScores(scores);
-
-          if (autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
-          autoAdvanceTimeout = setTimeout(() => {
-            if (!isGameFinished()) nextPlayerBtn.click();
-            else showFinalScreen();
-          }, 800);
-        });
-        cell.appendChild(select);
-      } else {
-        const val = calculateSpecialScore(lineName, scores);
-        cell.textContent = val;
+        row.appendChild(cell);
       }
 
-      row.appendChild(cell);
+      table.appendChild(row);
     }
 
-    table.appendChild(row);
+    // Ligne vide de séparation (entre les sections, sauf la dernière)
+    if (s < allSections.length - 1) {
+      const spacerRow = document.createElement("tr");
+      spacerRow.style.border = "none";
+
+      const emptyTd = document.createElement("td");
+      emptyTd.colSpan = selectedVariants.length + 1;
+      emptyTd.style.border = "none";
+      emptyTd.style.height = "1em";
+
+      spacerRow.appendChild(emptyTd);
+      table.appendChild(spacerRow);
+    }
   }
 
   scoreTablesContainer.appendChild(table);
