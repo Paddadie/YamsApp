@@ -1,63 +1,46 @@
-// === Gestion des écrans ===
-const screens = {
-  home: document.getElementById("home-screen"),
-  players: document.getElementById("players-screen"),
-  game: document.getElementById("game-screen"),
-  end: document.getElementById("end-screen"),
-};
+// === Variables globales ===
+let players = [];
+let currentPlayerIndex = 0;
+let autoAdvanceTimeout;
+let selectedVariants = [];
 
-// === Éléments DOM ===
-const startBtn = document.getElementById("start-btn");
-const playerForm = document.getElementById("player-form");
-const playerNameInput = document.getElementById("player-name");
-const playerList = document.getElementById("player-list");
-const startGameBtn = document.getElementById("start-game-btn");
-const scoreTablesContainer = document.getElementById("score-tables");
-const prevPlayerBtn = document.getElementById("prev-player-btn");
-const nextPlayerBtn = document.getElementById("next-player-btn");
-const currentPlayerName = document.getElementById("current-player-name");
-const firstPodium = document.getElementById("podium-1");
-const secondPodium = document.getElementById("podium-2");
-const thirdPodium = document.getElementById("podium-3");
-
-// === Configuration des sections ===
-const upperSection = {
-  "1": [0, 1, 2, 3, 4, 5],
-  "2": [0, 2, 4, 6, 8, 10],
-  "3": [0, 3, 6, 9, 12, 15],
-  "4": [0, 4, 8, 12, 16, 20],
-  "5": [0, 5, 10, 15, 20, 25],
-  "6": [0, 6, 12, 18, 24, 30],
-  "Bonus": [],
-  "Total Haut": [],
-};
-
+const upperSection = { "1": [0, 1, 2, 3, 4, 5], "2": [0, 2, 4, 6, 8, 10], "3": [0, 3, 6, 9, 12, 15], "4": [0, 4, 8, 12, 16, 20], "5": [0, 5, 10, 15, 20, 25], "6": [0, 6, 12, 18, 24, 30], "Bonus": [], "Total Haut": [] };
 const lowerSection = {
   "Brelan (Σ)": Array.from({ length: 31 }, (_, i) => i),
   "Full (25)": [0, 25],
   "Carré (40)": [0, 40],
-  "Petite Suite (30)": [0, 30],
-  "Grande Suite (40)": [0, 40],
+  "Pte Suite (30)": [0, 30],
+  "Gde Suite (40)": [0, 40],
   "Chance (Σ)": Array.from({ length: 31 }, (_, i) => i),
   "Yams (50)": [0, 50],
-  "Total Bas": [],
+  "Total Bas": []
 };
+const totalSection = { "Score Final": [] };
 
-const totalSection = {
-  "Score Final": []
-};
-
-// === Noms dynamiques dérivés des sections ===
 const getScoringKeys = section => Object.keys(section).filter(k => section[k].length > 0);
 const upperScoringNames = getScoringKeys(upperSection);
 const lowerScoringNames = getScoringKeys(lowerSection);
-const upperSectionNames = Object.keys(upperSection);
-const lowerSectionNames = Object.keys(lowerSection);
 
-// === Variables de jeu ===
-let players = [];
-let currentPlayerIndex = 0;
-let autoAdvanceTimeout;
+// === DOM Elements ===
+const screens = {
+  home: document.getElementById("home-screen"),
+  players: document.getElementById("players-screen"),
+  game: document.getElementById("game-screen"),
+  end: document.getElementById("end-screen")
+};
+const startBtn = document.getElementById("start-btn");
+const startGameBtn = document.getElementById("start-game-btn");
+const playerForm = document.getElementById("player-form");
+const playerNameInput = document.getElementById("player-name");
+const playerList = document.getElementById("player-list");
+const currentPlayerName = document.getElementById("current-player-name");
+const prevPlayerBtn = document.getElementById("prev-player-btn");
+const nextPlayerBtn = document.getElementById("next-player-btn");
+const scoreTablesContainer = document.getElementById("score-tables");
+const variantCheckboxes = document.querySelectorAll("input[name='variant']");
+const firstPodium = document.getElementById("podium-1");
+const secondPodium = document.getElementById("podium-2");
+const thirdPodium = document.getElementById("podium-3");
 
 // === Navigation ===
 function switchScreen(from, to) {
@@ -66,17 +49,27 @@ function switchScreen(from, to) {
 }
 
 startBtn.addEventListener("click", () => {
+  selectedVariants = Array.from(variantCheckboxes)
+    .filter(checkbox => checkbox.checked)
+    .map(cb => cb.value);
+
+  if (selectedVariants.length === 0) {
+    alert("Veuillez sélectionner au moins une variante.");
+    return;
+  }
   screens.home.style.display = 'none';
   switchScreen(screens.home, screens.players);
 });
 
-// === Gestion des joueurs ===
 playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = playerNameInput.value.trim();
   if (name) {
-    const player = { name, scores: {} };
-    players.push(player);
+    const scores = {};
+    for (const variant of selectedVariants) {
+      scores[variant] = {};
+    }
+    players.push({ name, scores });
     updatePlayerList();
     playerNameInput.value = "";
     startGameBtn.disabled = players.length < 2;
@@ -117,16 +110,81 @@ nextPlayerBtn.addEventListener("click", () => {
   displayCurrentPlayer();
 });
 
-// === Affichage et gestion des scores ===
 function displayCurrentPlayer() {
   const player = players[currentPlayerIndex];
   currentPlayerName.textContent = player.name;
   scoreTablesContainer.innerHTML = "";
-  generateScoreTables(player);
+
+  const table = document.createElement("table");
+  table.className = "score-table";
+
+  const sectionOrder = [upperSection, lowerSection, totalSection];
+  const allLines = sectionOrder.flatMap(section => Object.keys(section));
+
+  // En-tête
+  const headerRow = document.createElement("tr");
+  const firstCell = document.createElement("th");
+  firstCell.textContent = "Catégorie";
+  headerRow.appendChild(firstCell);
+
+  selectedVariants.forEach(variant => {
+    const th = document.createElement("th");
+    th.textContent = variant;
+    headerRow.appendChild(th);
+  });
+  table.appendChild(headerRow);
+
+  // Lignes de catégories
+  for (const lineName of allLines) {
+    const row = document.createElement("tr");
+    const nameCell = document.createElement("td");
+    nameCell.textContent = lineName;
+    row.appendChild(nameCell);
+
+    for (const variant of selectedVariants) {
+      const cell = document.createElement("td");
+      const scores = player.scores[variant];
+      const values = (upperSection[lineName] || lowerSection[lineName] || totalSection[lineName] || []);
+
+      if (values.length > 0) {
+        const select = document.createElement("select");
+        select.className = "score-select";
+        select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join("");
+        if (scores[lineName] !== undefined) {
+          select.value = scores[lineName];
+        }
+        select.addEventListener("change", () => {
+          if (select.value === "") delete scores[lineName];
+          else scores[lineName] = parseInt(select.value);
+
+          updateCalculatedScores(scores);
+
+          if (autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
+          autoAdvanceTimeout = setTimeout(() => {
+            if (!isGameFinished()) nextPlayerBtn.click();
+            else showFinalScreen();
+          }, 800);
+        });
+        cell.appendChild(select);
+      } else {
+        const val = calculateSpecialScore(lineName, scores);
+        cell.textContent = val;
+      }
+
+      row.appendChild(cell);
+    }
+
+    table.appendChild(row);
+  }
+
+  scoreTablesContainer.appendChild(table);
 }
 
-function generateScoreTables(player) {
-  [upperSection, lowerSection, totalSection].forEach(section => {
+function generateScoreTableForVariant(player, variant) {
+  const sectionOrder = [upperSection, lowerSection, totalSection];
+  const scores = player.scores[variant];
+
+  for (const section of sectionOrder) {
     const table = document.createElement("table");
     table.className = "score-table";
 
@@ -135,43 +193,31 @@ function generateScoreTables(player) {
       const row = document.createElement("tr");
       const nameCell = document.createElement("td");
       nameCell.textContent = lineName;
-      nameCell.style.textAlign = "left";
 
       const scoreCell = document.createElement("td");
-      scoreCell.style.textAlign = "center";
 
       if (values.length > 0) {
         const select = document.createElement("select");
         select.className = "score-select";
         select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join("");
-
-        if (player.scores[lineName] !== undefined) {
-          select.value = player.scores[lineName];
+        if (scores[lineName] !== undefined) {
+          select.value = scores[lineName];
         }
-
         select.addEventListener("change", () => {
-          if (select.value === "") {
-            delete player.scores[lineName];
-          } else {
-            player.scores[lineName] = parseInt(select.value, 10);
-          }
+          if (select.value === "") delete scores[lineName];
+          else scores[lineName] = parseInt(select.value);
 
-          updateCalculatedScores(player);
+          updateCalculatedScores(scores);
 
-          if (autoAdvanceTimeout) {
-            clearTimeout(autoAdvanceTimeout);
-          }
+          if (autoAdvanceTimeout) clearTimeout(autoAdvanceTimeout);
           autoAdvanceTimeout = setTimeout(() => {
-            checkIfGameFinished();
-            if (!isGameFinished()) {
-              nextPlayerBtn.click();
-            }
-          }, 1000);
+            if (!isGameFinished()) nextPlayerBtn.click();
+            else showFinalScreen();
+          }, 800);
         });
-
         scoreCell.appendChild(select);
       } else {
-        const val = calculateSpecialScore(lineName, player);
+        const val = calculateSpecialScore(lineName, scores);
         scoreCell.textContent = val;
       }
 
@@ -179,107 +225,77 @@ function generateScoreTables(player) {
       row.appendChild(scoreCell);
       table.appendChild(row);
     }
-
     scoreTablesContainer.appendChild(table);
-  });
+  }
 }
 
-function calculateSpecialScore(name, player) {
+function calculateSpecialScore(name, scores) {
   if (name === "Bonus") {
-    const total = getUpperSum(player);
-    const allFilled = upperScoringNames.every(k => player.scores[k] !== undefined);
-    let value;
-    if (total >= 63) {
-      value = 35;
-    } else if (allFilled) {
-      value = 0;
-    } else {
-      value = `Manque ${63 - total} point(s)`;
-    }
-    if (typeof value === "number") {
-      player.scores["Bonus"] = value;
-    }
+    const total = getUpperSum(scores);
+    const filled = upperScoringNames.every(k => scores[k] !== undefined);
+    const value = total >= 63 ? 35 : (filled ? 0 : `-${63 - total}`);
+    if (typeof value === "number") scores["Bonus"] = value;
     return value;
   }
-
   if (name === "Total Haut") {
-    const total = getUpperSum(player);
-    const bonus = calculateSpecialScore("Bonus", player);
-    const value = total + (typeof bonus === "number" ? bonus : 0);
-    player.scores["Total Haut"] = value;
+    const bonus = calculateSpecialScore("Bonus", scores);
+    const value = getUpperSum(scores) + (typeof bonus === "number" ? bonus : 0);
+    scores["Total Haut"] = value;
     return value;
   }
-
   if (name === "Total Bas") {
-    const value = lowerScoringNames.reduce((sum, k) => sum + (player.scores[k] || 0), 0);
-    player.scores["Total Bas"] = value;
+    const value = lowerScoringNames.reduce((sum, k) => sum + (scores[k] || 0), 0);
+    scores["Total Bas"] = value;
     return value;
   }
-
   if (name === "Score Final") {
-    const value = calculateSpecialScore("Total Haut", player) + calculateSpecialScore("Total Bas", player);
-    player.scores["Score Final"] = value;
+    const haut = calculateSpecialScore("Total Haut", scores);
+    const bas = calculateSpecialScore("Total Bas", scores);
+    const value = haut + bas;
+    scores["Score Final"] = value;
     return value;
   }
-
   return "";
 }
 
-function getUpperSum(player) {
-  return upperScoringNames.reduce((sum, key) => sum + (player.scores[key] || 0), 0);
+function getUpperSum(scores) {
+  return upperScoringNames.reduce((sum, key) => sum + (scores[key] || 0), 0);
 }
 
-function updateCalculatedScores(player) {
-  calculateSpecialScore("Bonus", player);
-  calculateSpecialScore("Total Haut", player);
-  calculateSpecialScore("Total Bas", player);
-  calculateSpecialScore("Score Final", player);
-
-  displayCurrentPlayer();
+function updateCalculatedScores(scores) {
+  calculateSpecialScore("Bonus", scores);
+  calculateSpecialScore("Total Haut", scores);
+  calculateSpecialScore("Total Bas", scores);
+  calculateSpecialScore("Score Final", scores);
 }
 
 function isGameFinished() {
-  return players.every(player => {
+  return players.every(player => selectedVariants.every(variant => {
+    const scores = player.scores[variant];
     const required = [...upperScoringNames, ...lowerScoringNames];
-    return required.every(k => player.scores[k] !== undefined);
-  });
-}
-
-function checkIfGameFinished() {
-  if (isGameFinished()) {
-    showFinalScreen();
-  }
-}
-
-// === Écran final et classement ===
-function renderPodium(players) {
-  const podiumSlots = [firstPodium, secondPodium, thirdPodium];
-  podiumSlots.forEach((slot, i) => {
-    slot.textContent = players[i] ? players[i].name : "";
-  });
-}
-
-function renderRanking(players) {
-  const tableBody = document.querySelector("#ranking-table tbody");
-  tableBody.innerHTML = "";
-  players.forEach((p, i) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${i + 1}.</td>
-      <td>${p.name}</td>
-      <td>${p.total} pts</td>
-    `;
-    tableBody.appendChild(row);
-  });
+    return required.every(k => scores[k] !== undefined);
+  }));
 }
 
 function showFinalScreen() {
-  const results = players.map(player => ({
-    name: player.name,
-    total: calculateSpecialScore("Score Final", player)
-  })).sort((a, b) => b.total - a.total);
+  const results = players.map(player => {
+    let total = 0;
+    selectedVariants.forEach(variant => {
+      total += player.scores[variant]["Score Final"] || 0;
+    });
+    return { name: player.name, total };
+  }).sort((a, b) => b.total - a.total);
 
-  renderPodium(results);
-  renderRanking(results);
+  [firstPodium, secondPodium, thirdPodium].forEach((slot, i) => {
+    slot.textContent = results[i]?.name || "";
+  });
+
+  const tableBody = document.querySelector("#ranking-table tbody");
+  tableBody.innerHTML = "";
+  results.forEach((p, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `<td>${i + 1}.</td><td>${p.name}</td><td>${p.total} pts</td>`;
+    tableBody.appendChild(row);
+  });
   switchScreen(screens.game, screens.end);
 }

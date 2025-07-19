@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,9 +10,14 @@
   <meta name="theme-color" content="#ffffff" />
   <link rel="icon" type="image/png" href="assets/de.png" />
 </head>
+
 <body>
   <div id="home-screen" class="screen active">
     <h1>Bienvenue au Yams</h1>
+    <div class="variants">
+      <label><input type="checkbox" name="variant" value="Classique" checked> Classique</label>
+      <label><input type="checkbox" name="variant" value="Montante"> Montante</label>
+    </div>
     <button id="start-btn">Commencer</button>
   </div>
 
@@ -36,18 +42,17 @@
   </div>
 
   <div id="end-screen" class="screen">
-  <h2>Fin de partie</h2>
-  <div id="podium-container">
-    <img src="assets/podium.png" alt="Podium" id="podium-image" />
-    <div id="podium-1" class="podium-slot"></div>
-    <div id="podium-2" class="podium-slot"></div>
-    <div id="podium-3" class="podium-slot"></div>
+    <h2>Fin de partie</h2>
+    <div id="podium-container">
+      <img src="assets/podium.png" alt="Podium" id="podium-image" />
+      <div id="podium-1" class="podium-slot"></div>
+      <div id="podium-2" class="podium-slot"></div>
+      <div id="podium-3" class="podium-slot"></div>
+    </div>
+    <table id="ranking-table">
+      <tbody></tbody>
+    </table>
   </div>
-  <table id="ranking-table">
-    <tbody></tbody>
-  </table>
-</div>
-
 
   <script src="script.js"></script>
   <script>
@@ -60,4 +65,5 @@
     }
   </script>
 </body>
+
 </html>
