@@ -16,6 +16,20 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    if (reg.waiting) {
+      reg.waiting.postMessage("SKIP_WAITING");
+    }
+  });
+}
+
+self.addEventListener("message", event => {
+  if (event.data === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys =>
