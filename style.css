@@ -22,11 +22,6 @@ body {
   gap: 0.5em;
 }
 
-.score-table th.variant-name {
-  background-color: #e3e3e3;
-  font-weight: bold;
-}
-
 .screen {
   display: none;
   padding: 1em;
@@ -36,7 +31,8 @@ body {
   display: block;
 }
 
-h1, h2 {
+h1,
+h2 {
   text-align: center;
 }
 
@@ -145,6 +141,7 @@ button:hover {
   margin: 0.3em auto;
   border-collapse: collapse;
   table-layout: fixed;
+  font-size: 0.80em;
 }
 
 .score-table td,
@@ -154,6 +151,11 @@ button:hover {
   word-wrap: break-word;
   text-align: center;
   vertical-align: middle;
+}
+
+.score-table th {
+  font-size: 1.4em;
+  font-weight: bold;
 }
 
 .score-table td:first-child {

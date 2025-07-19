@@ -124,7 +124,6 @@ function displayCurrentPlayer() {
   // En-tête
   const headerRow = document.createElement("tr");
   const firstCell = document.createElement("th");
-  firstCell.textContent = "Catégorie";
   headerRow.appendChild(firstCell);
 
   const getVariantIcon = (variant) => {
