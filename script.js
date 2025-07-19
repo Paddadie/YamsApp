@@ -126,16 +126,6 @@ function displayCurrentPlayer() {
   const firstCell = document.createElement("th");
   headerRow.appendChild(firstCell);
 
-  const getVariantIcon = (variant) => {
-    switch (variant) {
-      case "Classique": return "🎲";
-      case "Montante": return "⬆️";
-      case "Descendante": return "⬇️";
-      case "One Shot": return "🎯";
-      default: return variant;
-    }
-  };
-
   selectedVariants.forEach(variant => {
     const th = document.createElement("th");
     th.textContent = getVariantIcon(variant);
@@ -304,11 +294,14 @@ function isGameFinished() {
 
 function showFinalScreen() {
   const results = players.map(player => {
+    const details = {};
     let total = 0;
     selectedVariants.forEach(variant => {
-      total += player.scores[variant]["Score Final"] || 0;
+      const variantScore = player.scores[variant]["Score Final"] || 0;
+      details[variant] = variantScore;
+      total += variantScore;
     });
-    return { name: player.name, total };
+    return { name: player.name, details, total };
   }).sort((a, b) => b.total - a.total);
 
   [firstPodium, secondPodium, thirdPodium].forEach((slot, i) => {
@@ -317,10 +310,67 @@ function showFinalScreen() {
 
   const tableBody = document.querySelector("#ranking-table tbody");
   tableBody.innerHTML = "";
+
+  const rankingTable = document.getElementById("ranking-table");
+  rankingTable.innerHTML = "";
+
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+
+  const headers = [
+    "🥇",
+    "Joueur",
+    ...selectedVariants.map(v => getVariantIcon(v)),
+    "Total"
+  ];
+
+  headers.forEach(text => {
+    const th = document.createElement("th");
+    th.textContent = text;
+    headerRow.appendChild(th);
+  });
+
+  thead.appendChild(headerRow);
+  rankingTable.appendChild(thead);
+  rankingTable.appendChild(tableBody);
+
   results.forEach((p, i) => {
     const row = document.createElement("tr");
-    row.innerHTML = `<td>${i + 1}.</td><td>${p.name}</td><td>${p.total} pts</td>`;
+
+    // Rang
+    const rankCell = document.createElement("td");
+    rankCell.textContent = `${i + 1}.`;
+    row.appendChild(rankCell);
+
+    // Prénom
+    const nameCell = document.createElement("td");
+    nameCell.textContent = p.name;
+    row.appendChild(nameCell);
+
+    // Scores par variante
+    selectedVariants.forEach(variant => {
+      const cell = document.createElement("td");
+      cell.textContent = p.details[variant];
+      row.appendChild(cell);
+    });
+
+    // Total
+    const totalCell = document.createElement("td");
+    totalCell.innerHTML = `<strong>${p.total}</strong>`;
+    row.appendChild(totalCell);
+
     tableBody.appendChild(row);
   });
+
   switchScreen(screens.game, screens.end);
+}
+
+function getVariantIcon(variant) {
+  switch (variant) {
+    case "Classique": return "🎲";
+    case "Montante": return "⬆️";
+    case "Descendante": return "⬇️";
+    case "One Shot": return "🎯";
+    default: return variant;
+  }
 }

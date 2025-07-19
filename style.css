@@ -227,3 +227,9 @@ button:hover {
   padding: 4px 8px;
   border: none;
 }
+
+#ranking-table th,
+#ranking-table td {
+  text-align: center;
+  vertical-align: middle;
+}
