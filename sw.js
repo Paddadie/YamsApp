@@ -1,4 +1,4 @@
-const CACHE_NAME = "yams-app-cache-v5";
+const CACHE_NAME = "yams-app-cache-v6";
 const ASSETS = [
   "/",
   "/index.html",
