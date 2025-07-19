@@ -146,8 +146,8 @@ function displayCurrentPlayer() {
   table.appendChild(headerRow);
 
   // Parcours des sections
-  for (let s = 0; s < allSections.length; s++) {
-    const sectionLines = allSections[s];
+  for (let section = 0; section < allSections.length; section++) {
+    const sectionLines = allSections[section];
 
     for (const lineName of sectionLines) {
       const row = document.createElement("tr");
@@ -191,17 +191,13 @@ function displayCurrentPlayer() {
       table.appendChild(row);
     }
 
-    // Ligne vide de séparation (entre les sections, sauf la dernière)
-    if (s < allSections.length - 1) {
+    if (section < allSections.length - 1) {
       const spacerRow = document.createElement("tr");
-      spacerRow.style.border = "none";
-
-      const emptyTd = document.createElement("td");
-      emptyTd.colSpan = selectedVariants.length + 1;
-      emptyTd.style.border = "none";
-      emptyTd.style.height = "1em";
-
-      spacerRow.appendChild(emptyTd);
+      const spacerCell = document.createElement("td");
+      spacerCell.colSpan = 2;
+      spacerCell.style.height = "8px";
+      spacerCell.style.border = "none";
+      spacerRow.appendChild(spacerCell);
       table.appendChild(spacerRow);
     }
   }
