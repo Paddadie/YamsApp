@@ -127,11 +127,23 @@ function displayCurrentPlayer() {
   firstCell.textContent = "Catégorie";
   headerRow.appendChild(firstCell);
 
+  const getVariantIcon = (variant) => {
+    switch (variant) {
+      case "Classique": return "🎲";
+      case "Montante": return "⬆️";
+      case "Descendante": return "⬇️";
+      case "One Shot": return "🎯";
+      default: return variant;
+    }
+  };
+
   selectedVariants.forEach(variant => {
     const th = document.createElement("th");
-    th.textContent = variant;
+    th.textContent = getVariantIcon(variant);
+    th.title = variant;
     headerRow.appendChild(th);
   });
+
   table.appendChild(headerRow);
 
   // Lignes de catégories
