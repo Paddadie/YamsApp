@@ -4,6 +4,11 @@ let currentPlayerIndex = 0;
 let autoAdvanceTimeout;
 let selectedVariants = [];
 
+const playerColors = [
+  "#FADADD", "#AEC6CF", "#BFD8B8", "#FFFACD", "#E6E6FA",
+  "#FFDAB9", "#AAF0D1", "#D8B7DD", "#FFBCB3", "#C1D3D8"
+];
+
 const upperSection = { "1": [0, 1, 2, 3, 4, 5], "2": [0, 2, 4, 6, 8, 10], "3": [0, 3, 6, 9, 12, 15], "4": [0, 4, 8, 12, 16, 20], "5": [0, 5, 10, 15, 20, 25], "6": [0, 6, 12, 18, 24, 30], "Bonus": [], "Total Haut": [] };
 const lowerSection = {
   "Brelan (Σ)": Array.from({ length: 31 }, (_, i) => i),
@@ -65,11 +70,12 @@ playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = playerNameInput.value.trim();
   if (name) {
+    const color = playerColors[players.length % playerColors.length];
     const scores = {};
     for (const variant of selectedVariants) {
       scores[variant] = {};
     }
-    players.push({ name, scores });
+    players.push({ name, scores, color });
     updatePlayerList();
     playerNameInput.value = "";
     startGameBtn.disabled = players.length < 2;
@@ -114,6 +120,8 @@ function displayCurrentPlayer() {
   const player = players[currentPlayerIndex];
   currentPlayerName.textContent = player.name;
   scoreTablesContainer.innerHTML = "";
+
+  scoreTablesContainer.style.backgroundColor = player.color;
 
   const table = document.createElement("table");
   table.className = "score-table";
