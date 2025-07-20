@@ -29,12 +29,17 @@ const lowerScoringNames = getScoringKeys(lowerSection);
 // === DOM Elements ===
 const screens = {
   home: document.getElementById("home-screen"),
+  hall: document.getElementById("hall-screen"),
   players: document.getElementById("players-screen"),
   game: document.getElementById("game-screen"),
   end: document.getElementById("end-screen")
 };
 const startBtn = document.getElementById("start-btn");
 const startGameBtn = document.getElementById("start-game-btn");
+const hallBtn = document.getElementById("hall-btn");
+const backToHomeBtn = document.getElementById("back-to-home-btn");
+const bestScoresTable = document.querySelector("#best-scores-table tbody");
+const worstScoresTable = document.querySelector("#worst-scores-table tbody");
 const playerForm = document.getElementById("player-form");
 const playerNameInput = document.getElementById("player-name");
 const playerList = document.getElementById("player-list");
@@ -66,6 +71,47 @@ startBtn.addEventListener("click", () => {
   screens.home.style.display = 'none';
   switchScreen(screens.home, screens.players);
 });
+
+hallBtn.addEventListener("click", () => {
+  screens.home.style.display = 'none';
+  switchScreen(screens.home, screens.hall);
+  showHallOfFame();
+});
+
+backToHomeBtn.addEventListener("click", () => {
+  screens.home.style.display = 'flex';
+  switchScreen(screens.hall, screens.home);
+});
+
+function showHallOfFame() {
+  const bestScores = JSON.parse(localStorage.getItem("bestScores")) || [];
+  const worstScores = JSON.parse(localStorage.getItem("worstScores")) || [];
+
+  bestScoresTable.innerHTML = "";
+  worstScoresTable.innerHTML = "";
+
+  bestScores.forEach((entry, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${i + 1}.</td>
+      <td>${entry.name}</td>
+      <td>${entry.date}</td>
+      <td><strong>${entry.score}</strong></td>
+    `;
+    bestScoresTable.appendChild(row);
+  });
+
+  worstScores.forEach((entry, i) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${i + 1}.</td>
+      <td>${entry.name}</td>
+      <td>${entry.date}</td>
+      <td><strong>${entry.score}</strong></td>
+    `;
+    worstScoresTable.appendChild(row);
+  });
+}
 
 playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -404,7 +450,7 @@ quitBtn.addEventListener("click", () => {
 
   // Afficher l'écran d'accueil
   switchScreen(screens.end, screens.home);
-  screens.home.style.display = 'block';
+  screens.home.style.display = 'flex';
 });
 
 function saveBestAndWorstScores() {

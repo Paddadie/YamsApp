@@ -39,10 +39,43 @@ h2 {
 #home-screen {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  text-align: center;
-  min-height: 60vh;
+  min-height: 100vh;
+  padding: 2em 1em;
+  box-sizing: border-box;
+}
+
+#hall-btn-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-bottom: 1em;
+}
+
+#hall-btn {
+  background-color: #444;
+  font-size: 1em;
+}
+
+#hall-btn:hover {
+  background-color: #222;
+}
+
+#back-btn-container {
+  display: flex;
+  justify-content: center;
+  margin: 2em 0;
+}
+
+#back-to-home-btn {
+  font-size: 1.1em;
+  background-color: #555;
+}
+
+#back-to-home-btn:hover {
+  background-color: #333;
 }
 
 #home-screen .variants-options {
@@ -268,4 +301,32 @@ button:hover {
 
 #quit-btn:hover {
   background-color: #b71c1c;
+}
+
+#hall-screen h2 {
+  text-align: center;
+  margin-top: 2em;
+}
+
+#best-scores-table,
+#worst-scores-table {
+  width: 100%;
+  max-width: 400px;
+  margin: 1em auto;
+  border-collapse: collapse;
+  font-size: 16px;
+}
+
+#best-scores-table td,
+#worst-scores-table td {
+  padding: 4px 8px;
+  border: none;
+  text-align: center;
+}
+
+#best-scores-table th,
+#worst-scores-table th {
+  text-align: center;
+  font-weight: bold;
+  font-size: 1em;
 }
