@@ -64,9 +64,10 @@ h2 {
 }
 
 #back-btn-container {
+  margin-top: auto;
   display: flex;
   justify-content: center;
-  margin: 2em 0;
+  padding-top: 1em;
 }
 
 #back-to-home-btn {
@@ -188,7 +189,6 @@ button:hover {
 }
 
 #score-tables {
-  padding: 1em;
   border-radius: 12px;
   transition: background-color 0.3s ease;
 }
@@ -199,7 +199,7 @@ button:hover {
   margin: 0.3em auto;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 0.80em;
+  font-size: 0.8em;
 }
 
 .score-table td,
@@ -222,6 +222,13 @@ button:hover {
 
 .score-table td:last-child {
   width: 50%;
+}
+
+.score-wrapper {
+  padding: 1em;
+  border-radius: 12px;
+  max-width: 420px;
+  margin: 0 auto;
 }
 
 .spacer-row td {
@@ -301,6 +308,14 @@ button:hover {
 
 #quit-btn:hover {
   background-color: #b71c1c;
+}
+
+#hall-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 1em;
+  box-sizing: border-box;
 }
 
 #hall-screen h2 {

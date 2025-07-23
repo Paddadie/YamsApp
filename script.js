@@ -5,11 +5,28 @@ let autoAdvanceTimeout;
 let selectedVariants = [];
 
 const playerColors = [
-  "#FADADD", "#AEC6CF", "#BFD8B8", "#FFFACD", "#E6E6FA",
-  "#FFDAB9", "#AAF0D1", "#D8B7DD", "#FFBCB3", "#C1D3D8"
+  "#FADADD",
+  "#AEC6CF",
+  "#BFD8B8",
+  "#FFFACD",
+  "#E6E6FA",
+  "#FFDAB9",
+  "#AAF0D1",
+  "#D8B7DD",
+  "#FFBCB3",
+  "#C1D3D8",
 ];
 
-const upperSection = { "1": [0, 1, 2, 3, 4, 5], "2": [0, 2, 4, 6, 8, 10], "3": [0, 3, 6, 9, 12, 15], "4": [0, 4, 8, 12, 16, 20], "5": [0, 5, 10, 15, 20, 25], "6": [0, 6, 12, 18, 24, 30], "Bonus": [], "Total Haut": [] };
+const upperSection = {
+  1: [0, 1, 2, 3, 4, 5],
+  2: [0, 2, 4, 6, 8, 10],
+  3: [0, 3, 6, 9, 12, 15],
+  4: [0, 4, 8, 12, 16, 20],
+  5: [0, 5, 10, 15, 20, 25],
+  6: [0, 6, 12, 18, 24, 30],
+  Bonus: [],
+  "Total Haut": [],
+};
 const lowerSection = {
   "Brelan (Σ)": Array.from({ length: 31 }, (_, i) => i),
   "Full (25)": [0, 25],
@@ -18,11 +35,12 @@ const lowerSection = {
   "Gde Suite (40)": [0, 40],
   "Chance (Σ)": Array.from({ length: 31 }, (_, i) => i),
   "Yams (50)": [0, 50],
-  "Total Bas": []
+  "Total Bas": [],
 };
 const totalSection = { "Score Final": [] };
 
-const getScoringKeys = section => Object.keys(section).filter(k => section[k].length > 0);
+const getScoringKeys = (section) =>
+  Object.keys(section).filter((k) => section[k].length > 0);
 const upperScoringNames = getScoringKeys(upperSection);
 const lowerScoringNames = getScoringKeys(lowerSection);
 
@@ -32,7 +50,7 @@ const screens = {
   hall: document.getElementById("hall-screen"),
   players: document.getElementById("players-screen"),
   game: document.getElementById("game-screen"),
-  end: document.getElementById("end-screen")
+  end: document.getElementById("end-screen"),
 };
 const startBtn = document.getElementById("start-btn");
 const startGameBtn = document.getElementById("start-game-btn");
@@ -61,25 +79,25 @@ function switchScreen(from, to) {
 
 startBtn.addEventListener("click", () => {
   selectedVariants = Array.from(variantCheckboxes)
-    .filter(checkbox => checkbox.checked)
-    .map(cb => cb.value);
+    .filter((checkbox) => checkbox.checked)
+    .map((cb) => cb.value);
 
   if (selectedVariants.length === 0) {
     alert("Veuillez sélectionner au moins une variante.");
     return;
   }
-  screens.home.style.display = 'none';
+  screens.home.style.display = "none";
   switchScreen(screens.home, screens.players);
 });
 
 hallBtn.addEventListener("click", () => {
-  screens.home.style.display = 'none';
+  screens.home.style.display = "none";
   switchScreen(screens.home, screens.hall);
   showHallOfFame();
 });
 
 backToHomeBtn.addEventListener("click", () => {
-  screens.home.style.display = 'flex';
+  screens.home.style.display = "flex";
   switchScreen(screens.hall, screens.home);
 });
 
@@ -154,7 +172,8 @@ startGameBtn.addEventListener("click", () => {
 });
 
 prevPlayerBtn.addEventListener("click", () => {
-  currentPlayerIndex = (currentPlayerIndex - 1 + players.length) % players.length;
+  currentPlayerIndex =
+    (currentPlayerIndex - 1 + players.length) % players.length;
   displayCurrentPlayer();
 });
 
@@ -168,20 +187,18 @@ function displayCurrentPlayer() {
   currentPlayerName.textContent = player.name;
   scoreTablesContainer.innerHTML = "";
 
-  scoreTablesContainer.style.backgroundColor = player.color;
-
   const table = document.createElement("table");
   table.className = "score-table";
 
   const sectionOrder = [upperSection, lowerSection, totalSection];
-  const allSections = sectionOrder.map(section => Object.keys(section));
+  const allSections = sectionOrder.map((section) => Object.keys(section));
 
   // En-tête
   const headerRow = document.createElement("tr");
   const firstCell = document.createElement("th");
   headerRow.appendChild(firstCell);
 
-  selectedVariants.forEach(variant => {
+  selectedVariants.forEach((variant) => {
     const th = document.createElement("th");
     th.textContent = getVariantIcon(variant);
     th.title = variant;
@@ -203,12 +220,18 @@ function displayCurrentPlayer() {
       for (const variant of selectedVariants) {
         const cell = document.createElement("td");
         const scores = player.scores[variant];
-        const values = (upperSection[lineName] || lowerSection[lineName] || totalSection[lineName] || []);
+        const values =
+          upperSection[lineName] ||
+          lowerSection[lineName] ||
+          totalSection[lineName] ||
+          [];
 
         if (values.length > 0) {
           const select = document.createElement("select");
           select.className = "score-select";
-          select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join("");
+          select.innerHTML =
+            `<option value="">--</option>` +
+            values.map((v) => `<option value="${v}">${v}</option>`).join("");
           if (scores[lineName] !== undefined) {
             select.value = scores[lineName];
           }
@@ -246,8 +269,11 @@ function displayCurrentPlayer() {
       table.appendChild(spacerRow);
     }
   }
-
-  scoreTablesContainer.appendChild(table);
+  const wrapper = document.createElement("div");
+  wrapper.className = "score-wrapper";
+  wrapper.style.backgroundColor = player.color;
+  wrapper.appendChild(table);
+  scoreTablesContainer.appendChild(wrapper);
 }
 
 function generateScoreTableForVariant(player, variant) {
@@ -269,7 +295,9 @@ function generateScoreTableForVariant(player, variant) {
       if (values.length > 0) {
         const select = document.createElement("select");
         select.className = "score-select";
-        select.innerHTML = `<option value="">--</option>` + values.map(v => `<option value="${v}">${v}</option>`).join("");
+        select.innerHTML =
+          `<option value="">--</option>` +
+          values.map((v) => `<option value="${v}">${v}</option>`).join("");
         if (scores[lineName] !== undefined) {
           select.value = scores[lineName];
         }
@@ -302,8 +330,8 @@ function generateScoreTableForVariant(player, variant) {
 function calculateSpecialScore(name, scores) {
   if (name === "Bonus") {
     const total = getUpperSum(scores);
-    const filled = upperScoringNames.every(k => scores[k] !== undefined);
-    const value = total >= 63 ? 35 : (filled ? 0 : `-${63 - total}`);
+    const filled = upperScoringNames.every((k) => scores[k] !== undefined);
+    const value = total >= 63 ? 35 : filled ? 0 : `-${63 - total}`;
     if (typeof value === "number") scores["Bonus"] = value;
     return value;
   }
@@ -314,7 +342,10 @@ function calculateSpecialScore(name, scores) {
     return value;
   }
   if (name === "Total Bas") {
-    const value = lowerScoringNames.reduce((sum, k) => sum + (scores[k] || 0), 0);
+    const value = lowerScoringNames.reduce(
+      (sum, k) => sum + (scores[k] || 0),
+      0
+    );
     scores["Total Bas"] = value;
     return value;
   }
@@ -340,24 +371,28 @@ function updateCalculatedScores(scores) {
 }
 
 function isGameFinished() {
-  return players.every(player => selectedVariants.every(variant => {
-    const scores = player.scores[variant];
-    const required = [...upperScoringNames, ...lowerScoringNames];
-    return required.every(k => scores[k] !== undefined);
-  }));
+  return players.every((player) =>
+    selectedVariants.every((variant) => {
+      const scores = player.scores[variant];
+      const required = [...upperScoringNames, ...lowerScoringNames];
+      return required.every((k) => scores[k] !== undefined);
+    })
+  );
 }
 
 function showFinalScreen() {
-  const results = players.map(player => {
-    const details = {};
-    let total = 0;
-    selectedVariants.forEach(variant => {
-      const variantScore = player.scores[variant]["Score Final"] || 0;
-      details[variant] = variantScore;
-      total += variantScore;
-    });
-    return { name: player.name, details, total };
-  }).sort((a, b) => b.total - a.total);
+  const results = players
+    .map((player) => {
+      const details = {};
+      let total = 0;
+      selectedVariants.forEach((variant) => {
+        const variantScore = player.scores[variant]["Score Final"] || 0;
+        details[variant] = variantScore;
+        total += variantScore;
+      });
+      return { name: player.name, details, total };
+    })
+    .sort((a, b) => b.total - a.total);
 
   [firstPodium, secondPodium, thirdPodium].forEach((slot, i) => {
     slot.textContent = results[i]?.name || "";
@@ -375,11 +410,11 @@ function showFinalScreen() {
   const headers = [
     "🥇",
     "Joueur",
-    ...selectedVariants.map(v => getVariantIcon(v)),
-    "Total"
+    ...selectedVariants.map((v) => getVariantIcon(v)),
+    "Total",
   ];
 
-  headers.forEach(text => {
+  headers.forEach((text) => {
     const th = document.createElement("th");
     th.textContent = text;
     headerRow.appendChild(th);
@@ -403,7 +438,7 @@ function showFinalScreen() {
     row.appendChild(nameCell);
 
     // Scores par variante
-    selectedVariants.forEach(variant => {
+    selectedVariants.forEach((variant) => {
       const cell = document.createElement("td");
       cell.textContent = p.details[variant];
       row.appendChild(cell);
@@ -422,11 +457,16 @@ function showFinalScreen() {
 
 function getVariantIcon(variant) {
   switch (variant) {
-    case "Classique": return "🎲";
-    case "Montante": return "⬆️";
-    case "Descendante": return "⬇️";
-    case "One Shot": return "🎯";
-    default: return variant;
+    case "Classique":
+      return "🎲";
+    case "Montante":
+      return "⬆️";
+    case "Descendante":
+      return "⬇️";
+    case "One Shot":
+      return "🎯";
+    default:
+      return variant;
   }
 }
 
@@ -443,14 +483,14 @@ quitBtn.addEventListener("click", () => {
   playerNameInput.value = "";
   startGameBtn.disabled = true;
 
-  // Réinitialiser les cases à cocher 
-  variantCheckboxes.forEach(cb => {
-    cb.checked = (cb.value === "Classique");
+  // Réinitialiser les cases à cocher
+  variantCheckboxes.forEach((cb) => {
+    cb.checked = cb.value === "Classique";
   });
 
   // Afficher l'écran d'accueil
   switchScreen(screens.end, screens.home);
-  screens.home.style.display = 'flex';
+  screens.home.style.display = "flex";
 });
 
 function saveBestAndWorstScores() {
@@ -462,8 +502,8 @@ function saveBestAndWorstScores() {
 
   const allScores = [];
 
-  players.forEach(player => {
-    selectedVariants.forEach(variant => {
+  players.forEach((player) => {
+    selectedVariants.forEach((variant) => {
       const score = player.scores?.[variant]?.["Score Final"];
       if (typeof score === "number") {
         allScores.push({
@@ -480,12 +520,8 @@ function saveBestAndWorstScores() {
   worstScores.push(...allScores);
 
   // Trier et garder seulement les 5 meilleurs/pires
-  const sortedBest = bestScores
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 5);
-  const sortedWorst = worstScores
-    .sort((a, b) => a.score - b.score)
-    .slice(0, 5);
+  const sortedBest = bestScores.sort((a, b) => b.score - a.score).slice(0, 5);
+  const sortedWorst = worstScores.sort((a, b) => a.score - b.score).slice(0, 5);
 
   // Enregistrer dans localStorage
   localStorage.setItem("bestScores", JSON.stringify(sortedBest));

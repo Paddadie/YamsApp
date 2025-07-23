@@ -1,111 +1,126 @@
 <!DOCTYPE html>
 <html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yams - Compteur de Points</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/png" href="assets/de.png" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Yams - Compteur de Points</title>
-  <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ffffff" />
-  <link rel="icon" type="image/png" href="assets/de.png" />
-</head>
+  <body>
+    <div id="home-screen" class="screen active">
+      <h1>Bienvenue au Yams</h1>
+      <div class="variants">
+        <div class="variant-options">
+          <label
+            ><input type="checkbox" name="variant" value="Classique" checked />
+            Classique</label
+          >
+          <label
+            ><input type="checkbox" name="variant" value="Descendante" />
+            Descendante</label
+          >
+          <label
+            ><input type="checkbox" name="variant" value="Montante" />
+            Montante</label
+          >
+          <label
+            ><input type="checkbox" name="variant" value="One Shot" /> One
+            Shot</label
+          >
+        </div>
+      </div>
+      <button id="start-btn">Commencer</button>
 
-<body>
-  <div id="home-screen" class="screen active">
-    <h1>Bienvenue au Yams</h1>
-    <div class="variants">
-      <div class="variant-options">
-        <label><input type="checkbox" name="variant" value="Classique" checked> Classique</label>
-        <label><input type="checkbox" name="variant" value="Descendante"> Descendante</label>
-        <label><input type="checkbox" name="variant" value="Montante"> Montante</label>
-        <label><input type="checkbox" name="variant" value="One Shot"> One Shot</label>
+      <div id="hall-btn-container">
+        <button id="hall-btn">🏆 Hall of Fame / Shame</button>
       </div>
     </div>
-    <button id="start-btn">Commencer</button>
 
-    <div id="hall-btn-container">
-      <button id="hall-btn">🏆 Hall of Fame / Shame</button>
-    </div>
-  </div>
-  /
+    <div id="hall-screen" class="screen">
+      <h2>🏆 Hall of Fame</h2>
+      <table id="best-scores-table">
+        <thead>
+          <tr>
+            <th>🥇</th>
+            <th>Joueur</th>
+            <th>Date</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
-  <div id="hall-screen" class="screen">
-    <h2>🏆 Hall of Fame</h2>
-    <table id="best-scores-table">
-      <thead>
-        <tr>
-          <th>🥇</th>
-          <th>Joueur</th>
-          <th>Date</th>
-          <th>Score</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+      <h2>💩 Hall of Shame</h2>
+      <table id="worst-scores-table">
+        <thead>
+          <tr>
+            <th>🗿</th>
+            <th>Joueur</th>
+            <th>Date</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
-    <h2>💩 Hall of Shame</h2>
-    <table id="worst-scores-table">
-      <thead>
-        <tr>
-          <th>🥈</th>
-          <th>Joueur</th>
-          <th>Date</th>
-          <th>Score</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-
-    <div id="back-btn-container">
-      <button id="back-to-home-btn">⬅️ Retour</button>
-    </div>
-  </div>
-
-  <div id="players-screen" class="screen">
-    <h2>Ajouter des joueurs</h2>
-    <form id="player-form">
-      <input type="text" id="player-name" placeholder="Nom du joueur" required />
-      <button type="submit">Ajouter</button>
-    </form>
-    <ul id="player-list"></ul>
-    <button id="start-game-btn" disabled>Lancer la partie</button>
-  </div>
-
-  <div id="game-screen" class="screen">
-    <div class="player-nav">
-      <button id="prev-player-btn" aria-label="Joueur précédent">⏴</button>
-      <h2 id="current-player-name">Nom du joueur</h2>
-      <button id="next-player-btn" aria-label="Joueur suivant">⏵</button>
+      <div id="back-btn-container">
+        <button id="back-to-home-btn">⬅️ Retour</button>
+      </div>
     </div>
 
-    <div id="score-tables"></div>
-  </div>
-
-  <div id="end-screen" class="screen">
-    <h2>Fin de partie</h2>
-    <div id="podium-container">
-      <img src="assets/podium.png" alt="Podium" id="podium-image" />
-      <div id="podium-1" class="podium-slot"></div>
-      <div id="podium-2" class="podium-slot"></div>
-      <div id="podium-3" class="podium-slot"></div>
+    <div id="players-screen" class="screen">
+      <h2>Ajouter des joueurs</h2>
+      <form id="player-form">
+        <input
+          type="text"
+          id="player-name"
+          placeholder="Nom du joueur"
+          required
+        />
+        <button type="submit">Ajouter</button>
+      </form>
+      <ul id="player-list"></ul>
+      <button id="start-game-btn" disabled>Lancer la partie</button>
     </div>
-    <table id="ranking-table">
-      <tbody></tbody>
-    </table>
-    <button id="quit-btn">Enregistrer & Quitter</button>
-  </div>
 
-  <script src="script.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('✅ Service Worker enregistré', reg))
-          .catch(err => console.log('❌ Échec enregistrement SW', err));
-      });
-    }
-  </script>
-</body>
+    <div id="game-screen" class="screen">
+      <div class="player-nav">
+        <button id="prev-player-btn" aria-label="Joueur précédent">⏴</button>
+        <h2 id="current-player-name">Nom du joueur</h2>
+        <button id="next-player-btn" aria-label="Joueur suivant">⏵</button>
+      </div>
 
+      <div id="score-tables"></div>
+    </div>
+
+    <div id="end-screen" class="screen">
+      <h2>Fin de partie</h2>
+      <div id="podium-container">
+        <img src="assets/podium.png" alt="Podium" id="podium-image" />
+        <div id="podium-1" class="podium-slot"></div>
+        <div id="podium-2" class="podium-slot"></div>
+        <div id="podium-3" class="podium-slot"></div>
+      </div>
+      <table id="ranking-table">
+        <tbody></tbody>
+      </table>
+      <button id="quit-btn">Enregistrer & Quitter</button>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("sw.js")
+            .then((reg) => console.log("✅ Service Worker enregistré", reg))
+            .catch((err) => console.log("❌ Échec enregistrement SW", err));
+        });
+      }
+    </script>
+  </body>
 </html>
