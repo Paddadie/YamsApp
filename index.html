@@ -3,115 +3,135 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yams - Compteur de Points</title>
-    <link rel="stylesheet" href="style.css" />
+    <title>Yams</title>
+
+    <!-- Favicon / Icone PWA -->
+    <link rel="icon" href="assets/de.png" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#ffffff" />
-    <link rel="icon" type="image/png" href="assets/de.png" />
+
+    <!-- CSS principal -->
+    <link rel="stylesheet" href="style.css" />
   </head>
-
   <body>
+    <!-- ÉCRAN ACCUEIL -->
     <div id="home-screen" class="screen active">
-      <h1>Bienvenue au Yams</h1>
-      <div class="variants">
-        <div class="variant-options">
-          <label
-            ><input type="checkbox" name="variant" value="Classique" checked />
-            Classique</label
-          >
-          <label
-            ><input type="checkbox" name="variant" value="Descendante" />
-            Descendante</label
-          >
-          <label
-            ><input type="checkbox" name="variant" value="Montante" />
-            Montante</label
-          >
-          <label
-            ><input type="checkbox" name="variant" value="One Shot" /> One
-            Shot</label
-          >
-        </div>
-      </div>
+      <h1>🎲 Bienvenue au Yams</h1>
+
+      <section>
+        <h2>Choisissez les variantes :</h2>
+        <label
+          ><input type="checkbox" name="variant" value="Classique" checked />
+          Classique 🎲</label
+        ><br />
+        <label
+          ><input type="checkbox" name="variant" value="Montante" /> Montante
+          ⬆️</label
+        ><br />
+        <label
+          ><input type="checkbox" name="variant" value="Descendante" />
+          Descendante ⬇️</label
+        ><br />
+        <label
+          ><input type="checkbox" name="variant" value="One Shot" /> One Shot
+          🎯</label
+        >
+      </section>
+
       <button id="start-btn">Commencer</button>
-
-      <div id="hall-btn-container">
-        <button id="hall-btn">🏆 Hall of Fame / Shame</button>
+      <div class="hall-btn-container">
+        <button id="hall-btn">🏆 Voir le Hall of Fame</button>
       </div>
     </div>
 
-    <div id="hall-screen" class="screen">
-      <h2>🏆 Hall of Fame</h2>
-      <table id="best-scores-table">
-        <thead>
-          <tr>
-            <th>🥇</th>
-            <th>Joueur</th>
-            <th>Date</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <h2>💩 Hall of Shame</h2>
-      <table id="worst-scores-table">
-        <thead>
-          <tr>
-            <th>🗿</th>
-            <th>Joueur</th>
-            <th>Date</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="back-btn-container">
-        <button id="back-to-home-btn">⬅️ Retour</button>
-      </div>
-    </div>
-
+    <!-- ÉCRAN JOUEURS -->
     <div id="players-screen" class="screen">
-      <h2>Ajouter des joueurs</h2>
-      <form id="player-form">
-        <input
-          type="text"
-          id="player-name"
-          placeholder="Nom du joueur"
-          required
-        />
-        <button type="submit">Ajouter</button>
-      </form>
-      <ul id="player-list"></ul>
-      <button id="start-game-btn" disabled>Lancer la partie</button>
+      <div class="players-content">
+        <h2>👥 Ajouter des joueurs</h2>
+        <form id="player-form">
+          <input
+            type="text"
+            id="player-name"
+            placeholder="Nom du joueur"
+            required
+          />
+          <button type="submit">Ajouter</button>
+        </form>
+        <ul id="player-list"></ul>
+      </div>
+      <div id="start-game-container">
+        <button id="start-game-btn" disabled>Commencer la partie</button>
+      </div>
     </div>
 
+    <!-- ÉCRAN DE JEU -->
     <div id="game-screen" class="screen">
-      <div class="player-nav">
-        <button id="prev-player-btn" aria-label="Joueur précédent">⏴</button>
-        <h2 id="current-player-name">Nom du joueur</h2>
-        <button id="next-player-btn" aria-label="Joueur suivant">⏵</button>
+      <div class="player-header">
+        <button id="prev-player-btn" class="nav-arrow">⬅️</button>
+        <h2 id="current-player-name"></h2>
+        <button id="next-player-btn" class="nav-arrow">➡️</button>
       </div>
-
       <div id="score-tables"></div>
     </div>
 
+    <!-- ÉCRAN FIN DE PARTIE -->
     <div id="end-screen" class="screen">
-      <h2>Fin de partie</h2>
+      <h2>🎉 Fin de la partie !</h2>
       <div id="podium-container">
         <img src="assets/podium.png" alt="Podium" id="podium-image" />
-        <div id="podium-1" class="podium-slot"></div>
-        <div id="podium-2" class="podium-slot"></div>
-        <div id="podium-3" class="podium-slot"></div>
+        <div class="podium-slot first" id="podium-1"></div>
+        <div class="podium-slot second" id="podium-2"></div>
+        <div class="podium-slot third" id="podium-3"></div>
       </div>
-      <table id="ranking-table">
-        <tbody></tbody>
-      </table>
-      <button id="quit-btn">Enregistrer & Quitter</button>
+      <table id="ranking-table"></table>
+      <div id="quit-btn-container">
+        <button id="quit-btn">Quitter</button>
+      </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- ÉCRAN HALL OF FAME -->
+    <div id="hall-screen" class="screen">
+      <h2>🏆 Hall of Fame</h2>
+
+      <section>
+        <h3>Meilleurs scores</h3>
+        <table id="best-scores-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nom</th>
+              <th>Date</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3>Pires scores</h3>
+        <table id="worst-scores-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nom</th>
+              <th>Date</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <div id="back-btn-container">
+        <button id="back-to-home-btn">🏠 Retour</button>
+      </div>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL (avec ES modules) -->
+    <script type="module" src="js/main.js"></script>
+
+    <!-- SERVICE WORKER -->
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", () => {
