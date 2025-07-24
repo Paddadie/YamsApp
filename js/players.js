@@ -23,6 +23,7 @@ export function initPlayers() {
   const playerNameInput = document.getElementById("player-name");
   const playerList = document.getElementById("player-list");
   const variantCheckboxes = document.querySelectorAll("input[name='variant']");
+  const backToVariantsBtn = document.getElementById("back-to-variants-btn");
 
   startBtn.addEventListener("click", () => {
     selectedVariants = Array.from(variantCheckboxes)
@@ -53,6 +54,10 @@ export function initPlayers() {
     updatePlayerList();
     playerNameInput.value = "";
     startGameBtn.disabled = players.length < 2;
+  });
+
+  backToVariantsBtn.addEventListener("click", () => {
+    showScreen("home");
   });
 
   startGameBtn.addEventListener("click", () => {
