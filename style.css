@@ -150,17 +150,6 @@ button:hover {
   box-sizing: border-box;
 }
 
-#app-version {
-  position: fixed;
-  bottom: 5px;
-  right: 10px;
-  font-size: 0.75em;
-  color: #888;
-  z-index: 100;
-  pointer-events: none;
-  user-select: none;
-}
-
 /* ========== PLAYERS SCREEN ========== */
 #players-screen {
   display: flex;
@@ -402,4 +391,15 @@ button:hover {
 #hall-screen h2 {
   text-align: center;
   margin-top: 2em;
+}
+
+#app-version {
+  position: fixed;
+  bottom: 5px;
+  right: 10px;
+  font-size: 0.65em;
+  color: #888;
+  z-index: 100;
+  pointer-events: none;
+  user-select: none;
 }
