@@ -34,7 +34,7 @@ export function initPlayers() {
       return;
     }
 
-    showScreen(screensId.players);
+    showScreen("players");
   });
 
   playerForm.addEventListener("submit", (e) => {
@@ -54,7 +54,7 @@ export function initPlayers() {
   });
 
   startGameBtn.addEventListener("click", () => {
-    showScreen(screensId.game);
+    showScreen("game");
     import("./scores.js").then((module) => {
       module.startGame(players, selectedVariants);
     });

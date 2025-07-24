@@ -249,5 +249,5 @@ function showFinalScreen() {
   rankingTable.appendChild(thead);
   rankingTable.appendChild(tbody);
 
-  showScreen(screensId.end);
+  showScreen("end");
 }

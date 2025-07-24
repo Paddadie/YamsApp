@@ -18,29 +18,31 @@
     <div id="home-screen" class="screen active">
       <h1>🎲 Bienvenue au Yams</h1>
 
-      <section>
+      <section class="variants">
         <h2>Choisissez les variantes :</h2>
-        <label
-          ><input type="checkbox" name="variant" value="Classique" checked />
-          Classique 🎲</label
-        ><br />
-        <label
-          ><input type="checkbox" name="variant" value="Montante" /> Montante
-          ⬆️</label
-        ><br />
-        <label
-          ><input type="checkbox" name="variant" value="Descendante" />
-          Descendante ⬇️</label
-        ><br />
-        <label
-          ><input type="checkbox" name="variant" value="One Shot" /> One Shot
-          🎯</label
-        >
+        <div class="variant-options">
+          <label
+            ><input type="checkbox" name="variant" value="Classique" checked />
+            Classique 🎲</label
+          >
+          <label
+            ><input type="checkbox" name="variant" value="Montante" /> Montante
+            ⬆️</label
+          >
+          <label
+            ><input type="checkbox" name="variant" value="Descendante" />
+            Descendante ⬇️</label
+          >
+          <label
+            ><input type="checkbox" name="variant" value="One Shot" /> One Shot
+            🎯</label
+          >
+        </div>
       </section>
 
       <div class="home-buttons-container">
-        <button class="btn btn-primary">🚀 Commencer</button>
-        <button class="btn btn-secondary">🏆 Hall of Fame</button>
+        <button id="start-btn" class="btn btn-primary">🚀 Commencer</button>
+        <button id="hall-btn" class="btn btn-secondary">🏆 Hall of Fame</button>
       </div>
     </div>
 
@@ -60,7 +62,9 @@
         <ul id="player-list"></ul>
       </div>
       <div id="start-game-container">
-        <button class="btn btn-primary">🎲 Commencer la partie</button>
+        <button id="start-game-btn" class="btn btn-primary" disabled>
+          🎲 Commencer la partie
+        </button>
       </div>
     </div>
 
@@ -85,7 +89,7 @@
       </div>
       <table id="ranking-table"></table>
       <div id="quit-btn-container">
-        <button class="btn btn-danger">❌ Quitter</button>
+        <button id="quit-btn" class="btn btn-danger">❌ Quitter</button>
       </div>
     </div>
 
@@ -124,7 +128,9 @@
       </section>
 
       <div id="back-btn-container">
-        <button class="btn btn-secondary">🏠 Retour</button>
+        <button id="back-to-home-btn" class="btn btn-secondary">
+          🏠 Retour
+        </button>
       </div>
     </div>
 
