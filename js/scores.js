@@ -1,4 +1,4 @@
-import { showScreen, screensId } from "./screens.js";
+import { showScreen, updateResumeButton } from "./screens.js";
 import { players, selectedVariants } from "./players.js";
 import { getVariantIcon } from "./utils.js";
 import { saveBestAndWorstScores } from "./hallOfFame.js";
@@ -61,11 +61,20 @@ export function initGame() {
 
   quitBtn.addEventListener("click", () => {
     saveBestAndWorstScores(players, selectedVariants);
-    location.reload(); // Reset game
+    location.reload();
   });
+
+  const pauseBtn = document.getElementById("pause-btn");
+  if (pauseBtn) {
+    pauseBtn.addEventListener("click", () => {
+      saveGame();
+      showScreen("home");
+      updateResumeButton();
+    });
+  }
 }
 
-export function startGame(pList, variants) {
+export function startGame() {
   currentPlayerIndex = 0;
   displayCurrentPlayer();
 }
@@ -87,7 +96,6 @@ function displayCurrentPlayer() {
   table.appendChild(headerRow);
 
   const allSections = [upperSection, lowerSection, totalSection];
-
   for (const section of allSections) {
     for (const lineName in section) {
       const values = section[lineName];
@@ -249,5 +257,27 @@ function showFinalScreen() {
   rankingTable.appendChild(thead);
   rankingTable.appendChild(tbody);
 
+  localStorage.removeItem("yams-saved-game");
   showScreen("end");
+}
+
+export function saveGame() {
+  const state = {
+    players,
+    selectedVariants,
+    currentPlayerIndex,
+  };
+  localStorage.setItem("yams-saved-game", JSON.stringify(state));
+}
+
+export function resumeGame(savedPlayers, savedVariants, savedIndex) {
+  players.length = 0;
+  players.push(...savedPlayers);
+
+  selectedVariants.length = 0;
+  selectedVariants.push(...savedVariants);
+
+  currentPlayerIndex = savedIndex;
+
+  displayCurrentPlayer();
 }

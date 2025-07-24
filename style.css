@@ -72,6 +72,19 @@ button:hover {
   cursor: not-allowed;
 }
 
+#pause-btn-container {
+  display: flex;
+  justify-content: center;
+  margin: 0.5em auto 0;
+}
+
+#pause-btn {
+  padding: 0.5em 1em;
+  width: 20em;
+  margin: 0;
+}
+
+
 /* ========== CONTENEURS DE BOUTONS EN BAS ========== */
 #start-game-container,
 #quit-btn-container,

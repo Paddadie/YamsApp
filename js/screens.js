@@ -21,6 +21,19 @@ export function initNavigation() {
 
   const hallBtn = document.getElementById("hall-btn");
   const backBtn = document.getElementById("back-to-home-btn");
+  const resumeBtn = document.getElementById("resume-btn");
+
+if (resumeBtn) {
+  resumeBtn.addEventListener("click", () => {
+    const saved = JSON.parse(localStorage.getItem("yams-saved-game"));
+    if (saved) {
+      import("./scores.js").then((module) => {
+        module.resumeGame(saved.players, saved.selectedVariants, saved.currentPlayerIndex);
+        showScreen("game");
+      });
+    }
+  });
+}
 
   if (hallBtn) {
     hallBtn.addEventListener("click", () => {
@@ -38,7 +51,25 @@ export function initNavigation() {
       showScreen("home");
     });
   }
+
+  updateResumeButton();
 }
+
+export function updateResumeButton() {
+  const resumeBtn = document.getElementById("resume-btn");
+  const saved = localStorage.getItem("yams-saved-game");
+
+  if (saved) {
+    resumeBtn.disabled = false;
+    resumeBtn.style.opacity = 1;
+    resumeBtn.style.pointerEvents = "auto";
+  } else {
+    resumeBtn.disabled = true;
+    resumeBtn.style.opacity = 0;
+    resumeBtn.style.pointerEvents = "none";
+  }
+}
+
 
 export function showScreen(screenKey) {
   Object.values(screens).forEach((screen) => {
