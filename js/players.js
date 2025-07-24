@@ -27,7 +27,7 @@ export function initPlayers() {
 
   startBtn.addEventListener("click", () => {
     selectedVariants = Array.from(variantCheckboxes)
-        .filter((cb) => cb.checked)
+      .filter((cb) => cb.checked)
       .map((cb) => cb.value);
 
     if (selectedVariants.length === 0) {
@@ -36,6 +36,15 @@ export function initPlayers() {
     }
 
     localStorage.removeItem("yams-saved-game");
+
+    for (const player of players) {
+      const newScores = {};
+      for (const variant of selectedVariants) {
+        newScores[variant] = {};
+      }
+      player.scores = newScores;
+    }
+
     showScreen("players");
   });
 

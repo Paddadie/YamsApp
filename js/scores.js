@@ -76,6 +76,7 @@ export function initGame() {
 
 export function startGame() {
   currentPlayerIndex = 0;
+  scoreTablesContainer.innerHTML = "";
   displayCurrentPlayer();
 }
 
