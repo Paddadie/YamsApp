@@ -1,6 +1,6 @@
 import { showScreen, updateResumeButton } from "./screens.js";
 import { players, selectedVariants } from "./players.js";
-import { getVariantIcon } from "./utils.js";
+import { getVariantIcon, SAVED_GAME_KEY } from "./utils.js";
 import { saveBestAndWorstScores } from "./hallOfFame.js";
 
 let currentPlayerIndex = 0;
@@ -258,7 +258,7 @@ function showFinalScreen() {
   rankingTable.appendChild(thead);
   rankingTable.appendChild(tbody);
 
-  localStorage.removeItem("yams-saved-game");
+  localStorage.removeItem(SAVED_GAME_KEY);
   showScreen("end");
 }
 
@@ -268,7 +268,7 @@ export function saveGame() {
     selectedVariants,
     currentPlayerIndex,
   };
-  localStorage.setItem("yams-saved-game", JSON.stringify(state));
+  localStorage.setItem(SAVED_GAME_KEY, JSON.stringify(state));
 }
 
 export function resumeGame(savedPlayers, savedVariants, savedIndex) {

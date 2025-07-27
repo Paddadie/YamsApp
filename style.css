@@ -84,7 +84,6 @@ button:hover {
   margin: 0;
 }
 
-
 /* ========== CONTENEURS DE BOUTONS EN BAS ========== */
 #start-game-container,
 #quit-btn-container,
@@ -172,23 +171,6 @@ button:hover {
   border: 1px solid #ccc;
 }
 
-#player-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-  overflow-y: auto;
-}
-
-#player-list li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5em 0.75em;
-  border-bottom: 1px solid #eee;
-  font-size: 1.1em;
-}
-
 .remove-player {
   background: none;
   border: none;
@@ -201,6 +183,67 @@ button:hover {
 
 .remove-player:hover {
   color: #900;
+}
+
+.next-players-container,
+.known-players-container {
+  margin-bottom: 1em;
+  border-radius: 8px;
+}
+
+.known-players-container h3,
+.next-players-container h3 {
+  margin: 0 0 0.5em 0;
+  font-size: 1.1em;
+}
+
+#player-list, #known-players-list {
+  margin-bottom: 1em;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 0.5em;
+  background: #fff;
+}
+
+.scrollable-list, .scrollable-next-list {
+  max-height: 9em;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.scrollable-list {
+  max-height: 9em;
+}
+
+.scrollable-next-list {
+  max-height: 14em;
+}
+
+.scrollable-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25em 0.5em;
+  border-bottom: 1px solid #eee;
+  font-size: 1em;
+}
+
+.scrollable-next-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eee;
+  font-size: 1em;
+}
+
+.scrollable-list li button {
+  background: none;
+  border: none;
+  color: green;
+  font-size: 1.2em;
+  cursor: pointer;
 }
 
 /* ========== NAVIGATION JOUEUR ========== */

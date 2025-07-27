@@ -1,3 +1,5 @@
+import { SAVED_GAME_KEY } from "./utils.js";
+
 export const screensId = {
   home: "home-screen",
   hall: "hall-screen",
@@ -25,7 +27,7 @@ export function initNavigation() {
 
 if (resumeBtn) {
   resumeBtn.addEventListener("click", () => {
-    const saved = JSON.parse(localStorage.getItem("yams-saved-game"));
+    const saved = JSON.parse(localStorage.getItem(SAVED_GAME_KEY));
     if (saved) {
       import("./scores.js").then((module) => {
         module.resumeGame(saved.players, saved.selectedVariants, saved.currentPlayerIndex);
@@ -57,7 +59,7 @@ if (resumeBtn) {
 
 export function updateResumeButton() {
   const resumeBtn = document.getElementById("resume-btn");
-  const saved = localStorage.getItem("yams-saved-game");
+  const saved = localStorage.getItem(SAVED_GAME_KEY);
 
   if (saved) {
     resumeBtn.disabled = false;
@@ -69,7 +71,6 @@ export function updateResumeButton() {
     resumeBtn.style.pointerEvents = "none";
   }
 }
-
 
 export function showScreen(screenKey) {
   Object.values(screens).forEach((screen) => {

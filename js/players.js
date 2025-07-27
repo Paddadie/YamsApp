@@ -1,4 +1,5 @@
-import { screensId, showScreen } from "./screens.js";
+import { showScreen } from "./screens.js";
+import { SAVED_GAME_KEY, SAVED_NAMES_KEY } from "./utils.js";
 
 export let players = [];
 export let selectedVariants = [];
@@ -16,14 +17,34 @@ const playerColors = [
   "#C1D3D8",
 ];
 
+const startBtn = document.getElementById("start-btn");
+const startGameBtn = document.getElementById("start-game-btn");
+const playerForm = document.getElementById("player-form");
+const playerNameInput = document.getElementById("player-name");
+const playerList = document.getElementById("player-list");
+const variantCheckboxes = document.querySelectorAll("input[name='variant']");
+const backToVariantsBtn = document.getElementById("back-to-variants-btn");
+
 export function initPlayers() {
-  const startBtn = document.getElementById("start-btn");
-  const startGameBtn = document.getElementById("start-game-btn");
-  const playerForm = document.getElementById("player-form");
-  const playerNameInput = document.getElementById("player-name");
-  const playerList = document.getElementById("player-list");
-  const variantCheckboxes = document.querySelectorAll("input[name='variant']");
-  const backToVariantsBtn = document.getElementById("back-to-variants-btn");
+  // TEST
+  /*
+  if (!localStorage.getItem(SAVED_NAMES_KEY)) {
+    const testNames = [
+      "Alice",
+      "Bruno",
+      "Chloé",
+      "David",
+      "Emma",
+      "Félix",
+      "Gabriel",
+      "Hugo",
+      "Inès",
+      "Jules",
+    ];
+    localStorage.setItem(SAVED_NAMES_KEY, JSON.stringify(testNames));
+  }
+  */
+  //TEST
 
   startBtn.addEventListener("click", () => {
     selectedVariants = Array.from(variantCheckboxes)
@@ -35,7 +56,7 @@ export function initPlayers() {
       return;
     }
 
-    localStorage.removeItem("yams-saved-game");
+    localStorage.removeItem(SAVED_GAME_KEY);
 
     for (const player of players) {
       const newScores = {};
@@ -46,6 +67,7 @@ export function initPlayers() {
     }
 
     showScreen("players");
+    renderKnownPlayers();
   });
 
   playerForm.addEventListener("submit", (e) => {
@@ -60,7 +82,9 @@ export function initPlayers() {
     }
 
     players.push({ name, scores, color });
+    saveKnownPlayerName(name);
     updatePlayerList();
+
     playerNameInput.value = "";
     startGameBtn.disabled = players.length < 2;
   });
@@ -75,22 +99,65 @@ export function initPlayers() {
       module.startGame(players, selectedVariants);
     });
   });
+}
 
-  function updatePlayerList() {
-    playerList.innerHTML = "";
-    players.forEach((player, index) => {
-      const li = document.createElement("li");
-      li.textContent = player.name;
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "✖";
-      removeBtn.className = "remove-player";
-      removeBtn.addEventListener("click", () => {
-        players.splice(index, 1);
-        updatePlayerList();
-        startGameBtn.disabled = players.length < 2;
-      });
-      li.appendChild(removeBtn);
-      playerList.appendChild(li);
+function updatePlayerList() {
+  playerList.innerHTML = "";
+  players.forEach((player, index) => {
+    const li = document.createElement("li");
+    li.textContent = player.name;
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "✖";
+    removeBtn.className = "remove-player";
+    removeBtn.addEventListener("click", () => {
+      players.splice(index, 1);
+      updatePlayerList();
+      startGameBtn.disabled = players.length < 2;
     });
+    li.appendChild(removeBtn);
+    playerList.appendChild(li);
+  });
+}
+
+function saveKnownPlayerName(name) {
+  const existing = JSON.parse(localStorage.getItem(SAVED_NAMES_KEY)) || [];
+  if (!existing.includes(name)) {
+    existing.push(name);
+    existing.sort((a, b) => a.localeCompare(b));
+    localStorage.setItem(SAVED_NAMES_KEY, JSON.stringify(existing));
+  }
+}
+
+function getKnownPlayerNames() {
+  return JSON.parse(localStorage.getItem(SAVED_NAMES_KEY)) || [];
+}
+
+function renderKnownPlayers() {
+  const knownList = document.getElementById("known-players-list");
+  knownList.innerHTML = "";
+
+  const knownNames = getKnownPlayerNames();
+  for (const name of knownNames) {
+    const li = document.createElement("li");
+    li.textContent = name;
+
+    const addBtn = document.createElement("button");
+    addBtn.textContent = "+";
+    addBtn.addEventListener("click", () => {
+      if (players.some((p) => p.name === name)) return;
+
+      const color = playerColors[players.length % playerColors.length];
+      const scores = {};
+      for (const variant of selectedVariants) {
+        scores[variant] = {};
+      }
+
+      players.push({ name, scores, color });
+      updatePlayerList();
+      startGameBtn.disabled = players.length < 2;
+    });
+
+    li.appendChild(addBtn);
+    knownList.appendChild(li);
   }
 }
