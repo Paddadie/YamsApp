@@ -26,26 +26,6 @@ const variantCheckboxes = document.querySelectorAll("input[name='variant']");
 const backToVariantsBtn = document.getElementById("back-to-variants-btn");
 
 export function initPlayers() {
-  // TEST
-  /*
-  if (!localStorage.getItem(SAVED_NAMES_KEY)) {
-    const testNames = [
-      "Alice",
-      "Bruno",
-      "Chloé",
-      "David",
-      "Emma",
-      "Félix",
-      "Gabriel",
-      "Hugo",
-      "Inès",
-      "Jules",
-    ];
-    localStorage.setItem(SAVED_NAMES_KEY, JSON.stringify(testNames));
-  }
-  */
-  //TEST
-
   startBtn.addEventListener("click", () => {
     selectedVariants = Array.from(variantCheckboxes)
       .filter((cb) => cb.checked)
