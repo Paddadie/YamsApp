@@ -27,6 +27,12 @@ h2 {
   text-align: center;
 }
 
+h1 {
+  font-size: 2.2em;
+  font-weight: 700;
+  margin-bottom: 0.5em;
+}
+
 button {
   padding: 0.5em 1em;
   border-radius: 4px;
@@ -40,6 +46,11 @@ button {
 
 button:hover {
   background: var(--secondary-hover);
+}
+
+.hidden {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ========== BOUTONS UNIFORMISÉS ========== */
@@ -470,7 +481,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 
 #hall-screen h2 {
   text-align: center;
-  margin-top: 2em;
 }
 
 #app-version {
@@ -482,4 +492,35 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   z-index: 100;
   pointer-events: none;
   user-select: none;
+}
+
+#hall-screen table {
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#hall-screen h3 {
+  font-size: 1.3em;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin: 0.2em;
+}
+
+#hall-screen th,
+#hall-screen td {
+  padding: 0.75em 1em;
+  border-bottom: 1px solid #ddd;
+}
+
+#best-scores-table thead th {
+  background-color: #D4AF37;
+  color: black;
+}
+
+#worst-scores-table thead th {
+  background-color: #5C4033;
+  color: white;
 }
