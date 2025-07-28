@@ -81,7 +81,7 @@ export function startGame() {
 function isLineEnabled(lineName, variant, scores) {
   const montanteOrder = [
     ...lowerScoringNames.slice().reverse(),
-    ...upperScoringNames,
+    ...upperScoringNames.slice().reverse(),
   ];
   const descendanteOrder = [...upperScoringNames, ...lowerScoringNames];
 
