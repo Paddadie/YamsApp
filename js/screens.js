@@ -25,17 +25,21 @@ export function initNavigation() {
   const backBtn = document.getElementById("back-to-home-btn");
   const resumeBtn = document.getElementById("resume-btn");
 
-if (resumeBtn) {
-  resumeBtn.addEventListener("click", () => {
-    const saved = JSON.parse(localStorage.getItem(SAVED_GAME_KEY));
-    if (saved) {
-      import("./scores.js").then((module) => {
-        module.resumeGame(saved.players, saved.selectedVariants, saved.currentPlayerIndex);
-        showScreen("game");
-      });
-    }
-  });
-}
+  if (resumeBtn) {
+    resumeBtn.addEventListener("click", () => {
+      const saved = JSON.parse(localStorage.getItem(SAVED_GAME_KEY));
+      if (saved) {
+        import("./scores.js").then((module) => {
+          module.resumeGame(
+            saved.players,
+            saved.selectedVariants,
+            saved.currentPlayerIndex
+          );
+          showScreen("game");
+        });
+      }
+    });
+  }
 
   if (hallBtn) {
     hallBtn.addEventListener("click", () => {
@@ -55,6 +59,7 @@ if (resumeBtn) {
   }
 
   updateResumeButton();
+  updateAppVersion();
 }
 
 export function updateResumeButton() {
@@ -86,4 +91,21 @@ export function showScreen(screenKey) {
   } else {
     screenToShow.style.display = "flex";
   }
+}
+
+function updateAppVersion() {
+  fetch("version.json")
+    .then((res) => res.json())
+    .then((data) => {
+      const versionEl = document.getElementById("app-version");
+      if (versionEl) {
+        versionEl.textContent = data.version;
+      }
+    })
+    .catch(() => {
+      const versionEl = document.getElementById("app-version");
+      if (versionEl) {
+        versionEl.textContent = "Version inconnue";
+      }
+    });
 }

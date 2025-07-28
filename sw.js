@@ -1,4 +1,4 @@
-const CACHE_NAME = "v3.3.0";
+let CACHE_NAME = "default-cache-name";
 const ASSETS = [
   "/",
   "/index.html",
@@ -17,18 +17,15 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    fetch("version.json")
+      .then((res) => res.json())
+      .then((data) => {
+        CACHE_NAME = data.version;
+        return caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS));
+      })
   );
   self.skipWaiting();
 });
-
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").then((reg) => {
-    if (reg.waiting) {
-      reg.waiting.postMessage("SKIP_WAITING");
-    }
-  });
-}
 
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") {
@@ -38,15 +35,18 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(
-          keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
-      )
+    fetch("version.json")
+      .then((res) => res.json())
+      .then((data) => {
+        const currentVersion = data.version;
+        return caches.keys().then((keys) => {
+          return Promise.all(
+            keys
+              .filter((key) => key !== currentVersion)
+              .map((key) => caches.delete(key))
+          );
+        });
+      })
   );
   self.clients.claim();
 });
