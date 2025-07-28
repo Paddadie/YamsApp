@@ -213,7 +213,8 @@ button:hover {
   font-size: 1.1em;
 }
 
-#player-list, #known-players-list {
+#player-list,
+#known-players-list {
   margin-bottom: 1em;
   border: 1px solid #ccc;
   border-radius: var(--border-radius);
@@ -221,7 +222,8 @@ button:hover {
   background: var(--white);
 }
 
-.scrollable-list, .scrollable-next-list {
+.scrollable-list,
+.scrollable-next-list {
   max-height: 9em;
   overflow-y: auto;
   list-style: none;
@@ -237,20 +239,13 @@ button:hover {
   max-height: 14em;
 }
 
+.scrollable-next-list li,
 .scrollable-list li {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 1px solid #eee;
   padding: 0.25em 0.5em;
-  border-bottom: 1px solid #eee;
-  font-size: 1em;
-}
-
-.scrollable-next-list li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #eee;
   font-size: 1em;
 }
 
@@ -260,6 +255,17 @@ button:hover {
   color: green;
   font-size: 1.2em;
   cursor: pointer;
+}
+
+.empty-placeholder {
+  font-style: italic;
+  color: #666;
+  text-align: center;
+  padding: 0.5em;
+}
+
+ul:has(li:not(.empty-placeholder)) .empty-placeholder {
+  display: none;
 }
 
 /* ========== NAVIGATION JOUEUR ========== */

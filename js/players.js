@@ -102,10 +102,16 @@ export function initPlayers() {
 }
 
 function updatePlayerList() {
-  playerList.innerHTML = "";
+  const playerList = document.getElementById("player-list");
+  const existingItems = playerList.querySelectorAll(
+    "li:not(.empty-placeholder)"
+  );
+  existingItems.forEach((item) => item.remove());
+
   players.forEach((player, index) => {
     const li = document.createElement("li");
     li.textContent = player.name;
+
     const removeBtn = document.createElement("button");
     removeBtn.textContent = "✖";
     removeBtn.className = "remove-player";
@@ -114,6 +120,7 @@ function updatePlayerList() {
       updatePlayerList();
       startGameBtn.disabled = players.length < 2;
     });
+
     li.appendChild(removeBtn);
     playerList.appendChild(li);
   });
@@ -134,10 +141,14 @@ function getKnownPlayerNames() {
 
 function renderKnownPlayers() {
   const knownList = document.getElementById("known-players-list");
-  knownList.innerHTML = "";
+  const existingItems = knownList.querySelectorAll(
+    "li:not(.empty-placeholder)"
+  );
+  existingItems.forEach((item) => item.remove());
 
   const knownNames = getKnownPlayerNames();
-  for (const name of knownNames) {
+
+  knownNames.forEach((name) => {
     const li = document.createElement("li");
     li.textContent = name;
 
@@ -159,5 +170,5 @@ function renderKnownPlayers() {
 
     li.appendChild(addBtn);
     knownList.appendChild(li);
-  }
+  });
 }
