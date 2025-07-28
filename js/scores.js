@@ -17,11 +17,9 @@ const rankingTable = document.getElementById("ranking-table");
 const quitBtn = document.getElementById("quit-btn");
 
 const upperSection = {};
-
 for (let i = 1; i <= 6; i++) {
   upperSection[i] = Array.from({ length: 6 }, (_, index) => index * i);
 }
-
 upperSection.Bonus = [];
 upperSection["Total Haut"] = [];
 
@@ -80,6 +78,24 @@ export function startGame() {
   displayCurrentPlayer();
 }
 
+function isLineEnabled(lineName, variant, scores) {
+  const montanteOrder = [
+    ...lowerScoringNames.slice().reverse(),
+    ...upperScoringNames,
+  ];
+  const descendanteOrder = [...upperScoringNames, ...lowerScoringNames];
+
+  let order = variant === "Montante" ? montanteOrder : descendanteOrder;
+
+  if (!order.includes(lineName)) return true;
+
+  const index = order.indexOf(lineName);
+  if (index === 0) return true;
+
+  const previousLine = order[index - 1];
+  return scores[previousLine] !== undefined;
+}
+
 function displayCurrentPlayer() {
   const player = players[currentPlayerIndex];
   currentPlayerName.textContent = player.name;
@@ -115,6 +131,20 @@ function displayCurrentPlayer() {
             `<option value="">--</option>` +
             values.map((v) => `<option value="${v}">${v}</option>`).join("");
           select.value = scores[lineName] !== undefined ? scores[lineName] : "";
+
+          const enabled =
+            variant === "Montante" || variant === "Descendante"
+              ? isLineEnabled(lineName, variant, scores)
+              : true;
+
+          select.classList.add("score-select");
+          select.disabled = !enabled;
+          select.setAttribute("aria-disabled", !enabled);
+          if (!enabled) {
+            cell.classList.add("disabled-cell");
+            select.title = "Remplissez d’abord la ligne précédente.";
+          }
+
           select.addEventListener("change", () => {
             const val = select.value;
             if (val === "") {
@@ -125,12 +155,19 @@ function displayCurrentPlayer() {
             }
 
             updateCalculatedScores(scores);
+
             clearTimeout(autoAdvanceTimeout);
             autoAdvanceTimeout = setTimeout(() => {
-              if (!isGameFinished()) nextPlayerBtn.click();
-              else showFinalScreen();
+              if (!isGameFinished()) {
+                nextPlayerBtn.click();
+              } else {
+                showFinalScreen();
+              }
             }, 800);
+
+            displayCurrentPlayer();
           });
+
           cell.appendChild(select);
         } else {
           const val = calculateSpecialScore(lineName, scores);
@@ -145,10 +182,8 @@ function displayCurrentPlayer() {
       if (lineName === "Total Haut" || lineName === "Total Bas") {
         const spacerRow = document.createElement("tr");
         spacerRow.classList.add("spacer-row");
-
         const spacerCell = document.createElement("td");
         spacerCell.colSpan = selectedVariants.length + 1;
-
         spacerRow.appendChild(spacerCell);
         table.appendChild(spacerRow);
       }

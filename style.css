@@ -386,6 +386,21 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   height: 15px;
 }
 
+.disabled-cell {
+  background-color: #ddd;
+  opacity: 0.6;
+}
+
+.score-table select:disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.score-select[aria-disabled="true"] {
+  color: #999;
+}
+
+
 /* ========== PODIUM ========== */
 #podium-container {
   position: relative;
