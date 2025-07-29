@@ -1,10 +1,13 @@
-import { loadFromStorage, saveToStorage } from './storage.js';
+import { loadFromStorage, saveToStorage } from "./storage.js";
 
 const bestTable = document.querySelector("#best-scores-table tbody");
 const worstTable = document.querySelector("#worst-scores-table tbody");
 
+let clickCount = 0;
+let lastClickTime = 0;
+
 export function initHallOfFame() {
-  // Nothing needed for now
+  setupHallOfFameResetListener();
 }
 
 export function showHallOfFame() {
@@ -15,12 +18,16 @@ export function showHallOfFame() {
   worstTable.innerHTML = "";
 
   best.forEach((e, i) => {
-    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${e.date}</td><td><strong>${e.score}</strong></td></tr>`;
+    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${
+      e.date
+    }</td><td><strong>${e.score}</strong></td></tr>`;
     bestTable.innerHTML += row;
   });
 
   worst.forEach((e, i) => {
-    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${e.date}</td><td><strong>${e.score}</strong></td></tr>`;
+    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${
+      e.date
+    }</td><td><strong>${e.score}</strong></td></tr>`;
     worstTable.innerHTML += row;
   });
 }
@@ -31,8 +38,8 @@ export function saveBestAndWorstScores(players, variants) {
   const date = new Date().toLocaleDateString("fr-FR");
 
   const allScores = [];
-  players.forEach(player => {
-    variants.forEach(variant => {
+  players.forEach((player) => {
+    variants.forEach((variant) => {
       const score = player.scores?.[variant]?.["Score Final"];
       if (typeof score === "number") {
         allScores.push({ name: player.name, score, date });
@@ -40,6 +47,34 @@ export function saveBestAndWorstScores(players, variants) {
     });
   });
 
-  saveToStorage("bestScores", [...best, ...allScores].sort((a, b) => b.score - a.score).slice(0, 5));
-  saveToStorage("worstScores", [...worst, ...allScores].sort((a, b) => a.score - b.score).slice(0, 5));
+  saveToStorage(
+    "bestScores",
+    [...best, ...allScores].sort((a, b) => b.score - a.score).slice(0, 5)
+  );
+  saveToStorage(
+    "worstScores",
+    [...worst, ...allScores].sort((a, b) => a.score - b.score).slice(0, 5)
+  );
+}
+
+function setupHallOfFameResetListener() {
+  const trophy = document.getElementById("reset-trophy");
+  if (trophy) {
+    trophy.addEventListener("click", () => {
+      const now = Date.now();
+      if (now - lastClickTime < 700) {
+        clickCount++;
+      } else {
+        clickCount = 1;
+      }
+      lastClickTime = now;
+
+      if (clickCount >= 15) {
+        localStorage.removeItem("bestScores");
+        localStorage.removeItem("worstScores");
+        showHallOfFame();
+        clickCount = 0;
+      }
+    });
+  }
 }

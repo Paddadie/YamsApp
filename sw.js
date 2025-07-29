@@ -1,8 +1,8 @@
-let CACHE_NAME = "default-cache-name";
+let CACHE_NAME = "yams-app-cache-name";
 const ASSETS = [
   "/",
-  "/index.html",
-  "/style.css",
+  "/assets/de.png",
+  "/assets/podium.png",
   "/js/main.js",
   "/js/screens.js",
   "/js/players.js",
@@ -10,9 +10,9 @@ const ASSETS = [
   "/js/hallOfFame.js",
   "/js/storage.js",
   "/js/utils.js",
+  "/index.html",
+  "/style.css",
   "/manifest.json",
-  "/assets/de.png",
-  "/assets/podium.png",
 ];
 
 self.addEventListener("install", (event) => {

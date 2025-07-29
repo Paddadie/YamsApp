@@ -5,16 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yams</title>
 
-    <!-- Favicon / Icone PWA -->
     <link rel="icon" href="assets/de.png" />
     <link rel="manifest" href="manifest.json" />
     <meta name="theme-color" content="#ffffff" />
 
-    <!-- CSS principal -->
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- ÉCRAN ACCUEIL -->
+    <!-- ÉCRAN ACCUEIL & SELECTION VARIANTES -->
     <div id="home-screen" class="screen active">
       <h1>Prêt à lancer les dés&nbsp;? 🍀</h1>
 
@@ -49,7 +47,7 @@
       </div>
     </div>
 
-    <!-- ÉCRAN JOUEURS -->
+    <!-- ÉCRAN AJOUT JOUEURS -->
     <div id="players-screen" class="screen">
       <div class="players-content">
         <h2>👥 Ajouter des joueurs</h2>
@@ -89,7 +87,7 @@
       </div>
     </div>
 
-    <!-- ÉCRAN DE JEU -->
+    <!-- ÉCRAN DE CALCUL DES SCORES -->
     <div id="game-screen" class="screen">
       <div class="player-header">
         <button id="prev-player-btn" class="nav-arrow">⬅️</button>
@@ -119,7 +117,7 @@
 
     <!-- ÉCRAN HALL OF FAME -->
     <div id="hall-screen" class="screen">
-      <h2>🏆 Hall of Fame</h2>
+      <h2><span id="reset-trophy">🏆</span> Hall of Fame</h2>
 
       <section>
         <h3>👑 Meilleurs scores</h3>
@@ -161,17 +159,5 @@
 
     <!-- SCRIPT PRINCIPAL -->
     <script type="module" src="js/main.js"></script>
-
-    <!-- SERVICE WORKER -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("sw.js")
-            .then((reg) => console.log("✅ Service Worker enregistré", reg))
-            .catch((err) => console.log("❌ Échec enregistrement SW", err));
-        });
-      }
-    </script>
   </body>
 </html>
