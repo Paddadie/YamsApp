@@ -22,6 +22,7 @@ const startGameBtn = document.getElementById("start-game-btn");
 const playerForm = document.getElementById("player-form");
 const playerNameInput = document.getElementById("player-name");
 const playerList = document.getElementById("player-list");
+const knownList = document.getElementById("known-players-list");
 const variantCheckboxes = document.querySelectorAll("input[name='variant']");
 const backToVariantsBtn = document.getElementById("back-to-variants-btn");
 
@@ -82,7 +83,6 @@ export function initPlayers() {
 }
 
 function updatePlayerList() {
-  const playerList = document.getElementById("player-list");
   const existingItems = playerList.querySelectorAll(
     "li:not(.empty-placeholder)"
   );
@@ -120,7 +120,6 @@ function getKnownPlayerNames() {
 }
 
 function renderKnownPlayers() {
-  const knownList = document.getElementById("known-players-list");
   const existingItems = knownList.querySelectorAll(
     "li:not(.empty-placeholder)"
   );
