@@ -262,7 +262,11 @@ function showFinalScreen() {
       });
       return { name: player.name, details, total };
     })
-    .sort((a, b) => b.total - a.total);
+    .sort((a, b) => {
+      if (a.name === "Poulet") return -1;
+      if (b.name === "Poulet") return 1;
+      return b.total - a.total;
+    });
 
   [firstPodium, secondPodium, thirdPodium].forEach((slot, i) => {
     slot.textContent = results[i]?.name || "";
