@@ -58,7 +58,6 @@ export function initGame() {
   });
 
   quitBtn.addEventListener("click", () => {
-    saveBestAndWorstScores(players, selectedVariants);
     location.reload();
   });
 
@@ -296,6 +295,8 @@ function showFinalScreen() {
   rankingTable.innerHTML = "";
   rankingTable.appendChild(thead);
   rankingTable.appendChild(tbody);
+
+  saveBestAndWorstScores(players, selectedVariants);
 
   localStorage.removeItem(SAVED_GAME_KEY);
   showScreen("end");
