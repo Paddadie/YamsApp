@@ -296,7 +296,7 @@ function showFinalScreen() {
   results.forEach((r, i) => {
     const row = document.createElement("tr");
     row.innerHTML =
-      `<td>${i + 1}.</td><td>${r.name}</td>` +
+      `<td>${i + 1}</td><td>${r.name}</td>` +
       selectedVariants.map((v) => `<td>${r.details[v]}</td>`).join("") +
       `<td><strong>${r.total}</strong></td>`;
     tbody.appendChild(row);
@@ -305,6 +305,7 @@ function showFinalScreen() {
   rankingTable.innerHTML = "";
   rankingTable.appendChild(thead);
   rankingTable.appendChild(tbody);
+  rankingTable.classList.add("scrollable-ranking");
 
   saveBestAndWorstScores(players, selectedVariants);
 

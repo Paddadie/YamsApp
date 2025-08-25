@@ -444,9 +444,8 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 #ranking-table,
 #best-scores-table,
 #worst-scores-table {
-  width: 100%;
-  max-width: 400px;
-  margin: 1em auto;
+  width: 95%;
+  margin: 0 auto;
   border-collapse: collapse;
   font-size: 16px;
   text-align: center;
@@ -589,14 +588,69 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   display: flex;
   justify-content: center;
   margin-bottom: 1em;
+  max-height: 12em;
 }
 
 #ranking-container table {
-  width: 100%;
-  max-width: 90vw;
   border-collapse: collapse;
-  border-radius: 12px;
-  overflow: hidden;
+  width: 100%;
+  max-width: 95vw;
+}
+
+#ranking-table {
+  width: 95%;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+#ranking-table th,
+#ranking-table td {
+  overflow-wrap: break-word;
+  white-space: normal;
+  max-width: 1.8em;
+  width: 1.8em;
+}
+
+#ranking-table th:nth-child(1),
+#ranking-table td:nth-child(1) {
+  width: 1em !important;
+  max-width: 1em !important;
+}
+
+#ranking-table th:nth-child(2),
+#ranking-table td:nth-child(2) {
+  width: auto !important;
+  max-width: none !important;
+}
+
+#ranking-table th:last-child,
+#ranking-table td:last-child {
+  width: 2.9em !important;
+  max-width: 2.9em !important;
+}
+
+#ranking-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #e6be00;
+}
+
+#ranking-table thead th:first-child {
+  border-top-left-radius: 12px;
+}
+#ranking-table thead th:last-child {
+  border-top-right-radius: 12px;
+}
+
+#ranking-table th,
+#ranking-table td {
+  padding: 0.4em;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  max-width: 4.7em;
+  overflow-wrap: break-word;
+  white-space: normal;
 }
 
 #end-screen h2,
