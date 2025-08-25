@@ -535,10 +535,16 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+#hall-tables-container table thead th:first-child {
+  border-top-left-radius: 12px;
+}
+#hall-tables-container table thead th:last-child {
+  border-top-right-radius: 12px;
+}
+
 #hall-tables-container table th:first-child,
 #hall-tables-container table td:first-child {
-  width: 1em;
-  text-align: center;
+  width: 0.7em;
   white-space: nowrap;
 }
 
@@ -547,21 +553,26 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   width: auto;
   word-break: break-word;
   white-space: normal;
-  text-align: left;
 }
 
 #hall-tables-container table th:nth-child(3),
 #hall-tables-container table td:nth-child(3) {
   width: 4em;
-  text-align: center;
   white-space: nowrap;
 }
 
 #hall-tables-container table th:nth-child(4),
 #hall-tables-container table td:nth-child(4) {
-  width: 2em;
-  text-align: center;
+  width: 3em;
   white-space: nowrap;
+}
+
+#hall-tables-container th,
+#hall-tables-container td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.7em;
+  border-bottom: 1px solid #ddd;
 }
 
 #hall-screen h3 {
@@ -570,12 +581,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   text-transform: uppercase;
   letter-spacing: 1.5px;
   margin: 0.2em;
-}
-
-#hall-screen th,
-#hall-screen td {
-  padding: 0.7em;
-  border-bottom: 1px solid #ddd;
 }
 
 #best-scores-table thead th {
