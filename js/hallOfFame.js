@@ -6,8 +6,12 @@ const worstTable = document.querySelector("#worst-scores-table tbody");
 let clickCount = 0;
 let lastClickTime = 0;
 
+let creditClickCount = 0;
+let lastCreditClickTime = 0;
+
 export function initHallOfFame() {
   setupHallOfFameResetListener();
+  setupCreditMessageTrigger();
 }
 
 export function showHallOfFame() {
@@ -92,4 +96,42 @@ function setupHallOfFameResetListener() {
       }
     });
   }
+}
+
+function setupCreditMessageTrigger() {
+  const trophy = document.getElementById("reset-trophy");
+  
+  if (!trophy) return;
+
+  trophy.addEventListener("click", () => {
+    const now = Date.now();
+    
+    if (now - lastCreditClickTime < 700) {
+      creditClickCount++;
+    } else {
+      creditClickCount = 1;
+    }
+    lastCreditClickTime = now;
+
+    if (creditClickCount === 5) {
+      showCreditMessage();
+    }
+  });
+}
+
+function showCreditMessage() {
+  let creditDiv = document.getElementById("app-credit");
+  
+  if (!creditDiv) {
+    creditDiv = document.createElement("div");
+    creditDiv.id = "app-credit";
+    creditDiv.textContent = "Conçu par Marlo et développé par Poulet";
+    document.body.appendChild(creditDiv);
+  }
+
+  creditDiv.style.opacity = 1;
+
+  setTimeout(() => {
+    creditDiv.style.opacity = 0;
+  }, 3000);
 }

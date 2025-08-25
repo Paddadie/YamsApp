@@ -498,6 +498,19 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   user-select: none;
 }
 
+#app-credit {
+  position: fixed;
+  bottom: 5px;
+  left: 10px;
+  font-size: 0.65em;
+  color: #888;
+  z-index: 100;
+  pointer-events: none;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
 #hall-screen table {
   background-color: #fff;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
