@@ -200,7 +200,7 @@ button:hover {
 .remove-player {
   background: none;
   border: none;
-  color: #c00;
+  color: #c00 !important;
   font-size: 1.2em;
   margin-left: 10px;
   cursor: pointer;
@@ -232,8 +232,7 @@ button:hover {
   background: var(--white);
 }
 
-.scrollable-list,
-.scrollable-next-list {
+.scrollable-list {
   max-height: 9em;
   overflow-y: auto;
   list-style: none;
@@ -241,15 +240,6 @@ button:hover {
   padding: 0;
 }
 
-.scrollable-list {
-  max-height: 9em;
-}
-
-.scrollable-next-list {
-  max-height: 14em;
-}
-
-.scrollable-next-list li,
 .scrollable-list li {
   display: flex;
   justify-content: space-between;
@@ -434,18 +424,18 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 }
 
 .podium-slot.first {
-  top: 1.5em;
+  top: 0.5em;
   width: 100%;
 }
 
 .podium-slot.second {
-  top: 5em;
+  top: 4em;
   left: 0;
   width: 35%;
 }
 
 .podium-slot.third {
-  top: 6em;
+  top: 5em;
   right: 0;
   width: 30%;
 }
@@ -598,7 +588,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   overflow-y: auto;
   display: flex;
   justify-content: center;
-  padding: 0 1em;
   margin-bottom: 1em;
 }
 
