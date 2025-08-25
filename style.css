@@ -124,7 +124,6 @@ button:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1em;
   background-color: var(--bg-color);
   z-index: 10;
 }
@@ -519,8 +518,8 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1em;
   width: 100%;
+  max-width: 100vh;
 }
 
 #hall-tables-container table {
@@ -545,10 +544,10 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 #hall-screen td {
   padding: 0.75em 1em;
   border-bottom: 1px solid #ddd;
-  max-width: 150px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  max-width: 25vw;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow: visible;
 }
 
 #best-scores-table thead th {
