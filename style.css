@@ -511,11 +511,26 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   transition: opacity 0.3s;
 }
 
-#hall-screen table {
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+/* ========== HALL OF FAME ========== */
+#hall-tables-container {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0 1em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1em;
+  width: 100%;
+}
+
+#hall-tables-container table {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  overflow-x: auto;
   border-radius: 12px;
-  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  background-color: #fff;
 }
 
 #hall-screen h3 {
@@ -530,6 +545,10 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 #hall-screen td {
   padding: 0.75em 1em;
   border-bottom: 1px solid #ddd;
+  max-width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 #best-scores-table thead th {
@@ -540,23 +559,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 #worst-scores-table thead th {
   background-color: #5c4033;
   color: white;
-}
-
-#hall-tables-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 1em;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1em;
-}
-
-#hall-tables-container table {
-  width: 100%;
-  max-width: 90vw;
-  border-radius: 12px;
-  overflow: hidden;
 }
 
 #ranking-container {
