@@ -519,17 +519,34 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 100vh;
+  max-height: calc(100vh - 150px);
+  box-sizing: border-box;
 }
 
 #hall-tables-container table {
-  width: 100%;
-  max-width: 100%;
+  width: 95%;
+  max-width: 95vw;
+  table-layout: fixed;
+  word-break: break-word;
   display: block;
   overflow-x: auto;
   border-radius: 12px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   background-color: #fff;
+}
+
+#hall-tables-container table th:first-child,
+#hall-tables-container table td:first-child {
+  width: 40px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#hall-tables-container th,
+#hall-tables-container td {
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 #hall-screen h3 {
