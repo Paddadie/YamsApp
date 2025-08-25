@@ -537,7 +537,7 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 
 #hall-tables-container table th:first-child,
 #hall-tables-container table td:first-child {
-  width: 1.5em;
+  width: 1em;
   text-align: center;
   white-space: nowrap;
 }
@@ -552,14 +552,14 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 
 #hall-tables-container table th:nth-child(3),
 #hall-tables-container table td:nth-child(3) {
-  width: 7em;
+  width: 4em;
   text-align: center;
   white-space: nowrap;
 }
 
 #hall-tables-container table th:nth-child(4),
 #hall-tables-container table td:nth-child(4) {
-  width: 4em;
+  width: 2em;
   text-align: center;
   white-space: nowrap;
 }
