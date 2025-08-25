@@ -18,7 +18,27 @@ function registerServiceWorker() {
     window.addEventListener("load", () => {
       navigator.serviceWorker
         .register("sw.js")
-        .then((reg) => console.log("✅ Service Worker enregistré", reg))
+        .then((reg) => {
+          console.log("✅ Service Worker enregistré", reg);
+
+          if (reg.waiting) {
+            reg.waiting.postMessage("SKIP_WAITING");
+            window.location.reload();
+          }
+
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener("statechange", () => {
+              if (
+                newWorker.state === "installed" &&
+                navigator.serviceWorker.controller
+              ) {
+                newWorker.postMessage("SKIP_WAITING");
+                window.location.reload();
+              }
+            });
+          });
+        })
         .catch((err) => console.log("❌ Échec enregistrement SW", err));
     });
   }

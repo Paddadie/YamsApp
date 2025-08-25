@@ -1,4 +1,4 @@
-let CACHE_NAME = "yams-app-cache-name";
+let CACHE_NAME = "yams-app-cache";
 const ASSETS = [
   "/",
   "/assets/de.png",
@@ -17,44 +17,52 @@ const ASSETS = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    fetch("version.json")
-      .then((res) => res.json())
-      .then((data) => {
-        CACHE_NAME = data.version;
-        return caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS));
-      })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
   self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key !== CACHE_NAME)
+            .map((key) => caches.delete(key))
+        )
+      )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener("fetch", (event) => {
+  if (event.request.url.endsWith("version.json")) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cachedResponse = await cache.match(event.request);
+        const networkPromise = fetch(event.request)
+          .then((networkResponse) => {
+            cache.put(event.request, networkResponse.clone());
+            return networkResponse;
+          })
+          .catch(() => null);
+        return cachedResponse || networkPromise;
+      })
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches
+      .match(event.request)
+      .then((response) => response || fetch(event.request))
+  );
 });
 
 self.addEventListener("message", (event) => {
   if (event.data === "SKIP_WAITING") {
     self.skipWaiting();
   }
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    fetch("version.json")
-      .then((res) => res.json())
-      .then((data) => {
-        const currentVersion = data.version;
-        return caches.keys().then((keys) => {
-          return Promise.all(
-            keys
-              .filter((key) => key !== currentVersion)
-              .map((key) => caches.delete(key))
-          );
-        });
-      })
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (event) => {
-  event.respondWith(
-    caches
-      .match(event.request)
-      .then((response) => response || fetch(event.request))
-  );
 });
