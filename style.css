@@ -545,3 +545,26 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   border-radius: 12px;
   overflow: hidden;
 }
+
+#ranking-container {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 0 1em;
+  margin-bottom: 1em;
+}
+
+#ranking-container table {
+  width: 100%;
+  max-width: 90vw;
+  border-collapse: collapse;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#end-screen h2,
+#podium-container,
+#quit-btn-container {
+  flex-shrink: 0;
+}
