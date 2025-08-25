@@ -519,33 +519,49 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-height: calc(100vh - 200px);
+  max-height: calc(100vh - 180px);
   box-sizing: border-box;
 }
 
 #hall-tables-container table {
+  width: 95%;
   max-width: 95vw;
+  border-collapse: collapse;
   table-layout: fixed;
-  word-break: break-word;
-  display: block;
-  overflow-x: auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  word-wrap: break-word;
   background-color: #fff;
+  border-radius: 12px;
+  overflow: visible;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 #hall-tables-container table th:first-child,
 #hall-tables-container table td:first-child {
-  width: 1em;
+  width: 1.5em;
   text-align: center;
   white-space: nowrap;
 }
 
-#hall-tables-container th,
-#hall-tables-container td {
+#hall-tables-container table th:nth-child(2),
+#hall-tables-container table td:nth-child(2) {
+  width: auto;
+  word-break: break-word;
   white-space: normal;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
+  text-align: left;
+}
+
+#hall-tables-container table th:nth-child(3),
+#hall-tables-container table td:nth-child(3) {
+  width: 7em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+#hall-tables-container table th:nth-child(4),
+#hall-tables-container table td:nth-child(4) {
+  width: 4em;
+  text-align: center;
+  white-space: nowrap;
 }
 
 #hall-screen h3 {
@@ -560,10 +576,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 #hall-screen td {
   padding: 0.7em;
   border-bottom: 1px solid #ddd;
-  max-width: 25vw;
-  white-space: normal;
-  word-wrap: break-word;
-  overflow: visible;
 }
 
 #best-scores-table thead th {
