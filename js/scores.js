@@ -5,6 +5,7 @@ import { saveBestAndWorstScores } from "./hallOfFame.js";
 
 let currentPlayerIndex = 0;
 let autoAdvanceTimeout;
+let reviewMode = false;
 
 const scoreTablesContainer = document.getElementById("score-tables");
 const currentPlayerName = document.getElementById("current-player-name");
@@ -14,6 +15,9 @@ const firstPodium = document.getElementById("podium-1");
 const secondPodium = document.getElementById("podium-2");
 const thirdPodium = document.getElementById("podium-3");
 const rankingTable = document.getElementById("ranking-table");
+const pauseBtn = document.getElementById("pause-btn");
+const backToPodiumBtn = document.getElementById("back-to-podium-btn");
+const reviewBtn = document.getElementById("review-scores-btn");
 const quitBtn = document.getElementById("quit-btn");
 
 const upperSection = {};
@@ -61,12 +65,18 @@ export function initGame() {
     location.reload();
   });
 
-  const pauseBtn = document.getElementById("pause-btn");
   if (pauseBtn) {
     pauseBtn.addEventListener("click", () => {
       saveGame();
       showScreen("home");
       updateResumeButton();
+    });
+  }
+
+  if (reviewBtn) {
+    reviewBtn.addEventListener("click", () => {
+      showScreen("game");
+      enableReviewMode();
     });
   }
 }
@@ -137,7 +147,7 @@ function displayCurrentPlayer() {
               : true;
 
           select.classList.add("score-select");
-          select.disabled = !enabled;
+          select.disabled = reviewMode || !enabled;
           select.setAttribute("aria-disabled", !enabled);
           if (!enabled) {
             cell.classList.add("disabled-cell");
@@ -321,4 +331,20 @@ export function resumeGame(savedPlayers, savedVariants, savedIndex) {
   currentPlayerIndex = savedIndex;
 
   displayCurrentPlayer();
+}
+
+export function enableReviewMode() {
+  reviewMode = true;
+  displayCurrentPlayer();
+
+  pauseBtn.style.display = "none";
+  backToPodiumBtn.style.display = "inline-block";
+
+  backToPodiumBtn.onclick = () => {
+    reviewMode = false;
+    showScreen("end");
+
+    pauseBtn.style.display = "inline-block";
+    backToPodiumBtn.style.display = "none";
+  };
 }

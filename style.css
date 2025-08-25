@@ -411,6 +411,10 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   color: #999;
 }
 
+.score-select:disabled {
+  color: var(--black) !important;
+  opacity: 1 !important;
+}
 
 /* ========== PODIUM ========== */
 #podium-container {
@@ -496,7 +500,7 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 
 #hall-screen table {
   background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -516,11 +520,11 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 }
 
 #best-scores-table thead th {
-  background-color: #D4AF37;
+  background-color: #d4af37;
   color: black;
 }
 
 #worst-scores-table thead th {
-  background-color: #5C4033;
+  background-color: #5c4033;
   color: white;
 }
