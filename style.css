@@ -558,7 +558,7 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 
 #hall-screen th,
 #hall-screen td {
-  padding: 0.75em 1em;
+  padding: 0.7em;
   border-bottom: 1px solid #ddd;
   max-width: 25vw;
   white-space: normal;

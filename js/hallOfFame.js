@@ -22,14 +22,14 @@ export function showHallOfFame() {
   worstTable.innerHTML = "";
 
   best.forEach((e, i) => {
-    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${
+    const row = `<tr><td>${i + 1}</td><td>${e.name}</td><td>${
       e.date
     }</td><td><strong>${e.score}</strong></td></tr>`;
     bestTable.innerHTML += row;
   });
 
   worst.forEach((e, i) => {
-    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${
+    const row = `<tr><td>${i + 1}</td><td>${e.name}</td><td>${
       e.date
     }</td><td><strong>${e.score}</strong></td></tr>`;
     worstTable.innerHTML += row;
