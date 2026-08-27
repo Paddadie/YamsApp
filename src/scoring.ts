@@ -33,7 +33,16 @@ export const TOTAL_SECTION: Section = {
   "Score Final": [],
 };
 
-export const SECTIONS: Section[] = [UPPER_SECTION, LOWER_SECTION, TOTAL_SECTION];
+export interface SectionDef {
+  label: string; // sous-titre affiché ("" = pas de sous-titre)
+  lines: Section;
+}
+
+export const SECTIONS: SectionDef[] = [
+  { label: "Chiffres", lines: UPPER_SECTION },
+  { label: "Combinaisons", lines: LOWER_SECTION },
+  { label: "", lines: TOTAL_SECTION },
+];
 
 // Lignes réellement saisissables (celles qui ont une liste de valeurs).
 export const upperScoringNames = Object.keys(UPPER_SECTION).filter(

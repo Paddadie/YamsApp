@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yams</title>
 
     <link rel="icon" href="/de.png" />
@@ -12,20 +12,22 @@
   </head>
   <body>
     <div id="home-screen" class="screen">
-      <h1>Prêt à lancer les dés&nbsp;? 🍀</h1>
+      <div class="screen-body">
+        <h1>🍀&nbsp;Yams&nbsp;🍀</h1>
 
-      <section class="variants">
-        <h2>Choisissez les variantes :</h2>
-        <!-- Cases à cocher générées par src/pages/home.ts d'après src/variants.ts -->
-        <div class="variant-options"></div>
-      </section>
+        <section class="variants">
+          <h2>Choisissez les variantes :</h2>
+          <!-- Cases à cocher générées par src/pages/home.ts d'après src/variants.ts -->
+          <div class="variant-options"></div>
+        </section>
+      </div>
 
-      <div class="home-buttons-container">
+      <div class="home-buttons-container action-bar">
         <button id="resume-btn" class="btn btn-secondary" disabled>
           ▶ Reprendre la partie
         </button>
-        <button id="start-btn" class="btn btn-primary">🚀 Commencer</button>
-        <button id="hall-btn" class="btn btn-secondary">🏆 Hall of Fame</button>
+        <button id="start-btn" class="btn btn-primary" disabled>🎲 Commencer</button>
+        <button id="hall-btn" class="btn btn-gold">🏆 Hall of Fame</button>
       </div>
     </div>
 

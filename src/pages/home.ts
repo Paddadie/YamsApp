@@ -17,7 +17,10 @@ const previouslyChosen = new Set(getDraft()?.variants ?? []);
 const hasDraft = previouslyChosen.size > 0;
 
 for (const variant of VARIANTS) {
-  const label = document.createElement("label");
+  const chip = document.createElement("label");
+  chip.className = "variant-chip";
+  chip.style.setProperty("--chip-color", variant.color);
+
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.name = "variant";
@@ -25,9 +28,35 @@ for (const variant of VARIANTS) {
   checkbox.checked = hasDraft
     ? previouslyChosen.has(variant.value)
     : Boolean(variant.default);
-  label.append(checkbox, ` ${variant.label} ${variant.icon}`);
-  optionsContainer.appendChild(label);
+
+  const icon = document.createElement("span");
+  icon.className = "chip-icon";
+  icon.textContent = variant.icon;
+  icon.setAttribute("aria-hidden", "true");
+
+  const label = document.createElement("span");
+  label.className = "chip-label";
+  label.textContent = variant.label;
+
+  chip.append(checkbox, icon, label);
+  optionsContainer.appendChild(chip);
 }
+
+const startBtn = requireEl<HTMLButtonElement>("start-btn");
+
+const selectedVariants = (): Variant[] =>
+  [
+    ...optionsContainer.querySelectorAll<HTMLInputElement>(
+      "input[name='variant']:checked",
+    ),
+  ].map((cb) => cb.value as Variant);
+
+const syncStartButton = (): void => {
+  startBtn.disabled = selectedVariants().length === 0;
+};
+
+optionsContainer.addEventListener("change", syncStartButton);
+syncStartButton();
 
 const resumeBtn = requireEl<HTMLButtonElement>("resume-btn");
 const canResume = hasSavedGame();
@@ -37,17 +66,9 @@ resumeBtn.addEventListener("click", () => {
   if (canResume) goTo("game");
 });
 
-requireEl("start-btn").addEventListener("click", () => {
-  const selected = [
-    ...optionsContainer.querySelectorAll<HTMLInputElement>(
-      "input[name='variant']:checked",
-    ),
-  ].map((cb) => cb.value as Variant);
-
-  if (selected.length === 0) {
-    alert("Veuillez sélectionner au moins une variante.");
-    return;
-  }
+startBtn.addEventListener("click", () => {
+  const selected = selectedVariants();
+  if (selected.length === 0) return; // le bouton est déjà désactivé dans ce cas
 
   saveDraft({ variants: selected, playerNames: getDraft()?.playerNames ?? [] });
   goTo("players");

@@ -2,7 +2,7 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yams — Fin de partie</title>
 
     <link rel="icon" href="/de.png" />
@@ -12,15 +12,14 @@
   </head>
   <body>
     <div id="end-screen" class="screen">
-      <h2>🎉 Fin de la partie !</h2>
-      <div id="podium-container">
-        <img src="/podium.png" alt="Podium" id="podium-image" />
-        <div class="podium-slot first" id="podium-1"></div>
-        <div class="podium-slot second" id="podium-2"></div>
-        <div class="podium-slot third" id="podium-3"></div>
+      <div class="screen-body">
+        <h2>🎉 Fin de la partie&nbsp;!</h2>
+        <div id="podium"></div>
+        <p id="record-banner" hidden></p>
+        <table id="ranking-table"></table>
+        <p id="hof-legend" hidden></p>
       </div>
-      <table id="ranking-table"></table>
-      <div id="quit-btn-container">
+      <div id="quit-btn-container" class="action-bar">
         <button id="quit-btn" class="btn btn-danger">🏠 Quitter</button>
       </div>
     </div>

@@ -4,7 +4,7 @@
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { game, hydrateGame, toSavedGame } from "../state";
-import { getVariantIcon } from "../variants";
+import { getVariantIcon, getVariantColor } from "../variants";
 import { requireEl } from "../ui";
 import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
 import {
@@ -27,6 +27,7 @@ if (!saved) {
 }
 hydrateGame(saved);
 
+const gameScreen = requireEl("game-screen");
 const scoreTablesContainer = requireEl("score-tables");
 const currentPlayerName = requireEl("current-player-name");
 const prevPlayerBtn = requireEl("prev-player-btn");
@@ -58,23 +59,44 @@ function changePlayer(delta: number): void {
 function displayCurrentPlayer(): void {
   const player = game.players[game.currentPlayerIndex];
   currentPlayerName.textContent = player.name;
+  // Toute la page prend la couleur du joueur courant.
+  gameScreen.style.backgroundColor = player.color;
   scoreTablesContainer.innerHTML = "";
 
   const table = document.createElement("table");
   table.className = "score-table";
 
+  const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
-  headerRow.innerHTML =
-    "<th></th>" +
-    game.variants
-      .map((v) => `<th title="${v}">${getVariantIcon(v)}</th>`)
-      .join("");
-  table.appendChild(headerRow);
+  headerRow.appendChild(document.createElement("th")); // coin vide
+  for (const variant of game.variants) {
+    const th = document.createElement("th");
+    th.title = variant;
+    const icon = document.createElement("span");
+    icon.className = "variant-icon";
+    icon.style.setProperty("--vc", getVariantColor(variant));
+    icon.textContent = getVariantIcon(variant);
+    th.appendChild(icon);
+    headerRow.appendChild(th);
+  }
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
 
-  for (const section of SECTIONS) {
-    for (const lineName in section) {
-      const values = section[lineName];
+  const tbody = document.createElement("tbody");
+  let dataRowIndex = 0;
+  let sectionIndex = 0;
+
+  for (const { label, lines } of SECTIONS) {
+    if (label) tbody.appendChild(buildSectionHead(label, sectionIndex > 0));
+    sectionIndex++;
+
+    for (const lineName in lines) {
+      const values = lines[lineName];
+      const isComputed = values.length === 0;
       const row = document.createElement("tr");
+      if (isComputed) row.classList.add("computed");
+      if (lineName === "Score Final") row.classList.add("final");
+      if (!isComputed && dataRowIndex++ % 2 === 1) row.classList.add("alt");
 
       const nameCell = document.createElement("td");
       nameCell.textContent = lineName;
@@ -84,28 +106,35 @@ function displayCurrentPlayer(): void {
         const cell = document.createElement("td");
         const scores = player.scores[variant];
 
-        if (values.length > 0) {
-          fillScoreCell(cell, lineName, variant, values, scores);
-        } else {
+        if (isComputed) {
           cell.textContent = String(calculateSpecialScore(lineName, scores));
+        } else {
+          fillScoreCell(cell, lineName, variant, values, scores);
         }
 
         row.appendChild(cell);
       }
 
-      table.appendChild(row);
-
-      if (lineName === "Total Haut" || lineName === "Total Bas") {
-        table.appendChild(buildSpacerRow());
-      }
+      tbody.appendChild(row);
     }
   }
 
+  table.appendChild(tbody);
+
   const wrapper = document.createElement("div");
   wrapper.className = "score-wrapper";
-  wrapper.style.backgroundColor = player.color;
   wrapper.appendChild(table);
   scoreTablesContainer.appendChild(wrapper);
+}
+
+function buildSectionHead(label: string, major: boolean): HTMLTableRowElement {
+  const row = document.createElement("tr");
+  row.className = major ? "section-head section-head--major" : "section-head";
+  const cell = document.createElement("td");
+  cell.colSpan = game.variants.length + 1;
+  cell.textContent = label;
+  row.appendChild(cell);
+  return row;
 }
 
 function fillScoreCell(
@@ -115,24 +144,22 @@ function fillScoreCell(
   values: number[],
   scores: LineScores,
 ): void {
+  const current = scores[lineName];
+
   const select = document.createElement("select");
-  select.className = "score-select";
+  select.className =
+    current !== undefined ? "score-select is-filled" : "score-select is-empty";
   select.innerHTML =
-    `<option value="">--</option>` +
+    `<option value="">–</option>` +
     values.map((v) => `<option value="${v}">${v}</option>`).join("");
-  select.value = scores[lineName] !== undefined ? String(scores[lineName]) : "";
+  select.value = current !== undefined ? String(current) : "";
 
   const enabled =
     variant === "Montante" || variant === "Descendante"
       ? isLineEnabled(lineName, variant, scores)
       : true;
-
   select.disabled = !enabled;
-  select.setAttribute("aria-disabled", String(!enabled));
-  if (!enabled) {
-    cell.classList.add("disabled-cell");
-    select.title = "Remplissez d’abord la ligne précédente.";
-  }
+  if (!enabled) select.title = "Remplissez d’abord la ligne précédente.";
 
   select.addEventListener("change", () => {
     if (select.value === "") {
@@ -160,13 +187,4 @@ function fillScoreCell(
   });
 
   cell.appendChild(select);
-}
-
-function buildSpacerRow(): HTMLTableRowElement {
-  const spacerRow = document.createElement("tr");
-  spacerRow.className = "spacer-row";
-  const spacerCell = document.createElement("td");
-  spacerCell.colSpan = game.variants.length + 1;
-  spacerRow.appendChild(spacerCell);
-  return spacerRow;
 }

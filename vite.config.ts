@@ -38,7 +38,7 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt", // on gère nous-mêmes le bandeau "Mettre à jour"
       injectRegister: false, // enregistrement fait à la main dans src/pwa/updatePrompt.ts
-      includeAssets: ["de.png", "podium.png"],
+      includeAssets: ["de.png"],
       manifest: {
         lang: "fr",
         name: "Score de Yams",

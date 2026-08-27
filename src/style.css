@@ -8,11 +8,29 @@
   --secondary-hover: #155a8a;
   --danger-color: #d32f2f;
   --danger-hover: #b71c1c;
+  --gold-color: #c8860b;
+  --gold-hover: #a66f08;
   --disabled-color: #9e9e9e;
   --white: #ffffff;
   --black: #000000;
   --border-radius: 8px;
   --transition: 0.3s ease;
+
+  /* Gabarits de contenu, élargis sur tablette (voir @media plus bas). */
+  --content-max: 34rem; /* colonne lisible : formulaires, listes, résultats */
+  --grid-max: 27rem; /* grille de score */
+  --shadow-up: 0 -2px 8px rgba(0, 0, 0, 0.08);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Taille de base fluide : ~16px sur iPhone, ~19px sur tablette. */
+  font-size: clamp(16px, 0.6vw + 13.5px, 19px);
 }
 
 body {
@@ -54,13 +72,15 @@ button:hover {
 }
 
 /* ========== BOUTONS UNIFORMISÉS ========== */
+/* Un seul gabarit dans toute l'application : même largeur, même hauteur,
+   même position (au sein d'une .action-bar). */
 .btn {
-  display: inline-block;
-  font-size: 1.1em;
-  padding: 1em;
-  margin: 0.5em auto;
-  width: 20em;
-  max-width: 90%;
+  display: block;
+  font-size: 1.05rem;
+  padding: 0.85em 1em;
+  margin: 0;
+  width: 100%;
+  max-width: 22rem;
   text-align: center;
   border: none;
   border-radius: var(--border-radius);
@@ -93,180 +113,302 @@ button:hover {
   background-color: var(--danger-hover);
 }
 
+.btn-gold {
+  background-color: var(--gold-color);
+}
+
+.btn-gold:hover {
+  background-color: var(--gold-hover);
+}
+
 .btn:disabled {
   background-color: var(--disabled-color);
   color: var(--white);
   cursor: not-allowed;
 }
 
-#pause-btn-container {
-  display: flex;
-  justify-content: center;
-  margin: 0.5em auto 0;
-}
-
-#pause-btn {
-  padding: 0.5em 1em;
-  width: 20em;
-  margin: 0;
-}
-
-/* ========== CONTENEURS DE BOUTONS EN BAS ========== */
-#start-game-container,
-#quit-btn-container,
-#back-btn-container,
-.home-buttons-container {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 1em;
+/* ========== BARRE D'ACTIONS (bas de chaque écran) ========== */
+/* Toujours au même endroit : dernier élément de la colonne .screen, jamais
+   dans le flux qui défile. Identique sur toutes les pages. */
+.action-bar {
+  flex: none;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1em;
+  gap: 0.5em;
+  padding: 0.75em clamp(1rem, 4vw, 2.5rem)
+    calc(0.75em + env(safe-area-inset-bottom));
   background-color: var(--bg-color);
-  z-index: 10;
 }
 
-/* ========== VARIANTS ========== */
+.action-bar .btn {
+  margin: 0;
+}
+
+/* ========== VARIANTS (choix sur l'accueil) ========== */
 .variants {
-  margin-top: 1em;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0.9rem;
 }
 
-.variants label {
-  margin: 0 1em;
-  font-size: 1.1em;
+.variants h2 {
+  margin: 0;
+  font-size: 1.15rem;
 }
 
+/* Puces à bascule, en grille 2×2 (4 sur une ligne à partir de la tablette). */
 .variant-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.variant-chip {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.5em;
+  gap: 0.25em;
+  padding: 0.9em 0.6em;
+  border: 2px solid #d3d3d3;
+  border-radius: 12px;
+  background: var(--white);
+  color: inherit;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--transition), border-color var(--transition),
+    color var(--transition), box-shadow var(--transition);
+}
+
+.variant-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.chip-icon {
+  font-size: 1.6em;
+  line-height: 1;
+}
+
+.chip-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.variant-chip:hover {
+  border-color: #b3b3b3;
+}
+
+/* Sélectionnée : couleur propre à la variante (--chip-color, posée par home.ts). */
+.variant-chip:has(input:checked) {
+  background: var(--chip-color, var(--primary-color));
+  border-color: var(--chip-color, var(--primary-color));
+  color: var(--white);
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.22);
+}
+
+.variant-chip:has(input:checked):hover {
+  filter: brightness(0.93);
+}
+
+.variant-chip:has(input:checked)::after {
+  content: "✓";
+  position: absolute;
+  top: 0.3em;
+  right: 0.5em;
+  font-size: 0.85em;
+  font-weight: 800;
+}
+
+/* Accessibilité clavier */
+.variant-chip:has(input:focus-visible) {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 /* ========== ÉCRANS ========== */
-/* MPA : chaque page a son unique conteneur <div id="…-screen">. */
+/* MPA : chaque page a son unique <div id="…-screen" class="screen">.
+   Modèle unique : colonne verrouillée sur la hauteur visible, contenu qui
+   défile dans .screen-body, barre d'actions fixe en bas. */
 .screen {
-  padding: 0.5em;
-}
-
-#game-screen {
-  display: block;
-}
-
-/* ========== HOME SCREEN ========== */
-#home-screen {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2em 1em;
-  box-sizing: border-box;
-}
-
-/* ========== PLAYERS SCREEN ========== */
-#players-screen {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  padding: 20px;
-  box-sizing: border-box;
+  height: 100dvh;
+  overflow: hidden;
 }
 
+.screen-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+}
+
+.screen-body > * {
+  width: 100%;
+  max-width: var(--content-max);
+}
+
+/* ========== HOME SCREEN ========== */
+/* Titre ancré en haut, choix des variantes centré dans l'espace restant. */
+#home-screen .screen-body {
+  justify-content: flex-start;
+  gap: 1.75rem;
+  padding-top: clamp(1.5rem, 6vh, 4rem);
+}
+
+#home-screen h1 {
+  margin: 0;
+  font-size: clamp(2.2rem, 9vw, 3.2rem);
+  letter-spacing: 0.02em;
+}
+
+#home-screen .variants {
+  margin-block: auto;
+}
+
+/* ========== PLAYERS SCREEN ========== */
+/* Champ d'ajout + compteur restent en place ; seule la liste défile. */
 #player-form {
   display: flex;
   gap: 0.5em;
-  margin-bottom: 1em;
 }
 
 #player-name {
   flex: 1;
-  padding: 0.5em;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-}
-
-.remove-player {
-  background: none;
-  border: none;
-  color: #c00;
-  font-size: 1.2em;
-  margin-left: 10px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.remove-player:hover {
-  color: #900;
-}
-
-.next-players-container,
-.known-players-container {
-  margin-bottom: 1em;
+  min-width: 0;
+  padding: 0.65em 0.85em;
   border-radius: var(--border-radius);
-}
-
-.known-players-container h3,
-.next-players-container h3 {
-  margin: 0 0 0.5em 0;
-  font-size: 1.1em;
-}
-
-#player-list,
-#known-players-list {
-  margin-bottom: 1em;
   border: 1px solid #ccc;
-  border-radius: var(--border-radius);
-  padding: 0.5em;
-  background: var(--white);
+  font-size: 1rem;
 }
 
-.scrollable-list,
-.scrollable-next-list {
-  max-height: 9em;
+#player-form button {
+  flex: none;
+  padding: 0.65em 1.15em;
+  border-radius: var(--border-radius);
+  background: var(--secondary-color);
+  color: var(--white);
+  font-weight: 600;
+}
+
+#player-form button:hover {
+  background: var(--secondary-hover);
+}
+
+#roster-count {
+  margin: -0.5rem 0 0;
+  align-self: flex-start;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+#roster {
+  flex: 1;
+  min-height: 4em;
   overflow-y: auto;
   list-style: none;
   margin: 0;
   padding: 0;
+  border: 1px solid #d8d8d8;
+  border-radius: var(--border-radius);
+  background: var(--white);
 }
 
-.scrollable-next-list {
-  max-height: 14em;
-}
-
-.scrollable-next-list li,
-.scrollable-list li {
+.roster-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 0.7em;
+  padding: 0.75em 0.9em;
   border-bottom: 1px solid #eee;
-  padding: 0.25em 0.5em;
-  font-size: 1em;
-}
-
-.scrollable-list li button {
-  background: none;
-  border: none;
-  color: green;
-  font-size: 1.2em;
   cursor: pointer;
+  transition: background-color var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
 
-.empty-placeholder {
-  font-style: italic;
-  color: #666;
+.roster-row:last-child {
+  border-bottom: none;
+}
+
+.roster-row:hover {
+  background: #f5f5f5;
+}
+
+.roster-row:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: -3px;
+}
+
+.roster-row .check {
+  flex: none;
+  width: 1.4em;
+  height: 1.4em;
+  border: 2px solid #bcbcbc;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 0.9em;
+  font-weight: 800;
+  color: transparent;
+}
+
+.roster-row .name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roster-row .games {
+  flex: none;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+.roster-row.selected {
+  background: #eef6ee;
+}
+
+.roster-row.selected .check {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--white);
+}
+
+.roster-row.selected .name {
+  color: #2e7d32;
+}
+
+.roster-divider {
+  padding: 0.45em 0.9em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #999;
+  background: #fafafa;
+  border-bottom: 1px solid #eee;
+}
+
+.roster-empty {
+  padding: 1.5em 1em;
   text-align: center;
-  padding: 0.5em;
-}
-
-ul:has(li:not(.empty-placeholder)) .empty-placeholder {
-  display: none;
+  font-style: italic;
+  color: #777;
 }
 
 /* ========== NAVIGATION JOUEUR ========== */
@@ -275,7 +417,7 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  margin: 0.3rem 0;
+  padding: 0.5rem 0.75rem 0.25rem;
 }
 
 .player-header h2 {
@@ -308,124 +450,252 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 }
 
 /* ========== SCORES ========== */
+.player-header,
 #score-tables {
-  border-radius: 12px;
+  width: 100%;
+  max-width: var(--grid-max);
+  margin-inline: auto;
+}
+
+/* Zone de la grille : prend toute la hauteur restante de #game-screen.
+   Ne défile que si la grille, déjà réduite au minimum lisible, déborde encore. */
+#score-tables {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toute la page de jeu prend la couleur du joueur (posée en inline par
+   game.ts) ; transition douce d'un joueur à l'autre. */
+#game-screen {
   transition: background-color var(--transition);
 }
 
+#game-screen .action-bar {
+  background: transparent;
+}
+
+/* La grille est posée à plat, sans carte : la couleur du joueur transparaît. */
 .score-wrapper {
-  padding: 1em;
-  border-radius: 12px;
-  max-width: 420px;
-  margin: 0 auto;
+  flex: 1;
+  min-height: min-content;
+  display: flex;
+  flex-direction: column;
+  padding: 0.4em 0.15em;
 }
 
 .score-table {
+  flex: 1;
   width: 100%;
-  max-width: 400px;
-  margin: 0.3em auto;
   border-collapse: collapse;
   table-layout: fixed;
-  font-size: 0.8em;
+  /* Taille d'écriture fluide : petite sur iPhone, grande sur tablette. */
+  font-size: 0.85rem;
+  font-size: clamp(0.72rem, 1.55dvh, 1.3rem);
 }
 
-.score-table th {
-  font-size: 1.4em;
-  font-weight: bold;
-  text-align: center;
-}
-
-.score-table td {
-  padding: 0.5em;
-  border: 1px solid #5c5c5c;
+/* En-tête : pas de bande, chaque variante dans une pastille de sa couleur. */
+.score-table thead th {
+  padding: 0.35em 0.25em 0.6em;
   vertical-align: middle;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.16);
 }
 
-.score-table td:first-child {
-  font-size: 0.8em;
-  width: 50%;
-  text-align: left;
-  padding-left: 1em;
+.score-table thead .variant-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: var(--vc, #5b6b73);
+  font-size: 1.1em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55);
 }
 
-.score-table td:not(:first-child) {
-  width: 50%;
+/* Séparateur de section : bande translucide + filet net. */
+.score-table .section-head td {
+  padding: 0.65em 0.9em 0.3em;
+  font-size: 0.76em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.62);
+  background: rgba(255, 255, 255, 0.42);
+  border-top: 2px solid rgba(0, 0, 0, 0.16);
+}
+
+/* Passage Chiffres -> Combinaisons : rupture plus marquée. */
+.score-table .section-head--major td {
+  border-top-width: 3px;
+  padding-top: 1.15em;
+}
+
+/* Lignes de données : voiles blancs translucides -> la couleur du joueur
+   transparaît quelle que soit sa teinte. */
+.score-table tbody td {
+  padding: 0.3em 0.4em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  vertical-align: middle;
   text-align: center;
 }
 
-.score-table select,
+.score-table tbody td:first-child {
+  width: 46%;
+  padding-left: 0.9em;
+  text-align: left;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.score-table tbody tr.alt td {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Lignes calculées (Bonus, Totaux). */
+.score-table tbody tr.computed td {
+  background: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  color: #2f3a40;
+}
+
+/* Score final : la couleur de la page, assombrie (voile noir translucide),
+   à l'inverse des autres lignes qui sont éclaircies. */
+.score-table tbody tr.final td {
+  background: rgba(0, 0, 0, 0.16);
+  color: #16232a;
+  font-weight: 800;
+  font-size: 1.18em;
+  letter-spacing: 0.01em;
+  padding-top: 0.55em;
+  padding-bottom: 0.55em;
+  border-top: 3px solid rgba(0, 0, 0, 0.4);
+  border-bottom: none;
+}
+
+.score-table tbody tr.final td:first-child {
+  color: #1d2b31;
+}
+
+/* Menu déroulant de saisie : pilule blanche, flèche discrète. */
 .score-select {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
-  max-width: 100%;
-  padding: 0.25em 0.5em;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  background-color: var(--white);
-  font-size: 1em;
-  box-sizing: border-box;
-  cursor: pointer;
+  padding: 0.35em 1.5em 0.35em 0.5em;
+  border: 1.5px solid rgba(0, 0, 0, 0.16);
+  border-radius: 8px;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23667' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.45em center;
+  background-size: 0.7em;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1d2b31;
   text-align: center;
   text-align-last: center;
-  display: block;
-  margin: 0 auto;
-  transition: border-color var(--transition);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
 
-.spacer-row td {
-  border: none !important;
-  background: transparent;
-  padding: 0;
-  height: 15px;
+.score-select:hover {
+  border-color: rgba(0, 0, 0, 0.32);
 }
 
-.disabled-cell {
-  background-color: #ddd;
-  opacity: 0.6;
+.score-select:focus-visible {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.22);
 }
 
-.score-table select:disabled {
-  color: #999;
+.score-select.is-empty {
+  color: #9aa4a8;
+  font-weight: 600;
+  border-style: dashed;
+}
+
+.score-select.is-filled {
+  border-color: #7cc182;
+  background-color: #f1faf3;
+  color: #1b5e20;
+}
+
+.score-select:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-}
-
-.score-select[aria-disabled="true"] {
-  color: #999;
+  border-style: dashed;
 }
 
 
-/* ========== PODIUM ========== */
-#podium-container {
-  position: relative;
-  width: 300px;
-  margin: 2em auto;
-}
-
-#podium-image {
+/* ========== PODIUM (écran de fin) ========== */
+#podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.35rem, 2vw, 1rem);
   width: 100%;
-  display: block;
+  max-width: 30rem;
 }
 
-.podium-slot {
-  position: absolute;
+.podium-step {
+  flex: 1 1 0;
+  max-width: 10rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+  padding: 0.9em 0.4em 0.6em;
+  border-radius: 14px 14px 0 0;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.14);
+}
+
+.podium-step.rank-1 {
+  min-height: 11em;
+  color: #3a2c05;
+  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
+}
+
+.podium-step.rank-2 {
+  min-height: 9em;
+  color: #34383f;
+  background-image: linear-gradient(180deg, #edeef1 0%, #cfd2d8 45%, #a9adb6 100%);
+}
+
+.podium-step.rank-3 {
+  min-height: 7.5em;
+  color: #3d2410;
+  background-image: linear-gradient(180deg, #e9bd94 0%, #cd894f 45%, #a5652f 100%);
+}
+
+.podium-medal {
+  font-size: 1.9em;
+  line-height: 1;
+}
+
+.podium-name {
+  font-weight: 700;
+  font-size: 0.95em;
   text-align: center;
-  font-weight: bold;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-.podium-slot.first {
-  top: 1.5em;
-  width: 100%;
+.podium-score {
+  font-size: 1.4em;
+  font-weight: 800;
 }
 
-.podium-slot.second {
-  top: 5em;
-  left: 0;
-  width: 35%;
-}
-
-.podium-slot.third {
-  top: 6em;
-  right: 0;
-  width: 30%;
+.podium-num {
+  margin-top: auto;
+  padding-top: 0.3em;
+  font-size: 0.9em;
+  font-weight: 700;
+  opacity: 0.55;
 }
 
 /* ========== TABLES DE RÉSULTATS ========== */
@@ -433,15 +703,13 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 #best-scores-table,
 #worst-scores-table {
   width: 100%;
-  max-width: 400px;
-  margin: 1em auto;
+  max-width: var(--content-max);
+  margin: 0 auto;
   border-collapse: collapse;
-  font-size: 16px;
+  font-size: 1rem;
   text-align: center;
 }
 
-#ranking-table th,
-#ranking-table td,
 #best-scores-table th,
 #worst-scores-table th,
 #best-scores-table td,
@@ -450,46 +718,130 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
   vertical-align: middle;
 }
 
+/* Classement de fin : même style de carte que le Hall of Fame. */
+#ranking-table {
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#ranking-table thead th {
+  background-image: linear-gradient(180deg, #4a5568 0%, #364152 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.7em 0.5em;
+}
+
+#ranking-table td {
+  padding: 0.6em 0.5em;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+#ranking-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Ligne du vainqueur légèrement surlignée. */
+#ranking-table tbody tr:first-child {
+  background-color: #fdf5e0;
+  font-weight: 600;
+}
+
 /* ========== HALL & END SCREENS ========== */
 #hall-screen {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding: 1em;
-  box-sizing: border-box;
-}
-
-#end-screen {
-  display: block;
-  min-height: 100vh;
-  padding: 1em;
-  box-sizing: border-box;
-}
-
-#hall-screen h2 {
-  text-align: center;
-}
-
-/* Boutons de sauvegarde : dans le flux, au-dessus du bouton Retour fixé en bas. */
-#backup-controls {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.5em;
-  margin: 1.5em auto 7em;
 }
 
-#backup-controls .btn {
+#hall-screen > h2 {
+  flex: none;
+  width: 100%;
+  max-width: var(--content-max);
+  padding: 1rem clamp(1rem, 4vw, 2.5rem) 0;
+}
+
+/* Zone centrale : prend la hauteur restante, centre les deux tableaux quand il
+   reste de la place, défile seulement s'ils ne tiennent pas. */
+#hall-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: var(--content-max);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  justify-content: safe center;
+  gap: clamp(1.5rem, 5vh, 4rem);
+  padding: clamp(1rem, 3vh, 2.5rem) clamp(1rem, 4vw, 2.5rem);
+}
+
+/* Écran de fin : contenu ancré vers le haut, comme l'accueil. */
+#end-screen .screen-body {
+  justify-content: flex-start;
+  gap: clamp(1rem, 3.5vh, 2.25rem);
+  padding-top: clamp(1rem, 4vh, 2.5rem);
+}
+
+#end-screen h2 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4.5vh, 2.1rem);
+}
+
+/* Record du téléphone battu : bandeau or, même métal que la 1re marche. */
+#record-banner {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  color: #3a2c05;
+  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
+  border-radius: 10px;
+  padding: 0.7em 1em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 8px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Légende des pastilles 🏆 / 💩 du classement. */
+#hof-legend {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+#record-banner[hidden],
+#hof-legend[hidden] {
+  display: none;
+}
+
+/* La ligne export/import et le bouton Retour partagent exactement le même
+   gabarit, pour que leurs bords gauche et droit soient alignés. */
+#backup-controls,
+#hall-footer #back-to-home-btn {
+  width: 100%;
+  max-width: 22em;
   margin: 0;
 }
 
+/* Export à gauche, import à droite, chacun sur la moitié de la ligne. */
+#backup-controls {
+  display: flex;
+  gap: 0.5em;
+}
+
+#backup-controls .btn {
+  flex: 1;
+  width: auto;
+  margin: 0;
+  padding: 0.5em 0.6em;
+  font-size: 0.8em;
+}
+
 #app-version {
-  position: fixed;
-  bottom: 5px;
-  right: 10px;
-  font-size: 0.65em;
+  font-size: 0.62em;
   color: #888;
-  z-index: 100;
   pointer-events: none;
   user-select: none;
 }
@@ -502,25 +854,77 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 }
 
 #hall-screen h3 {
-  font-size: 1.3em;
+  font-size: clamp(1.05rem, 2.2vh, 1.55rem);
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 1.5px;
-  margin: 0.2em;
+  margin: 0 0 0.4em;
 }
 
+/* Séparation nette entre le tableau des meilleurs et celui des pires scores. */
+#hall-content section + section {
+  padding-top: clamp(1rem, 3vh, 2.5rem);
+  border-top: 2px solid #d0d0d0;
+}
+
+/* Cellules à taille fluide : compactes sur iPhone, généreuses sur tablette. */
 #hall-screen th,
 #hall-screen td {
-  padding: 0.75em 1em;
+  padding: clamp(0.45rem, 1.5vh, 1.1rem) clamp(0.6rem, 2.5vw, 1.5rem);
+  font-size: clamp(0.9rem, 1.7vh, 1.2rem);
   border-bottom: 1px solid #ddd;
 }
 
+/* En-tête « meilleurs » : or métallique (effet médaille). */
 #best-scores-table thead th {
-  background-color: #D4AF37;
-  color: black;
+  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
+  color: #3a2c05;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+/* En-tête « pires » : marron-moutarde boueux, même relief que l'or. */
 #worst-scores-table thead th {
-  background-color: #5C4033;
-  color: white;
+  background-image: linear-gradient(180deg, #9a7b3e 0%, #6b5228 55%, #453213 100%);
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow: inset 0 1px 0 rgba(255, 225, 170, 0.3);
+}
+
+/* ========== TABLETTE & GRANDS ÉCRANS ========== */
+@media (min-width: 768px) {
+  :root {
+    --content-max: 40rem;
+    --grid-max: 34rem;
+  }
+
+  .btn {
+    max-width: 26rem;
+  }
+
+  /* Les 4 variantes sur une seule ligne. */
+  .variant-options {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* La grille : padding confortable (hauteur et police sont déjà fluides). */
+  .score-wrapper {
+    padding: 1.5em;
+  }
+}
+
+/* Très grands écrans : grille de score encore plus large. */
+@media (min-width: 1100px) {
+  :root {
+    --grid-max: 42rem;
+    --content-max: 46rem;
+  }
+}
+
+/* Écrans très courts (téléphone en paysage) : resserrer l'accueil. */
+@media (max-height: 520px) {
+  #home-screen .screen-body {
+    gap: 1rem;
+    justify-content: flex-start;
+  }
 }

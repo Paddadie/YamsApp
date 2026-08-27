@@ -6,6 +6,7 @@ export interface VariantConfig {
   value: Variant;
   label: string;
   icon: string;
+  color: string; // couleur de la puce quand la variante est sélectionnée
   default?: boolean;
 }
 
