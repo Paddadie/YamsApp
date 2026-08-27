@@ -1,45 +1,47 @@
-import { loadFromStorage, saveToStorage } from './storage.js';
+// Hall of Fame : meilleurs et pires scores, conservés entre les parties.
 
-const bestTable = document.querySelector("#best-scores-table tbody");
-const worstTable = document.querySelector("#worst-scores-table tbody");
+import {
+  getBestScores,
+  getWorstScores,
+  saveBestScores,
+  saveWorstScores,
+} from "./storage.js";
+import { appendRows } from "./ui.js";
 
-export function initHallOfFame() {
-  // Nothing needed for now
-}
+const bestTbody = document.querySelector("#best-scores-table tbody");
+const worstTbody = document.querySelector("#worst-scores-table tbody");
 
 export function showHallOfFame() {
-  const best = loadFromStorage("bestScores");
-  const worst = loadFromStorage("worstScores");
+  renderScores(bestTbody, getBestScores());
+  renderScores(worstTbody, getWorstScores());
+}
 
-  bestTable.innerHTML = "";
-  worstTable.innerHTML = "";
-
-  best.forEach((e, i) => {
-    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${e.date}</td><td><strong>${e.score}</strong></td></tr>`;
-    bestTable.innerHTML += row;
-  });
-
-  worst.forEach((e, i) => {
-    const row = `<tr><td>${i + 1}.</td><td>${e.name}</td><td>${e.date}</td><td><strong>${e.score}</strong></td></tr>`;
-    worstTable.innerHTML += row;
-  });
+function renderScores(tbody, entries) {
+  tbody.innerHTML = "";
+  appendRows(
+    tbody,
+    entries.map((e, i) => [`${i + 1}.`, e.name, e.date, { strong: e.score }])
+  );
 }
 
 export function saveBestAndWorstScores(players, variants) {
-  const best = loadFromStorage("bestScores");
-  const worst = loadFromStorage("worstScores");
   const date = new Date().toLocaleDateString("fr-FR");
 
-  const allScores = [];
-  players.forEach(player => {
-    variants.forEach(variant => {
+  const newScores = [];
+  for (const player of players) {
+    for (const variant of variants) {
       const score = player.scores?.[variant]?.["Score Final"];
       if (typeof score === "number") {
-        allScores.push({ name: player.name, score, date });
+        newScores.push({ name: player.name, score, date });
       }
-    });
-  });
+    }
+  }
 
-  saveToStorage("bestScores", [...best, ...allScores].sort((a, b) => b.score - a.score).slice(0, 5));
-  saveToStorage("worstScores", [...worst, ...allScores].sort((a, b) => a.score - b.score).slice(0, 5));
+  const merged = [...getBestScores(), ...newScores];
+  saveBestScores(merged.slice().sort((a, b) => b.score - a.score).slice(0, 5));
+
+  const mergedWorst = [...getWorstScores(), ...newScores];
+  saveWorstScores(
+    mergedWorst.slice().sort((a, b) => a.score - b.score).slice(0, 5)
+  );
 }

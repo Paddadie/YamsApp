@@ -130,8 +130,7 @@ button:hover {
 }
 
 /* ========== VARIANTS ========== */
-.variants,
-#home-screen .variants {
+.variants {
   margin-top: 1em;
   text-align: center;
   display: flex;
@@ -152,6 +151,9 @@ button:hover {
 }
 
 /* ========== ÉCRANS GÉNÉRAUX ========== */
+/* Un seul écran porte la classe .active à la fois (voir js/navigation.js).
+   Les règles #id ci-dessous ne fixent QUE la mise en page, jamais `display`,
+   pour ne pas rendre un écran inactif visible. */
 .screen {
   display: none;
   padding: 0.5em;
@@ -168,7 +170,6 @@ button:hover {
 
 /* ========== HOME SCREEN ========== */
 #home-screen {
-  display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
@@ -178,7 +179,6 @@ button:hover {
 
 /* ========== PLAYERS SCREEN ========== */
 #players-screen {
-  display: flex;
   flex-direction: column;
   height: 100vh;
   padding: 20px;
@@ -242,10 +242,6 @@ button:hover {
   padding: 0;
 }
 
-.scrollable-list {
-  max-height: 9em;
-}
-
 .scrollable-next-list {
   max-height: 14em;
 }
@@ -280,15 +276,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 }
 
 /* ========== NAVIGATION JOUEUR ========== */
-.player-nav {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1em;
-  margin-bottom: 0.5em;
-  height: 40px;
-}
-
 .player-header {
   display: flex;
   align-items: center;
@@ -472,7 +459,6 @@ ul:has(li:not(.empty-placeholder)) .empty-placeholder {
 /* ========== HALL & END SCREENS ========== */
 #hall-screen,
 #end-screen {
-  display: flex;
   flex-direction: column;
   min-height: 100vh;
   padding: 1em;
