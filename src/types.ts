@@ -50,4 +50,8 @@ export interface ScoreEntry {
   name: string;
   score: number;
   date: string;
+  // Détail de la partie (optionnel : absent des entrées d'avant cette version).
+  variant?: Variant;
+  sheet?: Record<LineName, number>;
+  lineOrder?: LineName[];
 }

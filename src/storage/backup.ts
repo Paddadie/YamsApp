@@ -2,7 +2,8 @@
 // Utile pour changer d'appareil ou avant de vider le cache du navigateur.
 
 import type { GameRules, SavedGame, ScoreEntry } from "../types";
-import type { GamesPlayed } from "./playerStatsRepo";
+import type { PlayerStats } from "./playerStatsRepo";
+import { isSavedGame } from "./savedGameRepo";
 import { STORAGE_KEYS } from "./keys";
 import { readJson, writeJson, removeKey } from "./localStore";
 
@@ -12,7 +13,7 @@ export interface BackupData {
   version: number;
   exportedAt: string;
   knownNames: string[];
-  playerStats: GamesPlayed;
+  playerStats: PlayerStats;
   rules: GameRules | null;
   bestScores: ScoreEntry[];
   worstScores: ScoreEntry[];
@@ -25,7 +26,7 @@ export function exportAllData(): BackupData {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
     knownNames: readJson<string[]>(STORAGE_KEYS.knownNames) ?? [],
-    playerStats: readJson<GamesPlayed>(STORAGE_KEYS.playerStats) ?? {},
+    playerStats: readJson<PlayerStats>(STORAGE_KEYS.playerStats) ?? {},
     rules: readJson<GameRules>(STORAGE_KEYS.rules),
     bestScores: readJson<ScoreEntry[]>(STORAGE_KEYS.bestScores) ?? [],
     worstScores: readJson<ScoreEntry[]>(STORAGE_KEYS.worstScores) ?? [],
@@ -33,14 +34,15 @@ export function exportAllData(): BackupData {
   };
 }
 
-/** Vérifie qu'un objet quelconque a bien la forme d'une sauvegarde valide. */
+/** Vérifie qu'un objet quelconque a bien la forme d'une sauvegarde. */
 export function isValidBackupData(data: unknown): data is BackupData {
   if (typeof data !== "object" || data === null) return false;
   const d = data as Record<string, unknown>;
   return (
     Array.isArray(d.knownNames) &&
     Array.isArray(d.bestScores) &&
-    Array.isArray(d.worstScores)
+    Array.isArray(d.worstScores) &&
+    (d.savedGame == null || isSavedGame(d.savedGame))
   );
 }
 
@@ -52,9 +54,37 @@ export function importAllData(data: BackupData): void {
   else removeKey(STORAGE_KEYS.rules);
   writeJson(STORAGE_KEYS.bestScores, data.bestScores);
   writeJson(STORAGE_KEYS.worstScores, data.worstScores);
-  if (data.savedGame) {
+  if (data.savedGame && isSavedGame(data.savedGame)) {
     writeJson(STORAGE_KEYS.savedGame, data.savedGame);
   } else {
     removeKey(STORAGE_KEYS.savedGame);
   }
+}
+
+/* ---------- Plomberie fichier (téléchargement / lecture) ---------- */
+
+export function downloadBackup(): void {
+  const blob = new Blob([JSON.stringify(exportAllData(), null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `yams-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+export type ImportResult = "ok" | "invalid" | "error";
+
+export async function importBackupFile(file: File): Promise<ImportResult> {
+  let data: unknown;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    return "error";
+  }
+  if (!isValidBackupData(data)) return "invalid";
+  importAllData(data);
+  return "ok";
 }

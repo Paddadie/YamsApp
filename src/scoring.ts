@@ -42,24 +42,42 @@ export const DEFAULT_RULES: GameRules = {
   yams: { type: "fixed", points: 50 },
 };
 
+// Bornes des valeurs réglables. Larges pour ne brider aucune règle maison
+// courante (Yams à 100, grosses suites, etc.), mais assez pour écarter les
+// valeurs absurdes (négatives, 1e9…).
+export const LINE_POINTS_MIN = 0;
+export const LINE_POINTS_MAX = 150;
+export const BONUS_MIN = 0;
+export const BONUS_MAX = 100;
+export const BONUS_THRESHOLD = 63;
+
+const clamp = (n: number, lo: number, hi: number): number =>
+  Math.min(hi, Math.max(lo, Math.round(n)));
+
 function asMode(value: unknown, fallback: LineMode): LineMode {
-  if (typeof value === "number") return { type: "fixed", points: value };
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return { type: "fixed", points: clamp(value, LINE_POINTS_MIN, LINE_POINTS_MAX) };
+  }
   if (value && typeof value === "object" && "type" in value) {
     const m = value as LineMode;
     if (m.type === "sum") return { type: "sum" };
-    if (m.type === "fixed" && typeof m.points === "number") return m;
+    if (m.type === "fixed" && typeof m.points === "number" && Number.isFinite(m.points)) {
+      return { type: "fixed", points: clamp(m.points, LINE_POINTS_MIN, LINE_POINTS_MAX) };
+    }
   }
   return fallback;
 }
 
-// Complète / répare un objet de règles quelconque (stockage, sauvegarde de
-// partie, ancien format où full/suites/yams étaient de simples nombres).
+// Complète / répare / borne un objet de règles quelconque (stockage, sauvegarde
+// de partie, ancien format où full/suites/yams étaient de simples nombres).
 export function normalizeRules(raw: unknown): GameRules {
   const s = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  const num = (v: unknown, d: number): number =>
-    typeof v === "number" && Number.isFinite(v) ? v : d;
+  const bonus =
+    typeof s.bonus === "number" && Number.isFinite(s.bonus)
+      ? clamp(s.bonus, BONUS_MIN, BONUS_MAX)
+      : DEFAULT_RULES.bonus;
   return {
-    bonus: num(s.bonus, DEFAULT_RULES.bonus),
+    bonus,
     brelan: asMode(s.brelan, DEFAULT_RULES.brelan),
     full: asMode(s.full, DEFAULT_RULES.full),
     carre: asMode(s.carre, DEFAULT_RULES.carre),
@@ -150,55 +168,44 @@ export function isLineEnabled(
   return scores[order[index - 1]] !== undefined;
 }
 
-/* ---------- Calculs de totaux ---------- */
+/* ---------- Valeurs dérivées (bonus, totaux, score final) ---------- */
 
-function getUpperSum(scores: LineScores): number {
-  return upperScoringNames.reduce((sum, key) => sum + (scores[key] || 0), 0);
+const sumLines = (scores: LineScores, names: string[]): number =>
+  names.reduce((total, key) => total + (scores[key] || 0), 0);
+
+export interface Derived {
+  bonus: number; // points de bonus acquis (0 tant que le seuil n'est pas atteint)
+  // Repère "-N" tant que la section chiffres n'est pas bouclée sous le seuil,
+  // sinon null (on affiche alors `bonus`).
+  bonusHint: string | null;
+  totalHaut: number;
+  totalBas: number;
+  scoreFinal: number;
 }
 
-// Calcule (et mémorise dans `scores`) une ligne dérivée.
-export function calculateSpecialScore(
-  name: LineName,
-  scores: LineScores,
-  grid: Grid,
-): number | string {
-  if (name === "Bonus") {
-    const total = getUpperSum(scores);
-    const filled = upperScoringNames.every((k) => scores[k] !== undefined);
-    const value =
-      total >= 63 ? grid.bonusPoints : filled ? 0 : `-${63 - total}`;
-    if (typeof value === "number") scores["Bonus"] = value;
-    return value;
-  }
-  if (name === "Total Haut") {
-    const bonus = calculateSpecialScore("Bonus", scores, grid);
-    const value = getUpperSum(scores) + (typeof bonus === "number" ? bonus : 0);
-    scores["Total Haut"] = value;
-    return value;
-  }
-  if (name === "Total Bas") {
-    const value = grid.lowerScoringNames.reduce(
-      (sum, k) => sum + (scores[k] || 0),
-      0,
-    );
-    scores["Total Bas"] = value;
-    return value;
-  }
-  if (name === "Score Final") {
-    const haut = calculateSpecialScore("Total Haut", scores, grid);
-    const bas = calculateSpecialScore("Total Bas", scores, grid);
-    const value = Number(haut) + Number(bas);
-    scores["Score Final"] = value;
-    return value;
-  }
-  return "";
+// Calcul pur : ne modifie pas `scores`.
+export function computeDerived(scores: LineScores, grid: Grid): Derived {
+  const upperSum = sumLines(scores, grid.upperScoringNames);
+  const upperFilled = grid.upperScoringNames.every((k) => scores[k] !== undefined);
+  const reached = upperSum >= BONUS_THRESHOLD;
+
+  const bonus = reached ? grid.bonusPoints : 0;
+  const bonusHint = reached || upperFilled ? null : `-${BONUS_THRESHOLD - upperSum}`;
+  const totalHaut = upperSum + bonus;
+  const totalBas = sumLines(scores, grid.lowerScoringNames);
+
+  return { bonus, bonusHint, totalHaut, totalBas, scoreFinal: totalHaut + totalBas };
 }
 
-export function updateCalculatedScores(scores: LineScores, grid: Grid): void {
-  calculateSpecialScore("Bonus", scores, grid);
-  calculateSpecialScore("Total Haut", scores, grid);
-  calculateSpecialScore("Total Bas", scores, grid);
-  calculateSpecialScore("Score Final", scores, grid);
+// Recopie les valeurs dérivées dans `scores` (pour la persistance et le Hall
+// of Fame, qui lisent scores["Score Final"]).
+export function writeDerived(scores: LineScores, grid: Grid): Derived {
+  const d = computeDerived(scores, grid);
+  scores["Bonus"] = d.bonus;
+  scores["Total Haut"] = d.totalHaut;
+  scores["Total Bas"] = d.totalBas;
+  scores["Score Final"] = d.scoreFinal;
+  return d;
 }
 
 /* ---------- Fin de partie ---------- */

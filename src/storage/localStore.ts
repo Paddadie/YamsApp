@@ -1,11 +1,18 @@
 // Accès bas niveau à localStorage, sérialisé en JSON. Les repos typés
 // (savedGameRepo, knownPlayersRepo, hallOfFameRepo) s'appuient dessus.
 
-export function readJson<T>(key: string): T | null {
+// `guard` (optionnel) : si fourni et que le contenu ne passe pas, on renvoie
+// null plutôt qu'une valeur mal typée. Chaque repo passe le sien.
+export function readJson<T>(
+  key: string,
+  guard?: (value: unknown) => value is T,
+): T | null {
   const raw = localStorage.getItem(key);
   if (raw === null) return null;
   try {
-    return JSON.parse(raw) as T;
+    const parsed: unknown = JSON.parse(raw);
+    if (guard && !guard(parsed)) return null;
+    return parsed as T;
   } catch {
     return null;
   }

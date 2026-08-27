@@ -9,17 +9,6 @@ export function requireEl<T extends HTMLElement = HTMLElement>(id: string): T {
   return el as T;
 }
 
-// Remplace le contenu d'une <ul>, en gardant le <li class="empty-placeholder">.
-// `buildItem(item, index)` doit renvoyer un <li>.
-export function renderList<T>(
-  ul: HTMLElement,
-  items: T[],
-  buildItem: (item: T, index: number) => HTMLLIElement,
-): void {
-  ul.querySelectorAll("li:not(.empty-placeholder)").forEach((li) => li.remove());
-  items.forEach((item, index) => ul.appendChild(buildItem(item, index)));
-}
-
 // Ajoute des lignes à un <tbody>. Chaque cellule est une chaîne/un nombre,
 // ou `{ strong: valeur }` pour la mettre en gras.
 export function appendRows(tbody: HTMLElement, rows: Cell[][]): void {

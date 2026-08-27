@@ -11,8 +11,19 @@ export interface GameDraft {
   playerNames: string[];
 }
 
+function isDraft(value: unknown): value is GameDraft {
+  if (!value || typeof value !== "object") return false;
+  const d = value as Record<string, unknown>;
+  return (
+    Array.isArray(d.variants) &&
+    d.variants.every((v) => typeof v === "string") &&
+    Array.isArray(d.playerNames) &&
+    d.playerNames.every((n) => typeof n === "string")
+  );
+}
+
 export function getDraft(): GameDraft | null {
-  return readJson<GameDraft>(STORAGE_KEYS.draft);
+  return readJson(STORAGE_KEYS.draft, isDraft);
 }
 
 export function saveDraft(draft: GameDraft): void {

@@ -44,12 +44,25 @@
             <tbody></tbody>
           </table>
         </section>
+
+        <section>
+          <h3>📊 Statistiques</h3>
+          <ul id="stats-list"></ul>
+        </section>
       </div>
 
       <div id="hall-footer" class="action-bar">
-        <button id="back-to-home-btn" class="btn btn-secondary">🏠 Retour</button>
+        <a href="index.html" class="btn btn-secondary">🏠 Retour</a>
       </div>
     </div>
+
+    <dialog id="sheet-dialog">
+      <p class="sheet-title" id="sheet-title"></p>
+      <table id="sheet-table"></table>
+      <button type="button" id="sheet-close" class="btn btn-secondary">
+        Fermer
+      </button>
+    </dialog>
 
     <script type="module" src="/src/pages/hall.ts"></script>
   </body>

@@ -1,5 +1,9 @@
 // Page de jeu : grille de score du joueur courant, navigation entre joueurs,
 // sauvegarde continue de la partie.
+//
+// Le tableau n'est reconstruit qu'au changement de joueur ; une saisie ne
+// rafraîchit que la colonne concernée (valeur, verrous Montante/Descendante,
+// lignes calculées), sans perdre le focus.
 
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
@@ -10,13 +14,24 @@ import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
 import {
   buildGrid,
   isLineEnabled,
-  updateCalculatedScores,
-  calculateSpecialScore,
   isGameFinished,
+  computeDerived,
+  writeDerived,
 } from "../scoring";
-import type { LineName, Variant } from "../types";
+import type { LineName, PlayerScores, Variant } from "../types";
 
 type LineScores = Record<LineName, number>;
+type Pick = (value: number | undefined) => void;
+
+const AUTO_ADVANCE_MS = 800;
+const SELECT_MAX_OPTIONS = 3; // au-delà : grille de jetons
+
+const DERIVED_LINES: LineName[] = [
+  "Bonus",
+  "Total Haut",
+  "Total Bas",
+  "Score Final",
+];
 
 bootstrap();
 
@@ -30,48 +45,114 @@ hydrateGame(saved);
 // Grille figée pour toute la partie (règles copiées au lancement).
 const grid = buildGrid(game.rules);
 
+// Reprendre une partie déjà complète renvoie directement à l'écran de fin.
+if (isGameFinished(game.players, game.variants, grid)) {
+  goTo("end");
+  throw new Error("Partie déjà terminée : passage à l'écran de fin.");
+}
+
 const gameScreen = requireEl("game-screen");
+const themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
 const scoreTablesContainer = requireEl("score-tables");
 const currentPlayerName = requireEl("current-player-name");
 const prevPlayerBtn = requireEl("prev-player-btn");
 const nextPlayerBtn = requireEl("next-player-btn");
+const picker = requireEl<HTMLDialogElement>("value-picker");
+const pickerTitle = requireEl("picker-title");
+const pickerValues = requireEl("picker-values");
 
-let autoAdvanceTimeout: ReturnType<typeof setTimeout> | undefined;
+let autoAdvance: ReturnType<typeof setTimeout> | undefined;
+
+interface Widget {
+  el: HTMLElement;
+  setValue(value: number | undefined): void;
+  setLocked(locked: boolean): void;
+}
+interface ScoreControl {
+  refresh(): void;
+}
+
+// Vue courante, indexée par variante.
+let controls = new Map<Variant, ScoreControl[]>();
+let derivedCells = new Map<Variant, Map<LineName, HTMLTableCellElement>>();
 
 prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
 nextPlayerBtn.addEventListener("click", () => changePlayer(1));
-
 requireEl("pause-btn").addEventListener("click", () => {
   persist();
   goTo("home");
 });
+picker.addEventListener("click", (e) => {
+  if (e.target === picker) picker.close();
+});
 
-displayCurrentPlayer();
+renderPlayer();
+
+/* ---------- État ---------- */
 
 function persist(): void {
   saveSavedGame(toSavedGame());
 }
 
-function changePlayer(delta: number): void {
-  const count = game.players.length;
-  game.currentPlayerIndex = (game.currentPlayerIndex + delta + count) % count;
-  persist();
-  displayCurrentPlayer();
+function currentPlayer() {
+  return game.players[game.currentPlayerIndex];
 }
 
-function displayCurrentPlayer(): void {
-  const player = game.players[game.currentPlayerIndex];
+function changePlayer(delta: number): void {
+  clearTimeout(autoAdvance); // une navigation manuelle annule l'auto-avance
+  const n = game.players.length;
+  game.currentPlayerIndex = (game.currentPlayerIndex + delta + n) % n;
+  persist();
+  renderPlayer();
+}
+
+function onPick(variant: Variant, lineName: LineName, value: number | undefined): void {
+  const scores = currentPlayer().scores[variant];
+  if (value === undefined) delete scores[lineName];
+  else scores[lineName] = value;
+
+  writeDerived(scores, grid);
+  refreshColumn(variant);
+  persist();
+
+  clearTimeout(autoAdvance);
+  autoAdvance = setTimeout(() => {
+    if (isGameFinished(game.players, game.variants, grid)) {
+      persist();
+      goTo("end");
+    } else {
+      changePlayer(1);
+    }
+  }, AUTO_ADVANCE_MS);
+}
+
+/* ---------- Rendu ---------- */
+
+function renderPlayer(): void {
+  const player = currentPlayer();
   currentPlayerName.textContent = player.name;
-  // Toute la page prend la couleur du joueur courant.
   gameScreen.style.backgroundColor = player.color;
-  scoreTablesContainer.innerHTML = "";
+  if (themeMeta) themeMeta.content = player.color;
+
+  controls = new Map(game.variants.map((v) => [v, []]));
+  derivedCells = new Map(game.variants.map((v) => [v, new Map()]));
 
   const table = document.createElement("table");
   table.className = "score-table";
+  table.append(buildHead(), buildBody(player.scores));
 
+  const wrapper = document.createElement("div");
+  wrapper.className = "score-wrapper";
+  wrapper.appendChild(table);
+  scoreTablesContainer.replaceChildren(wrapper);
+
+  for (const variant of game.variants) fillDerived(variant);
+}
+
+function buildHead(): HTMLTableSectionElement {
   const thead = document.createElement("thead");
-  const headerRow = document.createElement("tr");
-  headerRow.appendChild(document.createElement("th")); // coin vide
+  const row = document.createElement("tr");
+  row.appendChild(document.createElement("th")); // coin vide
   for (const variant of game.variants) {
     const th = document.createElement("th");
     th.title = variant;
@@ -80,56 +161,53 @@ function displayCurrentPlayer(): void {
     icon.style.setProperty("--vc", getVariantColor(variant));
     icon.textContent = getVariantIcon(variant);
     th.appendChild(icon);
-    headerRow.appendChild(th);
+    row.appendChild(th);
   }
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
+  thead.appendChild(row);
+  return thead;
+}
 
+function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
   const tbody = document.createElement("tbody");
-  let dataRowIndex = 0;
-  let sectionIndex = 0;
+  let dataRow = 0;
 
-  for (const { label, lines } of grid.sections) {
+  grid.sections.forEach(({ label, lines }, sectionIndex) => {
     if (label) tbody.appendChild(buildSectionHead(label, sectionIndex > 0));
-    sectionIndex++;
 
     for (const lineName in lines) {
       const values = lines[lineName];
-      const isComputed = values.length === 0;
-      const row = document.createElement("tr");
-      if (isComputed) row.classList.add("computed");
-      if (lineName === "Score Final") row.classList.add("final");
-      if (!isComputed && dataRowIndex++ % 2 === 1) row.classList.add("alt");
+      const computed = values.length === 0;
+
+      const tr = document.createElement("tr");
+      if (computed) tr.classList.add("computed");
+      if (lineName === "Score Final") tr.classList.add("final");
+      if (!computed && dataRow++ % 2 === 1) tr.classList.add("alt");
 
       const nameCell = document.createElement("td");
       nameCell.textContent = lineName;
-      row.appendChild(nameCell);
+      tr.appendChild(nameCell);
 
       for (const variant of game.variants) {
-        const cell = document.createElement("td");
-        const scores = player.scores[variant];
-
-        if (isComputed) {
-          cell.textContent = String(
-            calculateSpecialScore(lineName, scores, grid),
-          );
+        const td = document.createElement("td");
+        if (computed) {
+          derivedCells.get(variant)?.set(lineName, td);
         } else {
-          fillScoreCell(cell, lineName, variant, values, scores);
+          const control = buildControl(
+            td,
+            variant,
+            lineName,
+            values,
+            playerScores[variant],
+          );
+          controls.get(variant)?.push(control);
         }
-
-        row.appendChild(cell);
+        tr.appendChild(td);
       }
-
-      tbody.appendChild(row);
+      tbody.appendChild(tr);
     }
-  }
+  });
 
-  table.appendChild(tbody);
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "score-wrapper";
-  wrapper.appendChild(table);
-  scoreTablesContainer.appendChild(wrapper);
+  return tbody;
 }
 
 function buildSectionHead(label: string, major: boolean): HTMLTableRowElement {
@@ -142,54 +220,151 @@ function buildSectionHead(label: string, major: boolean): HTMLTableRowElement {
   return row;
 }
 
-function fillScoreCell(
-  cell: HTMLTableCellElement,
-  lineName: LineName,
+function buildControl(
+  td: HTMLTableCellElement,
   variant: Variant,
+  lineName: LineName,
   values: number[],
   scores: LineScores,
-): void {
-  const current = scores[lineName];
+): ScoreControl {
+  const lockable = variant === "Montante" || variant === "Descendante";
+  const pick: Pick = (value) => onPick(variant, lineName, value);
 
+  const widget =
+    values.length <= SELECT_MAX_OPTIONS
+      ? buildSelect(values, pick)
+      : buildButton(values, lineName, pick);
+
+  widget.el.setAttribute("aria-label", `${lineName}, ${variant}`);
+  td.appendChild(widget.el);
+
+  const refresh = (): void => {
+    widget.setValue(scores[lineName]);
+    widget.setLocked(
+      lockable && !isLineEnabled(lineName, variant, scores, grid),
+    );
+  };
+  refresh();
+  return { refresh };
+}
+
+function refreshColumn(variant: Variant): void {
+  fillDerived(variant);
+  for (const control of controls.get(variant) ?? []) control.refresh();
+}
+
+function fillDerived(variant: Variant): void {
+  const cells = derivedCells.get(variant);
+  if (!cells) return;
+  const d = computeDerived(currentPlayer().scores[variant], grid);
+  const text: Record<LineName, string> = {
+    Bonus: d.bonusHint ?? String(d.bonus),
+    "Total Haut": String(d.totalHaut),
+    "Total Bas": String(d.totalBas),
+    "Score Final": String(d.scoreFinal),
+  };
+  for (const line of DERIVED_LINES) {
+    const cell = cells.get(line);
+    if (cell) cell.textContent = text[line];
+  }
+}
+
+/* ---------- Widgets de saisie ---------- */
+
+function buildSelect(values: number[], onChange: Pick): Widget {
   const select = document.createElement("select");
-  select.className =
-    current !== undefined ? "score-select is-filled" : "score-select is-empty";
-  select.innerHTML =
-    `<option value="">–</option>` +
-    values.map((v) => `<option value="${v}">${v}</option>`).join("");
-  select.value = current !== undefined ? String(current) : "";
+  select.className = "score-select";
 
-  const enabled =
-    variant === "Montante" || variant === "Descendante"
-      ? isLineEnabled(lineName, variant, scores, grid)
-      : true;
-  select.disabled = !enabled;
-  if (!enabled) select.title = "Remplissez d’abord la ligne précédente.";
+  const blank = document.createElement("option");
+  blank.value = "";
+  blank.textContent = "–";
+  select.appendChild(blank);
+  for (const v of values) {
+    const opt = document.createElement("option");
+    opt.value = String(v);
+    opt.textContent = String(v);
+    select.appendChild(opt);
+  }
 
   select.addEventListener("change", () => {
-    if (select.value === "") {
-      delete scores[lineName];
-    } else {
-      const num = parseInt(select.value, 10);
-      if (isNaN(num)) delete scores[lineName];
-      else scores[lineName] = num;
-    }
-
-    updateCalculatedScores(scores, grid);
-    persist();
-
-    clearTimeout(autoAdvanceTimeout);
-    autoAdvanceTimeout = setTimeout(() => {
-      if (isGameFinished(game.players, game.variants, grid)) {
-        persist();
-        goTo("end");
-      } else {
-        nextPlayerBtn.click();
-      }
-    }, 800);
-
-    displayCurrentPlayer();
+    onChange(select.value === "" ? undefined : Number(select.value));
   });
 
-  cell.appendChild(select);
+  return {
+    el: select,
+    setValue(value) {
+      select.value = value !== undefined ? String(value) : "";
+      select.classList.toggle("is-filled", value !== undefined);
+      select.classList.toggle("is-empty", value === undefined);
+    },
+    setLocked(locked) {
+      select.disabled = locked;
+    },
+  };
+}
+
+function buildButton(
+  values: number[],
+  lineName: LineName,
+  onChange: Pick,
+): Widget {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "score-cell";
+
+  button.addEventListener("click", () => {
+    const current = button.dataset.value
+      ? Number(button.dataset.value)
+      : undefined;
+    openPicker(lineName, values, current, onChange);
+  });
+
+  return {
+    el: button,
+    setValue(value) {
+      button.textContent = value !== undefined ? String(value) : "–";
+      button.dataset.value = value !== undefined ? String(value) : "";
+      button.classList.toggle("is-filled", value !== undefined);
+      button.classList.toggle("is-empty", value === undefined);
+    },
+    setLocked(locked) {
+      button.disabled = locked;
+    },
+  };
+}
+
+function openPicker(
+  title: string,
+  values: number[],
+  current: number | undefined,
+  onPickValue: Pick,
+): void {
+  pickerTitle.textContent = title;
+
+  const frag = document.createDocumentFragment();
+  for (const v of values) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = v === current ? "picker-value current" : "picker-value";
+    chip.textContent = String(v);
+    chip.addEventListener("click", () => {
+      picker.close();
+      onPickValue(v);
+    });
+    frag.appendChild(chip);
+  }
+  if (current !== undefined) {
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.className = "picker-value clear";
+    clear.textContent = "Effacer";
+    clear.addEventListener("click", () => {
+      picker.close();
+      onPickValue(undefined);
+    });
+    frag.appendChild(clear);
+  }
+
+  pickerValues.replaceChildren(frag);
+  picker.showModal();
 }

@@ -6,8 +6,12 @@ import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { createPlayers } from "../state";
 import { requireEl } from "../ui";
-import { addKnownName, getKnownNames } from "../storage/knownPlayersRepo";
-import { getGamesPlayed } from "../storage/playerStatsRepo";
+import {
+  addKnownName,
+  getKnownNames,
+  resolveName,
+} from "../storage/knownPlayersRepo";
+import { getPlayerStats } from "../storage/playerStatsRepo";
 import { getDraft, saveDraft, clearDraft } from "../storage/draftRepo";
 import { saveSavedGame } from "../storage/savedGameRepo";
 import { getRules } from "../storage/rulesRepo";
@@ -31,7 +35,8 @@ const selected = new Set(roster.playerNames);
 
 playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  const name = nameInput.value.trim();
+  // resolveName : espaces de bord retirés + reprise de la casse déjà connue.
+  const name = resolveName(nameInput.value);
   nameInput.value = "";
   nameInput.focus();
   if (!name) return;
@@ -39,8 +44,6 @@ playerForm.addEventListener("submit", (e) => {
   if (!selected.has(name)) select(name);
   commit();
 });
-
-requireEl("back-to-variants-btn").addEventListener("click", () => goTo("home"));
 
 startBtn.addEventListener("click", () => {
   if (roster.playerNames.length < 2) return;
@@ -83,14 +86,13 @@ function plural(n: number, word: string): string {
 }
 
 function render(): void {
-  const games = getGamesPlayed();
+  const stats = getPlayerStats();
+  const gamesOf = (name: string): number => stats[name]?.games ?? 0;
   const everyone = [...new Set([...getKnownNames(), ...roster.playerNames])];
   const inGame = roster.playerNames.slice(); // ordre de jeu conservé
   const available = everyone
     .filter((name) => !selected.has(name))
-    .sort(
-      (a, b) => (games[b] ?? 0) - (games[a] ?? 0) || a.localeCompare(b),
-    );
+    .sort((a, b) => gamesOf(b) - gamesOf(a) || a.localeCompare(b));
 
   countLine.textContent =
     inGame.length === 0
@@ -106,7 +108,7 @@ function render(): void {
     list.appendChild(empty);
   } else {
     for (const name of inGame) {
-      list.appendChild(buildRow(name, games[name] ?? 0, true));
+      list.appendChild(buildRow(name, gamesOf(name), true));
     }
     if (inGame.length > 0 && available.length > 0) {
       const divider = document.createElement("li");
@@ -115,7 +117,7 @@ function render(): void {
       list.appendChild(divider);
     }
     for (const name of available) {
-      list.appendChild(buildRow(name, games[name] ?? 0, false));
+      list.appendChild(buildRow(name, gamesOf(name), false));
     }
   }
 

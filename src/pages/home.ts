@@ -59,12 +59,12 @@ optionsContainer.addEventListener("change", syncStartButton);
 syncStartButton();
 
 const resumeBtn = requireEl<HTMLButtonElement>("resume-btn");
-const canResume = hasSavedGame();
-resumeBtn.disabled = !canResume;
-resumeBtn.classList.toggle("hidden", !canResume);
-resumeBtn.addEventListener("click", () => {
-  if (canResume) goTo("game");
-});
+if (hasSavedGame()) {
+  resumeBtn.disabled = false;
+  resumeBtn.addEventListener("click", () => goTo("game"));
+} else {
+  resumeBtn.hidden = true;
+}
 
 startBtn.addEventListener("click", () => {
   const selected = selectedVariants();
@@ -73,5 +73,3 @@ startBtn.addEventListener("click", () => {
   saveDraft({ variants: selected, playerNames: getDraft()?.playerNames ?? [] });
   goTo("players");
 });
-
-requireEl("hall-btn").addEventListener("click", () => goTo("hall"));

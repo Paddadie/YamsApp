@@ -2,10 +2,17 @@
 // export / import et numéro de version.
 
 import { bootstrap } from "../bootstrap";
+import { goTo } from "../nav";
 import { requireEl } from "../ui";
 import { getRules, saveRules } from "../storage/rulesRepo";
-import { DEFAULT_RULES } from "../scoring";
-import { exportAllData, importAllData, isValidBackupData } from "../storage/backup";
+import {
+  DEFAULT_RULES,
+  BONUS_MIN,
+  BONUS_MAX,
+  LINE_POINTS_MIN,
+  LINE_POINTS_MAX,
+} from "../scoring";
+import { downloadBackup, importBackupFile } from "../storage/backup";
 
 type ModeKey =
   | "brelan"
@@ -41,10 +48,13 @@ function persist(): void {
   saveRules(rules);
 }
 
-function clampPoints(raw: string, fallback: number, min = 1): number {
+function clamp(raw: string, fallback: number, min: number, max: number): number {
   const n = Math.round(Number(raw));
-  return Number.isFinite(n) ? Math.min(199, Math.max(min, n)) : fallback;
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
 }
+
+const clampLine = (raw: string, fallback: number): number =>
+  clamp(raw, fallback, LINE_POINTS_MIN, LINE_POINTS_MAX);
 
 /* ---------- Lignes "somme des dés / points fixes" ---------- */
 
@@ -66,8 +76,8 @@ function setupModeRow(key: ModeKey): void {
   const input = document.createElement("input");
   input.type = "number";
   input.className = "num";
-  input.min = "1";
-  input.max = "199";
+  input.min = String(LINE_POINTS_MIN);
+  input.max = String(LINE_POINTS_MAX);
 
   control.append(seg, input);
   row.appendChild(control);
@@ -94,12 +104,12 @@ function setupModeRow(key: ModeKey): void {
     sync();
   });
   btnFixed.addEventListener("click", () => {
-    rules[key] = { type: "fixed", points: clampPoints(input.value, 30) };
+    rules[key] = { type: "fixed", points: clampLine(input.value, 30) };
     persist();
     sync();
   });
   input.addEventListener("change", () => {
-    rules[key] = { type: "fixed", points: clampPoints(input.value, 30) };
+    rules[key] = { type: "fixed", points: clampLine(input.value, 30) };
     persist();
     sync();
   });
@@ -124,7 +134,7 @@ function setupBonus(): void {
   };
   syncers.push(sync);
   input.addEventListener("change", () => {
-    rules.bonus = clampPoints(input.value, rules.bonus, 0);
+    rules.bonus = clamp(input.value, rules.bonus, BONUS_MIN, BONUS_MAX);
     persist();
     sync();
   });
@@ -164,34 +174,19 @@ function setupBackup(): void {
   const importInput = requireEl<HTMLInputElement>("import-input");
   importInput.addEventListener("change", () => {
     const file = importInput.files?.[0];
-    if (file) void restoreBackup(file);
     importInput.value = "";
+    if (file) void restore(file);
   });
 }
 
-function downloadBackup(): void {
-  const blob = new Blob([JSON.stringify(exportAllData(), null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `yams-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-async function restoreBackup(file: File): Promise<void> {
-  try {
-    const data: unknown = JSON.parse(await file.text());
-    if (!isValidBackupData(data)) {
-      alert("Fichier de sauvegarde invalide.");
-      return;
-    }
-    importAllData(data);
+async function restore(file: File): Promise<void> {
+  const result = await importBackupFile(file);
+  if (result === "ok") {
     alert("Sauvegarde restaurée.");
-    location.href = "index.html";
-  } catch {
+    goTo("home");
+  } else if (result === "invalid") {
+    alert("Fichier de sauvegarde invalide.");
+  } else {
     alert("Impossible de lire ce fichier.");
   }
 }

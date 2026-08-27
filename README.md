@@ -20,24 +20,51 @@ npm run preview  # sert le dist/ compilé
 
 | Fichier | Écran | Entrée TS |
 |---|---|---|
-| `index.html` | Accueil : variantes, reprise, Hall of Fame | `src/pages/home.ts` |
-| `players.html` | Ajout des joueurs | `src/pages/players.ts` |
-| `game.html` | Jeu : grille de score | `src/pages/game.ts` |
-| `end.html` | Podium et classement | `src/pages/end.ts` |
-| `hall.html` | Hall of Fame + export/import | `src/pages/hall.ts` |
+| `index.html` | Accueil : variantes, reprise, Hall of Fame, ⚙️ | `src/pages/home.ts` |
+| `players.html` | Joueurs de la partie (liste à cocher + stats de tri) | `src/pages/players.ts` |
+| `game.html` | Jeu : grille de score du joueur courant | `src/pages/game.ts` |
+| `end.html` | Podium, classement, impact Hall of Fame | `src/pages/end.ts` |
+| `hall.html` | Meilleurs / pires scores (cliquables) + statistiques | `src/pages/hall.ts` |
+| `settings.html` | Règles configurables + export/import + version | `src/pages/settings.ts` |
 
-La navigation est un **vrai changement de page** (`src/nav.ts` → `goTo(...)`).
-Comme il n'y a plus d'état en mémoire entre les écrans, tout transite par
-`localStorage` :
+### Navigation
 
-- **avant‑partie** (variantes + noms choisis) → `src/storage/draftRepo.ts`
-- **partie en cours** → `src/storage/savedGameRepo.ts`, ré‑enregistrée après
-  chaque saisie ; `game.html` s'y réhydrate à son chargement
-- `end.html` lit la partie terminée, l'efface, puis l'ajoute au Hall of Fame
-  quand on quitte
+- Une navigation **sans effet de bord** = un simple `<a href>` dans le HTML
+  (fonctionne même avant le chargement du JS) : Retour, Hall of Fame, ⚙️.
+- `goTo(page)` (`src/nav.ts`) n'est utilisé que **après une écriture**
+  (brouillon enregistré, partie lancée, partie quittée…).
 
-Chaque page vérifie sa précondition au chargement (pas de brouillon → retour
-accueil, pas de partie → retour accueil).
+### État (tout via `localStorage`, aucun état en mémoire entre les pages)
+
+- **avant‑partie** (variantes + noms) → `draftRepo`
+- **partie en cours** → `savedGameRepo`, ré‑enregistrée après chaque saisie ;
+  `game.html` s'y réhydrate. Effacée seulement au clic sur « Quitter » (un
+  rafraîchissement de `end.html` réaffiche donc le podium).
+- **règles** → `rulesRepo` ; **copiées dans chaque partie au lancement**
+  (`SavedGame.rules`), l'écran de jeu construit sa grille à partir de cette
+  copie. Modifier les paramètres n'affecte que les parties suivantes.
+- **Hall of Fame** (5 meilleurs / 5 pires par joueur×variante, avec la feuille
+  de score détaillée) → `hallOfFameRepo`
+- **stats par joueur** (parties jouées + cumul des scores → moyenne) →
+  `playerStatsRepo`
+
+Toutes les lectures de `localStorage` passent par un *guard* de forme
+(`readJson(key, guard)`) : un contenu corrompu est ignoré plutôt que de faire
+planter une page.
+
+## Règles configurables (`scoring.ts`)
+
+`scoring.ts` n'a **pas** de grille figée. `buildGrid(rules)` renvoie les
+sections actives, les libellés des lignes (`Brelan (Σ)` ou `Brelan (30)`…) et
+leurs valeurs possibles. Toutes les fonctions de calcul prennent cette grille :
+
+- `computeDerived(scores, grid)` — **pur**, renvoie bonus / totaux / score final.
+- `writeDerived(scores, grid)` — recopie ces valeurs dans `scores` (persistance).
+- `isLineEnabled` (verrous Montante/Descendante), `isGameFinished`.
+
+`normalizeRules(raw)` complète / borne / répare n'importe quel objet de règles
+(ancien format, valeurs absurdes). Bornes : points de ligne `0–150`, bonus
+`0–100`.
 
 ## Déploiement
 
@@ -47,31 +74,31 @@ build et publie `dist/` sur GitHub Pages (`https://paddadie.github.io/YamsApp/`)
 > Réglage unique dans le repo : **Settings → Pages → Source = GitHub Actions**.
 
 `base: '/YamsApp/'` dans [`vite.config.ts`](vite.config.ts) doit correspondre au
-nom du repo. Les cinq pages y sont déclarées comme points d'entrée.
+nom du repo ; les 6 pages y sont déclarées comme points d'entrée.
 
 ## Mise à jour de l'app
 
-`vite-plugin-pwa` précache les cinq pages + le JS/CSS. Au chargement suivant un
-déploiement, [`src/pwa/updatePrompt.ts`](src/pwa/updatePrompt.ts) détecte la
-nouvelle version et affiche un bandeau **« Mettre à jour »** ; l'utilisateur
-choisit le moment. Aucune version à incrémenter à la main. La version affichée
-en bas du Hall of Fame vient de `package.json` (`__APP_VERSION__` au build).
+`vite-plugin-pwa` précache toutes les pages + le JS/CSS. Au chargement suivant
+un déploiement, [`src/pwa/updatePrompt.ts`](src/pwa/updatePrompt.ts) affiche un
+bandeau **« Mettre à jour »** ; l'utilisateur choisit le moment. Aucune version
+à incrémenter à la main. La version affichée en bas des Paramètres vient de
+`package.json` (`__APP_VERSION__` injecté au build).
 
 ## Organisation de `src/`
 
 | Chemin | Rôle |
 |---|---|
 | `bootstrap.ts` | Amorçage commun : styles + enregistrement du service worker. |
-| `nav.ts` | `goTo(page)` — navigation entre les fichiers HTML. |
-| `types.ts` | Types du domaine (`Player`, `Variant`, `SavedGame`, `ScoreEntry`…). |
+| `nav.ts` | `goTo(page)` + table des fichiers HTML. |
+| `types.ts` | Types du domaine (`Player`, `Variant`, `GameRules`, `SavedGame`, `ScoreEntry`…). |
 | `state.ts` | Modèle de partie en mémoire + `createPlayers` / `hydrateGame` / `toSavedGame`. |
-| `scoring.ts` | Règles du Yams : sections et calculs. Aucun DOM. |
-| `hallOfFame.ts` | Intégration d'une partie terminée dans les tops. Aucun DOM. |
-| `variants.ts` | Source unique des variantes. |
-| `ui.ts` | Helpers DOM (`requireEl`, `renderList`, `renderTable`). |
-| `pages/*.ts` | Un module par page : câblage DOM + navigation. |
+| `scoring.ts` | Grille + calculs + `normalizeRules`. Aucun DOM. |
+| `hallOfFame.ts` | Intégration d'une partie terminée + prévisualisation. Aucun DOM. |
+| `variants.ts` | Source unique des variantes (libellé, icône, couleur). |
+| `ui.ts` | Helpers DOM (`requireEl`, `appendRows`, `renderTable`). |
+| `pages/*.ts` | Un module par page : câblage DOM. |
 | `pwa/updatePrompt.ts` | Enregistrement du SW + bandeau « Mettre à jour ». |
-| `storage/` | `keys.ts`, `localStore.ts`, et un repo typé par usage : `draftRepo`, `savedGameRepo`, `knownPlayersRepo`, `hallOfFameRepo`, `backup`. |
+| `storage/` | `keys.ts`, `localStore.ts` (avec guards), et un repo typé par usage : `draftRepo`, `savedGameRepo`, `rulesRepo`, `knownPlayersRepo`, `playerStatsRepo`, `hallOfFameRepo`, `backup`. |
 
 Règle de dépendances : les modules `pages/*` s'appuient sur `state`, `scoring`,
 `variants`, `ui`, `storage/*` — jamais l'inverse.

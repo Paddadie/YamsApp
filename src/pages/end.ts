@@ -8,7 +8,8 @@ import { getVariantIcon } from "../variants";
 import { renderTable, requireEl } from "../ui";
 import { getSavedGame, clearSavedGame } from "../storage/savedGameRepo";
 import { clearDraft } from "../storage/draftRepo";
-import { recordGamesPlayed } from "../storage/playerStatsRepo";
+import { recordGameResult } from "../storage/playerStatsRepo";
+import { buildGrid } from "../scoring";
 import {
   previewHallOfFame,
   saveBestAndWorstScores,
@@ -29,12 +30,13 @@ if (!saved) {
 }
 hydrateGame(saved);
 
+const grid = buildGrid(game.rules);
+
 // L'impact sur le Hall of Fame se calcule AVANT d'y écrire quoi que ce soit.
 const preview = previewHallOfFame(game.players, game.variants);
 
-// Les données sont en mémoire : la partie n'est plus "en cours".
-clearSavedGame();
-clearDraft();
+// La partie sauvegardée n'est effacée qu'au clic sur « Quitter » : ainsi un
+// rafraîchissement de cette page réaffiche le podium au lieu de tout perdre.
 
 const podium = requireEl("podium");
 const rankingTable = requireEl<HTMLTableElement>("ranking-table");
@@ -45,16 +47,23 @@ interface Result {
   total: number;
 }
 
+const results = computeResults();
+
 requireEl("quit-btn").addEventListener("click", () => {
-  saveBestAndWorstScores(game.players, game.variants);
-  recordGamesPlayed(game.players.map((p) => p.name));
+  saveBestAndWorstScores(game.players, game.variants, grid);
+  recordGameResult(results.map((r) => ({ name: r.name, total: r.total })));
+  clearSavedGame();
+  clearDraft();
   goTo("home");
 });
 
-render();
+renderPodium(results);
+renderRecordBanner();
+renderRanking(results);
+renderLegend();
 
-function render(): void {
-  const results: Result[] = game.players
+function computeResults(): Result[] {
+  return game.players
     .map((player) => {
       const details = {} as Record<Variant, number>;
       let total = 0;
@@ -66,11 +75,6 @@ function render(): void {
       return { name: player.name, details, total };
     })
     .sort((a, b) => b.total - a.total);
-
-  renderPodium(results);
-  renderRecordBanner();
-  renderRanking(results);
-  renderLegend();
 }
 
 function renderRanking(results: Result[]): void {
