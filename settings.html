@@ -79,6 +79,29 @@
             <input id="import-input" type="file" accept="application/json,.json" hidden />
           </div>
         </section>
+
+        <section class="settings-group">
+          <h3>Joueurs enregistrés</h3>
+          <p class="settings-hint">
+            Permet de modifier ou supprimer un joueur enregistré.
+          </p>
+          <ul id="players-admin" class="score-admin-list"></ul>
+        </section>
+
+        <section class="settings-group">
+          <h3>Scores enregistrés</h3>
+          <p class="settings-hint">
+            Permet de supprimer une entrée des classements du Hall of Fame.
+          </p>
+          <div class="score-admin-block">
+            <h4 class="score-admin-title">👑 Meilleurs</h4>
+            <ul id="best-admin" class="score-admin-list"></ul>
+          </div>
+          <div class="score-admin-block">
+            <h4 class="score-admin-title">💩 Pires</h4>
+            <ul id="worst-admin" class="score-admin-list"></ul>
+          </div>
+        </section>
       </div>
 
       <div class="action-bar">
@@ -86,6 +109,70 @@
         <div id="app-version"></div>
       </div>
     </div>
+
+    <dialog id="delete-dialog">
+      <p class="sheet-title">Supprimer ce score ?</p>
+      <dl id="delete-summary" class="delete-summary"></dl>
+      <table id="delete-sheet"></table>
+      <p class="delete-warn">
+        Cette donnée sera définitivement retirée du Hall of Fame.
+      </p>
+      <div class="delete-actions">
+        <button type="button" id="delete-cancel" class="btn btn-secondary">
+          Annuler
+        </button>
+        <button type="button" id="delete-confirm" class="btn btn-danger">
+          Oui, supprimer
+        </button>
+      </div>
+    </dialog>
+
+    <dialog id="player-edit-dialog">
+      <p class="sheet-title">Modifier le nom</p>
+      <input
+        type="text"
+        id="player-edit-input"
+        class="player-edit-input"
+        autocomplete="off"
+        maxlength="40"
+      />
+      <p class="player-edit-error" id="player-edit-error" hidden>
+        Ce nom est déjà utilisé.
+      </p>
+      <div class="delete-actions">
+        <button type="button" id="player-edit-cancel" class="btn btn-secondary">
+          Annuler
+        </button>
+        <button type="button" id="player-edit-save" class="btn btn-primary">
+          Enregistrer
+        </button>
+      </div>
+    </dialog>
+
+    <dialog id="player-delete-dialog">
+      <p class="sheet-title">Supprimer ce joueur ?</p>
+      <dl id="player-delete-summary" class="delete-summary"></dl>
+      <p class="delete-warn">
+        Le joueur, ses statistiques et tous ses scores au Hall of Fame seront
+        définitivement supprimés.
+      </p>
+      <div class="delete-actions">
+        <button
+          type="button"
+          id="player-delete-cancel"
+          class="btn btn-secondary"
+        >
+          Annuler
+        </button>
+        <button
+          type="button"
+          id="player-delete-confirm"
+          class="btn btn-danger"
+        >
+          Oui, supprimer
+        </button>
+      </div>
+    </dialog>
 
     <script type="module" src="/src/pages/settings.ts"></script>
   </body>

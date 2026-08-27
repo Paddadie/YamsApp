@@ -1032,15 +1032,19 @@ button:hover {
 }
 
 /* Feuille de score détaillée (dialog). */
-#sheet-dialog {
+#sheet-dialog,
+#delete-dialog {
   border: none;
   border-radius: 16px;
   padding: 1.2em;
   width: min(22rem, 92vw);
+  max-height: 90dvh;
+  overflow-y: auto;
   box-shadow: 0 16px 48px rgba(10, 20, 25, 0.35);
 }
 
-#sheet-dialog::backdrop {
+#sheet-dialog::backdrop,
+#delete-dialog::backdrop {
   background: rgba(12, 22, 27, 0.5);
 }
 
@@ -1050,27 +1054,32 @@ button:hover {
   text-align: center;
 }
 
-#sheet-table {
+#sheet-table,
+#delete-sheet {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1em;
 }
 
-#sheet-table td {
+#sheet-table td,
+#delete-sheet td {
   padding: 0.35em 0.6em;
   border-bottom: 1px solid #eee;
 }
 
-#sheet-table td:first-child {
+#sheet-table td:first-child,
+#delete-sheet td:first-child {
   color: #555;
 }
 
-#sheet-table td:last-child {
+#sheet-table td:last-child,
+#delete-sheet td:last-child {
   text-align: right;
   font-weight: 700;
 }
 
-#sheet-table tr.sheet-final td {
+#sheet-table tr.sheet-final td,
+#delete-sheet tr.sheet-final td {
   border-top: 2px solid rgba(0, 0, 0, 0.4);
   border-bottom: none;
   font-size: 1.1em;
@@ -1269,6 +1278,167 @@ button:hover {
 .switch input:focus-visible + .switch-track {
   outline: 3px solid var(--secondary-color);
   outline-offset: 2px;
+}
+
+/* Nettoyage des classements du Hall of Fame */
+.score-admin-block {
+  margin-top: 0.9rem;
+}
+
+/* Séparation nette entre le bloc "Meilleurs" et le bloc "Pires". */
+.score-admin-block + .score-admin-block {
+  margin-top: 1.6rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid #e2e2e2;
+}
+
+/* Titre collé à sa liste (petit espace en dessous, plus grand au-dessus). */
+.score-admin-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.score-admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Colonnes alignées d'une ligne à l'autre : nom | score | date | corbeille. */
+.score-admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  column-gap: 0.9rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ececec;
+  font-size: 0.9rem;
+}
+
+.score-admin-row:last-child {
+  border-bottom: none;
+}
+
+.score-admin-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.score-admin-score {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.score-admin-date,
+.score-admin-games {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Boutons crayon / corbeille : encadrés pour rester visibles même si le
+   glyphe emoji est monochrome. */
+.score-admin-edit,
+.score-admin-del {
+  appearance: none;
+  justify-self: end;
+  border: 1.5px solid #d3d3d3;
+  background: #fff;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.35em 0.6em;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.score-admin-del {
+  border-color: #e2b6b6;
+  color: var(--danger-color);
+}
+
+.score-admin-edit:hover {
+  background: #f1f1f1;
+}
+
+.score-admin-del:hover {
+  background: #fbeaea;
+}
+
+.score-admin-empty {
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+/* Pop-up de confirmation de suppression (réutilise le style de #sheet-dialog). */
+.delete-summary {
+  margin: 0 0 1em;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.35em 0.9em;
+  font-size: 0.95rem;
+}
+
+.delete-summary dt {
+  color: #777;
+  font-weight: 600;
+}
+
+.delete-summary dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.delete-variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+#delete-sheet[hidden] {
+  display: none;
+}
+
+.delete-warn {
+  margin: 0 0 1em;
+  font-size: 0.88rem;
+  color: var(--danger-color);
+  text-align: center;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 0.6em;
+}
+
+.delete-actions .btn {
+  margin: 0;
+  flex: 1;
+  max-width: none;
+}
+
+.player-edit-input {
+  width: 100%;
+  margin: 0 0 0.8em;
+  padding: 0.65em 0.85em;
+  border: 1.5px solid #d3d3d3;
+  border-radius: var(--border-radius);
+  font: inherit;
+}
+
+.player-edit-error {
+  margin: -0.4em 0 0.8em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger-color);
+}
+
+.player-edit-error[hidden] {
+  display: none;
 }
 
 /* ========== TABLETTE & GRANDS ÉCRANS ========== */

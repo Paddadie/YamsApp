@@ -57,3 +57,29 @@ export function recordGameResult(
   }
   writeJson(STORAGE_KEYS.playerStats, stats);
 }
+
+export function removePlayerStats(name: string): void {
+  const stats = getPlayerStats();
+  if (!(name in stats)) return;
+  delete stats[name];
+  writeJson(STORAGE_KEYS.playerStats, stats);
+}
+
+// Déplace les stats sous un autre nom (renommage). Fusionne si le nom cible
+// existe déjà.
+export function renamePlayerStats(oldName: string, newName: string): void {
+  if (newName === oldName) return;
+  const stats = getPlayerStats();
+  const from = stats[oldName];
+  if (!from) return;
+  const into = stats[newName];
+  stats[newName] = into
+    ? {
+        games: into.games + from.games,
+        classiqueGames: into.classiqueGames + from.classiqueGames,
+        classiquePoints: into.classiquePoints + from.classiquePoints,
+      }
+    : from;
+  delete stats[oldName];
+  writeJson(STORAGE_KEYS.playerStats, stats);
+}

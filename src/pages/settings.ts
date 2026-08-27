@@ -13,6 +13,24 @@ import {
   LINE_POINTS_MAX,
 } from "../scoring";
 import { downloadBackup, importBackupFile } from "../storage/backup";
+import {
+  getBestScores,
+  getWorstScores,
+  saveBestScores,
+  saveWorstScores,
+} from "../storage/hallOfFameRepo";
+import {
+  getKnownNames,
+  removeKnownName,
+  renameKnownName,
+} from "../storage/knownPlayersRepo";
+import {
+  getPlayerStats,
+  removePlayerStats,
+  renamePlayerStats,
+} from "../storage/playerStatsRepo";
+import { getVariantIcon, getVariantColor } from "../variants";
+import type { ScoreEntry } from "../types";
 
 type ModeKey =
   | "brelan"
@@ -38,11 +56,36 @@ requireEl("app-version").textContent = `v${__APP_VERSION__}`;
 let rules = getRules();
 const syncers: (() => void)[] = [];
 
+// Déclarés avant les appels de setup ci-dessous : setupScoreAdmin() y accède.
+interface ScoreList {
+  get: () => ScoreEntry[];
+  save: (list: ScoreEntry[]) => void;
+}
+const deleteDialog = requireEl<HTMLDialogElement>("delete-dialog");
+const deleteSummary = requireEl("delete-summary");
+const deleteSheet = requireEl<HTMLTableElement>("delete-sheet");
+// Ce que l'on s'apprête à supprimer, en attente de confirmation dans la pop-up.
+let pendingDelete: { index: number; store: ScoreList } | null = null;
+
+const BEST_STORE: ScoreList = { get: getBestScores, save: saveBestScores };
+const WORST_STORE: ScoreList = { get: getWorstScores, save: saveWorstScores };
+const SCORE_STORES: ScoreList[] = [BEST_STORE, WORST_STORE];
+
+const playerEditDialog = requireEl<HTMLDialogElement>("player-edit-dialog");
+const playerEditInput = requireEl<HTMLInputElement>("player-edit-input");
+const playerEditError = requireEl("player-edit-error");
+const playerDeleteDialog = requireEl<HTMLDialogElement>("player-delete-dialog");
+const playerDeleteSummary = requireEl("player-delete-summary");
+let editingPlayer: string | null = null;
+let deletingPlayer: string | null = null;
+
 for (const key of MODE_KEYS) setupModeRow(key);
 setupBonus();
 setupChance();
 setupReset();
 setupBackup();
+setupScoreAdmin();
+setupPlayerAdmin();
 
 function persist(): void {
   saveRules(rules);
@@ -183,4 +226,310 @@ async function restore(file: File): Promise<void> {
   } else {
     alert("Impossible de lire ce fichier.");
   }
+}
+
+/* ---------- Nettoyage des classements du Hall of Fame ---------- */
+
+function setupScoreAdmin(): void {
+  refreshScoreAdmin();
+
+  requireEl("delete-cancel").addEventListener("click", () => deleteDialog.close());
+  deleteDialog.addEventListener("click", (e) => {
+    if (e.target === deleteDialog) deleteDialog.close();
+  });
+  requireEl("delete-confirm").addEventListener("click", () => {
+    if (!pendingDelete) return;
+    const { index, store } = pendingDelete;
+    store.save(store.get().filter((_, i) => i !== index));
+    pendingDelete = null;
+    deleteDialog.close();
+    refreshScoreAdmin();
+  });
+}
+
+function refreshScoreAdmin(): void {
+  renderScoreAdmin("best-admin", BEST_STORE);
+  renderScoreAdmin("worst-admin", WORST_STORE);
+}
+
+function renderScoreAdmin(listId: string, store: ScoreList): void {
+  const list = requireEl(listId);
+  const entries = store.get();
+  list.replaceChildren();
+
+  if (entries.length === 0) {
+    const li = document.createElement("li");
+    li.className = "score-admin-empty";
+    li.textContent = "Aucune entrée.";
+    list.appendChild(li);
+    return;
+  }
+
+  entries.forEach((entry, index) => {
+    list.appendChild(scoreAdminRow(entry, index, store));
+  });
+}
+
+function scoreAdminRow(
+  entry: ScoreEntry,
+  index: number,
+  store: ScoreList,
+): HTMLLIElement {
+  const li = document.createElement("li");
+  li.className = "score-admin-row";
+
+  const name = document.createElement("span");
+  name.className = "score-admin-name";
+  name.textContent = entry.name;
+
+  const score = document.createElement("span");
+  score.className = "score-admin-score";
+  score.textContent = `${entry.score} pts`;
+
+  const date = document.createElement("span");
+  date.className = "score-admin-date";
+  date.textContent = entry.date;
+
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "score-admin-del";
+  del.setAttribute(
+    "aria-label",
+    `Supprimer ${entry.name}, ${entry.score} points`,
+  );
+  del.textContent = "🗑️";
+  del.addEventListener("click", () => openDeleteDialog(entry, index, store));
+
+  li.append(name, score, date, del);
+  return li;
+}
+
+// Pop-up récapitulant la partie visée avant de confirmer la suppression.
+function openDeleteDialog(
+  entry: ScoreEntry,
+  index: number,
+  store: ScoreList,
+): void {
+  pendingDelete = { index, store };
+  renderDeleteSummary(entry);
+  renderDeleteSheet(entry);
+  deleteDialog.showModal();
+}
+
+function renderDeleteSummary(entry: ScoreEntry): void {
+  deleteSummary.replaceChildren();
+  summaryRow(deleteSummary, "Joueur", entry.name);
+  summaryRow(deleteSummary, "Score", `${entry.score} pts`);
+  if (entry.date) summaryRow(deleteSummary, "Date", entry.date);
+  if (entry.variant) {
+    const wrap = document.createElement("span");
+    wrap.className = "delete-variant";
+    const badge = document.createElement("span");
+    badge.className = "variant-badge";
+    badge.style.setProperty("--vc", getVariantColor(entry.variant));
+    badge.textContent = getVariantIcon(entry.variant);
+    badge.title = entry.variant;
+    wrap.append(badge, document.createTextNode(entry.variant));
+    summaryRow(deleteSummary, "Variante", wrap);
+  }
+}
+
+function summaryRow(
+  target: HTMLElement,
+  term: string,
+  value: string | Node,
+): void {
+  const dt = document.createElement("dt");
+  dt.textContent = term;
+  const dd = document.createElement("dd");
+  if (typeof value === "string") dd.textContent = value;
+  else dd.appendChild(value);
+  target.append(dt, dd);
+}
+
+// Feuille de score détaillée si l'entrée la porte (parties d'avant : aucune).
+function renderDeleteSheet(entry: ScoreEntry): void {
+  deleteSheet.replaceChildren();
+  if (!entry.sheet || !entry.lineOrder) {
+    deleteSheet.hidden = true;
+    return;
+  }
+  deleteSheet.hidden = false;
+
+  const tbody = document.createElement("tbody");
+  for (const line of entry.lineOrder) {
+    const value = entry.sheet[line];
+    const tr = document.createElement("tr");
+    if (line === "Score Final") tr.className = "sheet-final";
+    const tdLine = document.createElement("td");
+    tdLine.textContent = line;
+    const tdValue = document.createElement("td");
+    tdValue.textContent = value === undefined ? "–" : String(value);
+    tr.append(tdLine, tdValue);
+    tbody.appendChild(tr);
+  }
+  deleteSheet.appendChild(tbody);
+}
+
+/* ---------- Renommage / suppression des joueurs enregistrés ---------- */
+
+function setupPlayerAdmin(): void {
+  renderPlayerAdmin();
+
+  requireEl("player-edit-cancel").addEventListener("click", () =>
+    playerEditDialog.close(),
+  );
+  playerEditDialog.addEventListener("click", (e) => {
+    if (e.target === playerEditDialog) playerEditDialog.close();
+  });
+  playerEditInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      savePlayerEdit();
+    }
+  });
+  requireEl("player-edit-save").addEventListener("click", savePlayerEdit);
+
+  requireEl("player-delete-cancel").addEventListener("click", () =>
+    playerDeleteDialog.close(),
+  );
+  playerDeleteDialog.addEventListener("click", (e) => {
+    if (e.target === playerDeleteDialog) playerDeleteDialog.close();
+  });
+  requireEl("player-delete-confirm").addEventListener("click", () => {
+    if (deletingPlayer === null) return;
+    removeKnownName(deletingPlayer);
+    removePlayerStats(deletingPlayer);
+    removeFromScores(deletingPlayer);
+    deletingPlayer = null;
+    playerDeleteDialog.close();
+    renderPlayerAdmin();
+    refreshScoreAdmin();
+  });
+}
+
+function renderPlayerAdmin(): void {
+  const list = requireEl("players-admin");
+  const stats = getPlayerStats();
+  const names = getKnownNames();
+  list.replaceChildren();
+
+  if (names.length === 0) {
+    const li = document.createElement("li");
+    li.className = "score-admin-empty";
+    li.textContent = "Aucun joueur enregistré.";
+    list.appendChild(li);
+    return;
+  }
+
+  for (const name of names) {
+    list.appendChild(playerAdminRow(name, stats[name]?.games ?? 0));
+  }
+}
+
+function playerAdminRow(name: string, games: number): HTMLLIElement {
+  const li = document.createElement("li");
+  li.className = "score-admin-row";
+
+  const nameEl = document.createElement("span");
+  nameEl.className = "score-admin-name";
+  nameEl.textContent = name;
+
+  const gamesEl = document.createElement("span");
+  gamesEl.className = "score-admin-games";
+  gamesEl.textContent =
+    games === 0 ? "jamais joué" : `${games} partie${games > 1 ? "s" : ""}`;
+
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "score-admin-edit";
+  edit.setAttribute("aria-label", `Modifier le nom de ${name}`);
+  edit.textContent = "✏️";
+  edit.addEventListener("click", () => openPlayerEdit(name));
+
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "score-admin-del";
+  del.setAttribute("aria-label", `Supprimer ${name}`);
+  del.textContent = "🗑️";
+  del.addEventListener("click", () => openPlayerDelete(name));
+
+  li.append(nameEl, gamesEl, edit, del);
+  return li;
+}
+
+function openPlayerEdit(name: string): void {
+  editingPlayer = name;
+  playerEditInput.value = name;
+  playerEditError.hidden = true;
+  playerEditDialog.showModal();
+  playerEditInput.focus();
+  playerEditInput.select();
+}
+
+// Renomme dans les trois endroits qui portent le nom : liste des joueurs
+// connus, statistiques, et entrées du Hall of Fame.
+function savePlayerEdit(): void {
+  if (editingPlayer === null) return;
+  const next = playerEditInput.value.trim();
+  if (!next || next === editingPlayer) {
+    playerEditDialog.close();
+    return;
+  }
+  if (!renameKnownName(editingPlayer, next)) {
+    playerEditError.hidden = false;
+    return;
+  }
+  renamePlayerStats(editingPlayer, next);
+  renameInScores(editingPlayer, next);
+  editingPlayer = null;
+  playerEditDialog.close();
+  renderPlayerAdmin();
+  refreshScoreAdmin();
+}
+
+// Renomme les entrées du Hall of Fame portant ce nom (casse / espaces ignorés).
+function renameInScores(from: string, to: string): void {
+  const key = from.trim().toLowerCase();
+  for (const store of SCORE_STORES) {
+    let changed = false;
+    const updated = store.get().map((entry) => {
+      if (entry.name.trim().toLowerCase() !== key) return entry;
+      changed = true;
+      return { ...entry, name: to };
+    });
+    if (changed) store.save(updated);
+  }
+}
+
+// Retire toutes les entrées du Hall of Fame portant ce nom.
+function removeFromScores(name: string): void {
+  const key = name.trim().toLowerCase();
+  for (const store of SCORE_STORES) {
+    const list = store.get();
+    const kept = list.filter((entry) => entry.name.trim().toLowerCase() !== key);
+    if (kept.length !== list.length) store.save(kept);
+  }
+}
+
+function openPlayerDelete(name: string): void {
+  deletingPlayer = name;
+  const stat = getPlayerStats()[name];
+  const key = name.trim().toLowerCase();
+  const hofCount = SCORE_STORES.reduce(
+    (n, store) =>
+      n + store.get().filter((e) => e.name.trim().toLowerCase() === key).length,
+    0,
+  );
+
+  playerDeleteSummary.replaceChildren();
+  summaryRow(playerDeleteSummary, "Joueur", name);
+  summaryRow(playerDeleteSummary, "Parties jouées", String(stat?.games ?? 0));
+  const avg =
+    stat && stat.classiqueGames > 0
+      ? String(Math.round(stat.classiquePoints / stat.classiqueGames))
+      : "—";
+  summaryRow(playerDeleteSummary, "Moyenne classique", avg);
+  summaryRow(playerDeleteSummary, "Entrées Hall of Fame", String(hofCount));
+  playerDeleteDialog.showModal();
 }
