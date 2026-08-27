@@ -486,11 +486,14 @@ button:hover {
 }
 
 /* Zone de la grille : prend toute la hauteur restante de #game-screen.
-   Ne défile que si la grille, déjà réduite au minimum lisible, déborde encore. */
+   Ne défile que si la grille, déjà réduite au minimum lisible, déborde encore.
+   `overscroll-behavior: contain` coupe le rebond iOS quand la grille tient
+   pile à l'écran (faux défilement d'un ou deux pixels). */
 #score-tables {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
 }
@@ -519,9 +522,12 @@ button:hover {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
-  /* Taille d'écriture fluide : petite sur iPhone, grande sur tablette. */
+  /* Taille d'écriture fluide : petite sur iPhone, grande sur tablette.
+     `svh` (et non `dvh`) : hauteur stable, alignée sur la coque en height:100%,
+     sinon la grille se dimensionne pour un écran plus grand que le sien et
+     déborde de quelques pixels quand la barre Safari est masquée. */
   font-size: 0.85rem;
-  font-size: clamp(0.72rem, 1.55dvh, 1.3rem);
+  font-size: clamp(0.72rem, 1.55svh, 1.3rem);
 }
 
 /* En-tête : pas de bande, chaque variante dans une pastille de sa couleur. */
