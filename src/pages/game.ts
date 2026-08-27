@@ -73,7 +73,6 @@ interface ScoreControl {
   refresh(): void;
 }
 
-// Vue courante, indexée par variante.
 let controls = new Map<Variant, ScoreControl[]>();
 let derivedCells = new Map<Variant, Map<LineName, HTMLTableCellElement>>();
 

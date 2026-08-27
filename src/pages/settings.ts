@@ -66,7 +66,6 @@ interface ScoreList {
 const deleteDialog = requireEl<HTMLDialogElement>("delete-dialog");
 const deleteSummary = requireEl("delete-summary");
 const deleteSheet = requireEl<HTMLTableElement>("delete-sheet");
-// Ce que l'on s'apprête à supprimer, en attente de confirmation dans la pop-up.
 let pendingDelete: { index: number; store: ScoreList } | null = null;
 
 const BEST_STORE: ScoreList = { get: getBestScores, save: saveBestScores };
@@ -81,6 +80,8 @@ const playerDeleteSummary = requireEl("player-delete-summary");
 let editingPlayer: string | null = null;
 let deletingPlayer: string | null = null;
 
+const resetBtn = requireEl<HTMLButtonElement>("reset-rules");
+
 for (const key of MODE_KEYS) setupModeRow(key);
 setupBonus();
 setupChance();
@@ -88,9 +89,28 @@ setupReset();
 setupBackup();
 setupScoreAdmin();
 setupPlayerAdmin();
+updateResetVisibility();
 
 function persist(): void {
   saveRules(rules);
+  updateResetVisibility();
+}
+
+// Le bouton "Valeurs par défaut" ne sert que si les règles ont été modifiées.
+function updateResetVisibility(): void {
+  resetBtn.hidden = rulesAreDefault();
+}
+
+function rulesAreDefault(): boolean {
+  if (rules.bonus !== DEFAULT_RULES.bonus) return false;
+  if (rules.chance !== DEFAULT_RULES.chance) return false;
+  return MODE_KEYS.every((key) => {
+    const a = rules[key];
+    const b = DEFAULT_RULES[key];
+    if (a.type === "sum" && b.type === "sum") return true;
+    if (a.type === "fixed" && b.type === "fixed") return a.points === b.points;
+    return false;
+  });
 }
 
 function clamp(raw: string, fallback: number, min: number, max: number): number {

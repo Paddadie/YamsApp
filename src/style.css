@@ -29,8 +29,10 @@
 }
 
 html {
-  /* Taille de base fluide : ~16px sur iPhone, ~19px sur tablette. */
-  font-size: clamp(16px, 0.6vw + 13.5px, 19px);
+  /* Taille de base fluide : ~16px sur iPhone, ~17-18px sur tablette. Pente
+     douce : une tablette large ne doit pas gonfler tout le vertical au point
+     de forcer un défilement. */
+  font-size: clamp(16px, 0.35vw + 14px, 18px);
 }
 
 body {
@@ -115,6 +117,23 @@ button:hover {
 
 .btn-gold:hover {
   background-color: var(--gold-hover);
+}
+
+/* Sauvegarde : une teinte propre à chaque action, distincte du bleu "Retour". */
+.btn-export {
+  background-color: #0f766e; /* sarcelle */
+}
+
+.btn-export:hover {
+  background-color: #0b5b55;
+}
+
+.btn-import {
+  background-color: #c2410c; /* orange brûlé */
+}
+
+.btn-import:hover {
+  background-color: #9a3412;
 }
 
 .btn:disabled {
@@ -250,8 +269,10 @@ button:hover {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.25rem;
-  padding: 1.25rem clamp(1rem, 4vw, 2.5rem);
+  /* Espacements liés à la hauteur : se resserrent quand la place manque
+     (tablette en paysage, petit écran) pour éviter un défilement. */
+  gap: clamp(0.75rem, 2.4vh, 1.5rem);
+  padding: clamp(0.85rem, 2.6vh, 1.5rem) clamp(1rem, 4vw, 2.5rem);
 }
 
 .screen-body > * {
@@ -263,13 +284,13 @@ button:hover {
 /* Titre ancré en haut, choix des variantes centré dans l'espace restant. */
 #home-screen .screen-body {
   justify-content: flex-start;
-  gap: 1.75rem;
-  padding-top: clamp(1.5rem, 6vh, 4rem);
+  gap: clamp(1rem, 3vh, 1.75rem);
+  padding-top: clamp(1rem, 3.5vh, 2.75rem);
 }
 
 #home-screen h1 {
   margin: 0;
-  font-size: clamp(2.2rem, 9vw, 3.2rem);
+  font-size: clamp(2rem, 6vw, 3rem);
   letter-spacing: 0.02em;
 }
 
@@ -782,20 +803,22 @@ button:hover {
     0 4px 10px rgba(0, 0, 0, 0.14);
 }
 
+/* Hauteurs liées à la hauteur d'écran : marches plus courtes si la place
+   manque, pour que l'écran de fin tienne sans défilement. */
 .podium-step.rank-1 {
-  min-height: 11em;
+  min-height: clamp(7em, 20vh, 11em);
   color: #3a2c05;
   background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
 }
 
 .podium-step.rank-2 {
-  min-height: 9em;
+  min-height: clamp(5.75em, 16vh, 9em);
   color: #34383f;
   background-image: linear-gradient(180deg, #edeef1 0%, #cfd2d8 45%, #a9adb6 100%);
 }
 
 .podium-step.rank-3 {
-  min-height: 7.5em;
+  min-height: clamp(4.75em, 13vh, 7.5em);
   color: #3d2410;
   background-image: linear-gradient(180deg, #e9bd94 0%, #cd894f 45%, #a5652f 100%);
 }
@@ -958,9 +981,15 @@ button:hover {
   margin: 0;
 }
 
+/* Numéro de version : discret, en haut à droite du contenu Paramètres. Il
+   défile avec le reste (positionné dans .screen-body, pas dans .screen). */
 #app-version {
-  font-size: 0.62em;
-  color: #888;
+  position: absolute;
+  top: 0.6rem;
+  right: 1rem;
+  width: auto; /* sinon .screen-body > * impose width:100% et le colle à gauche */
+  font-size: 0.72rem;
+  color: #999;
   pointer-events: none;
   user-select: none;
 }
@@ -1300,6 +1329,7 @@ button:hover {
 
 /* ========== PAGE PARAMÈTRES ========== */
 #settings-screen .screen-body {
+  position: relative; /* ancre #app-version dans la zone qui défile */
   gap: 1.25rem;
 }
 
@@ -1357,6 +1387,10 @@ button:hover {
 
 #reset-rules:hover {
   background: #f4f4f4;
+}
+
+#reset-rules[hidden] {
+  display: none;
 }
 
 .setting-label {
@@ -1656,10 +1690,41 @@ button:hover {
   }
 }
 
-/* Écrans très courts (téléphone en paysage) : resserrer l'accueil. */
-@media (max-height: 520px) {
+/* Écrans courts (téléphone en paysage, petites tablettes en paysage) :
+   on resserre tout pour continuer à éviter le défilement le plus longtemps
+   possible. */
+@media (max-height: 680px) {
+  .screen-body {
+    gap: 0.7rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+
   #home-screen .screen-body {
-    gap: 1rem;
-    justify-content: flex-start;
+    gap: 0.7rem;
+    padding-top: 0.7rem;
+  }
+
+  #home-screen h1 {
+    font-size: clamp(1.6rem, 7vh, 2.3rem);
+  }
+
+  .action-bar {
+    gap: 0.4em;
+    padding-top: 0.55em;
+  }
+
+  .action-bar .btn {
+    padding: 0.6em 1em;
+  }
+
+  .podium-step.rank-1 {
+    min-height: 6em;
+  }
+  .podium-step.rank-2 {
+    min-height: 5em;
+  }
+  .podium-step.rank-3 {
+    min-height: 4.2em;
   }
 }
