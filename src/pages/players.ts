@@ -10,6 +10,7 @@ import { addKnownName, getKnownNames } from "../storage/knownPlayersRepo";
 import { getGamesPlayed } from "../storage/playerStatsRepo";
 import { getDraft, saveDraft, clearDraft } from "../storage/draftRepo";
 import { saveSavedGame } from "../storage/savedGameRepo";
+import { getRules } from "../storage/rulesRepo";
 
 bootstrap();
 
@@ -47,6 +48,7 @@ startBtn.addEventListener("click", () => {
     players: createPlayers(roster.playerNames, roster.variants),
     selectedVariants: roster.variants,
     currentPlayerIndex: 0,
+    rules: getRules(), // règles figées pour toute la partie
   });
   clearDraft();
   goTo("game");

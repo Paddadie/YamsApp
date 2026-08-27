@@ -8,7 +8,7 @@ import { getVariantIcon, getVariantColor } from "../variants";
 import { requireEl } from "../ui";
 import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
 import {
-  SECTIONS,
+  buildGrid,
   isLineEnabled,
   updateCalculatedScores,
   calculateSpecialScore,
@@ -26,6 +26,9 @@ if (!saved) {
   throw new Error("Aucune partie en cours : retour à l'accueil.");
 }
 hydrateGame(saved);
+
+// Grille figée pour toute la partie (règles copiées au lancement).
+const grid = buildGrid(game.rules);
 
 const gameScreen = requireEl("game-screen");
 const scoreTablesContainer = requireEl("score-tables");
@@ -86,7 +89,7 @@ function displayCurrentPlayer(): void {
   let dataRowIndex = 0;
   let sectionIndex = 0;
 
-  for (const { label, lines } of SECTIONS) {
+  for (const { label, lines } of grid.sections) {
     if (label) tbody.appendChild(buildSectionHead(label, sectionIndex > 0));
     sectionIndex++;
 
@@ -107,7 +110,9 @@ function displayCurrentPlayer(): void {
         const scores = player.scores[variant];
 
         if (isComputed) {
-          cell.textContent = String(calculateSpecialScore(lineName, scores));
+          cell.textContent = String(
+            calculateSpecialScore(lineName, scores, grid),
+          );
         } else {
           fillScoreCell(cell, lineName, variant, values, scores);
         }
@@ -156,7 +161,7 @@ function fillScoreCell(
 
   const enabled =
     variant === "Montante" || variant === "Descendante"
-      ? isLineEnabled(lineName, variant, scores)
+      ? isLineEnabled(lineName, variant, scores, grid)
       : true;
   select.disabled = !enabled;
   if (!enabled) select.title = "Remplissez d’abord la ligne précédente.";
@@ -170,12 +175,12 @@ function fillScoreCell(
       else scores[lineName] = num;
     }
 
-    updateCalculatedScores(scores);
+    updateCalculatedScores(scores, grid);
     persist();
 
     clearTimeout(autoAdvanceTimeout);
     autoAdvanceTimeout = setTimeout(() => {
-      if (isGameFinished(game.players, game.variants)) {
+      if (isGameFinished(game.players, game.variants, grid)) {
         persist();
         goTo("end");
       } else {

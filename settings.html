@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Yams — Paramètres</title>
+
+    <link rel="icon" href="/de.png" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yams" />
+  </head>
+  <body>
+    <div id="settings-screen" class="screen">
+      <div class="screen-body">
+        <h2>⚙️ Paramètres</h2>
+
+        <p class="settings-hint">
+          Les règles s'appliquent à la prochaine partie lancée, pas à une partie
+          déjà en cours.
+        </p>
+
+        <section class="settings-group">
+          <h3>Section chiffres</h3>
+          <div class="setting-row">
+            <span class="setting-label">Bonus</span>
+            <div class="setting-control">
+              <input type="number" id="bonus-points" class="num" min="0" max="199" />
+              <span class="num-unit">pts si ≥ 63</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="settings-group">
+          <h3>Combinaisons</h3>
+
+          <div class="setting-row" data-key="brelan">
+            <span class="setting-label">Brelan</span>
+          </div>
+          <div class="setting-row" data-key="full">
+            <span class="setting-label">Full</span>
+          </div>
+          <div class="setting-row" data-key="carre">
+            <span class="setting-label">Carré</span>
+          </div>
+          <div class="setting-row" data-key="petiteSuite">
+            <span class="setting-label">Petite suite</span>
+          </div>
+          <div class="setting-row" data-key="grandeSuite">
+            <span class="setting-label">Grande suite</span>
+          </div>
+
+          <div class="setting-row">
+            <span class="setting-label">Chance</span>
+            <div class="setting-control">
+              <label class="switch">
+                <input type="checkbox" id="chance-toggle" />
+                <span class="switch-track"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="setting-row" data-key="yams">
+            <span class="setting-label">Yams</span>
+          </div>
+        </section>
+
+        <button type="button" id="reset-rules" class="btn btn-secondary">
+          ↺ Valeurs par défaut
+        </button>
+
+        <section class="settings-group">
+          <h3>Données</h3>
+          <div id="backup-controls">
+            <button id="export-btn" class="btn btn-secondary">
+              ⬇️ Exporter mes données
+            </button>
+            <label for="import-input" class="btn btn-secondary">
+              ⬆️ Importer une sauvegarde
+            </label>
+            <input id="import-input" type="file" accept="application/json,.json" hidden />
+          </div>
+        </section>
+      </div>
+
+      <div class="action-bar">
+        <a href="index.html" class="btn btn-secondary">🏠 Retour</a>
+        <div id="app-version"></div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/settings.ts"></script>
+  </body>
+</html>

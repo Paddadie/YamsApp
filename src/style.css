@@ -239,6 +239,7 @@ button:hover {
    Modèle unique : colonne verrouillée sur la hauteur visible, contenu qui
    défile dans .screen-body, barre d'actions fixe en bas. */
 .screen {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -816,27 +817,24 @@ button:hover {
   display: none;
 }
 
-/* La ligne export/import et le bouton Retour partagent exactement le même
-   gabarit, pour que leurs bords gauche et droit soient alignés. */
-#backup-controls,
 #hall-footer #back-to-home-btn {
   width: 100%;
   max-width: 22em;
   margin: 0;
 }
 
-/* Export à gauche, import à droite, chacun sur la moitié de la ligne. */
+/* Export / import : deux boutons pleins empilés. */
 #backup-controls {
   display: flex;
-  gap: 0.5em;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
 }
 
 #backup-controls .btn {
-  flex: 1;
-  width: auto;
+  width: 100%;
+  max-width: none;
   margin: 0;
-  padding: 0.5em 0.6em;
-  font-size: 0.8em;
 }
 
 #app-version {
@@ -889,6 +887,176 @@ button:hover {
   color: #fff;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
   box-shadow: inset 0 1px 0 rgba(255, 225, 170, 0.3);
+}
+
+/* ========== BOUTON PARAMÈTRES (accueil) ========== */
+#settings-btn {
+  position: absolute;
+  top: calc(0.6rem + env(safe-area-inset-top));
+  right: calc(0.6rem + env(safe-area-inset-right));
+  z-index: 5;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 1.35rem;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+#settings-btn:hover {
+  background: #fff;
+}
+
+/* ========== PAGE PARAMÈTRES ========== */
+#settings-screen .screen-body {
+  gap: 1.5rem;
+}
+
+.settings-group {
+  width: 100%;
+}
+
+.settings-group h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.settings-hint {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.82rem;
+  color: #777;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid #ececec;
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-label {
+  font-weight: 600;
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+}
+
+/* Segmenté somme / fixe */
+.seg {
+  display: inline-flex;
+  border: 1.5px solid #d3d3d3;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.seg button {
+  appearance: none;
+  border: none;
+  background: #fff;
+  color: #555;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4em 0.7em;
+  cursor: pointer;
+}
+
+.seg button + button {
+  border-left: 1.5px solid #d3d3d3;
+}
+
+.seg button.on {
+  background: var(--secondary-color);
+  color: #fff;
+}
+
+/* Champ de points */
+.setting-control .num {
+  width: 3.4em;
+  padding: 0.4em 0.5em;
+  border: 1.5px solid #d3d3d3;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
+.num-unit {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+#reset-rules {
+  align-self: center;
+  width: auto;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.55em 1.2em;
+  font-size: 0.9rem;
+}
+
+/* Interrupteur (Chance) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 3em;
+  height: 1.7em;
+  flex: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #ccc;
+  transition: background-color var(--transition);
+}
+
+.switch-track::before {
+  content: "";
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--transition);
+}
+
+.switch input:checked + .switch-track {
+  background: var(--primary-color);
+}
+
+.switch input:checked + .switch-track::before {
+  transform: translateX(1.3em);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
 }
 
 /* ========== TABLETTE & GRANDS ÉCRANS ========== */

@@ -23,10 +23,27 @@ export interface Player {
   scores: PlayerScores;
 }
 
+// Règles réglables dans les paramètres, figées au lancement de chaque partie.
+export type LineMode =
+  | { type: "sum" } // somme des dés (0 à 30)
+  | { type: "fixed"; points: number }; // valeur fixe (0 ou N)
+
+export interface GameRules {
+  bonus: number; // points du bonus de la section chiffres
+  brelan: LineMode;
+  full: LineMode;
+  carre: LineMode;
+  petiteSuite: LineMode;
+  grandeSuite: LineMode;
+  chance: boolean;
+  yams: LineMode;
+}
+
 export interface SavedGame {
   players: Player[];
   selectedVariants: Variant[];
   currentPlayerIndex: number;
+  rules: GameRules;
 }
 
 export interface ScoreEntry {

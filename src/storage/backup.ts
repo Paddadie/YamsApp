@@ -1,18 +1,19 @@
 // Sauvegarde / restauration complète des données locales dans un fichier JSON.
 // Utile pour changer d'appareil ou avant de vider le cache du navigateur.
 
-import type { SavedGame, ScoreEntry } from "../types";
+import type { GameRules, SavedGame, ScoreEntry } from "../types";
 import type { GamesPlayed } from "./playerStatsRepo";
 import { STORAGE_KEYS } from "./keys";
 import { readJson, writeJson, removeKey } from "./localStore";
 
-const BACKUP_VERSION = 2;
+const BACKUP_VERSION = 3;
 
 export interface BackupData {
   version: number;
   exportedAt: string;
   knownNames: string[];
   playerStats: GamesPlayed;
+  rules: GameRules | null;
   bestScores: ScoreEntry[];
   worstScores: ScoreEntry[];
   savedGame: SavedGame | null;
@@ -25,6 +26,7 @@ export function exportAllData(): BackupData {
     exportedAt: new Date().toISOString(),
     knownNames: readJson<string[]>(STORAGE_KEYS.knownNames) ?? [],
     playerStats: readJson<GamesPlayed>(STORAGE_KEYS.playerStats) ?? {},
+    rules: readJson<GameRules>(STORAGE_KEYS.rules),
     bestScores: readJson<ScoreEntry[]>(STORAGE_KEYS.bestScores) ?? [],
     worstScores: readJson<ScoreEntry[]>(STORAGE_KEYS.worstScores) ?? [],
     savedGame: readJson<SavedGame>(STORAGE_KEYS.savedGame),
@@ -46,6 +48,8 @@ export function isValidBackupData(data: unknown): data is BackupData {
 export function importAllData(data: BackupData): void {
   writeJson(STORAGE_KEYS.knownNames, data.knownNames);
   writeJson(STORAGE_KEYS.playerStats, data.playerStats ?? {});
+  if (data.rules) writeJson(STORAGE_KEYS.rules, data.rules);
+  else removeKey(STORAGE_KEYS.rules);
   writeJson(STORAGE_KEYS.bestScores, data.bestScores);
   writeJson(STORAGE_KEYS.worstScores, data.worstScores);
   if (data.savedGame) {

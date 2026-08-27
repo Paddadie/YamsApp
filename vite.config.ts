@@ -30,6 +30,7 @@ export default defineConfig({
         game: fromRoot("game.html"),
         end: fromRoot("end.html"),
         hall: fromRoot("hall.html"),
+        settings: fromRoot("settings.html"),
       },
     },
   },

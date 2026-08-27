@@ -2,7 +2,8 @@
 // En MPA, chaque page réhydrate `game` depuis le stockage à son chargement
 // (voir savedGameRepo) et le ré-enregistre après chaque modification.
 
-import type { Player, PlayerScores, SavedGame, Variant } from "./types";
+import type { GameRules, Player, PlayerScores, SavedGame, Variant } from "./types";
+import { DEFAULT_RULES, normalizeRules } from "./scoring";
 
 export const PLAYER_COLORS = [
   "#FADADD",
@@ -21,12 +22,14 @@ interface GameState {
   players: Player[];
   variants: Variant[];
   currentPlayerIndex: number;
+  rules: GameRules;
 }
 
 export const game: GameState = {
   players: [],
   variants: [],
   currentPlayerIndex: 0,
+  rules: DEFAULT_RULES,
 };
 
 export function emptyScores(variants: Variant[]): PlayerScores {
@@ -48,6 +51,7 @@ export function hydrateGame(saved: SavedGame): void {
   game.players = saved.players;
   game.variants = saved.selectedVariants;
   game.currentPlayerIndex = saved.currentPlayerIndex;
+  game.rules = normalizeRules(saved.rules);
 }
 
 export function toSavedGame(): SavedGame {
@@ -55,5 +59,6 @@ export function toSavedGame(): SavedGame {
     players: game.players,
     selectedVariants: game.variants,
     currentPlayerIndex: game.currentPlayerIndex,
+    rules: game.rules,
   };
 }
