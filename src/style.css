@@ -1083,6 +1083,139 @@ button:hover {
   color: #2f3a40;
 }
 
+/* ---------- Easter egg : 5 clics sur le trophée ---------- */
+.hof-trophy {
+  display: inline-block;
+  cursor: default;
+  user-select: none;
+  transform-origin: center;
+  will-change: transform;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hof-trophy.celebrate {
+  animation: trophy-jump 1s cubic-bezier(0.3, 0.7, 0.35, 1);
+}
+
+/* Anticipation (petit accroupi) → saut avec un tour complet sur lui-même →
+   atterrissage avec écrasement puis rebond. */
+@keyframes trophy-jump {
+  0% {
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  12% {
+    transform: translateY(0.06em) scale(1.18, 0.82) rotate(0);
+  }
+  38% {
+    transform: translateY(-0.8em) scale(0.92, 1.12) rotate(180deg);
+  }
+  58% {
+    transform: translateY(-0.95em) scale(1.05) rotate(300deg);
+  }
+  78% {
+    transform: translateY(0) scale(1.25, 0.75) rotate(360deg);
+  }
+  89% {
+    transform: translateY(0) scale(0.9, 1.1) rotate(360deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(360deg);
+  }
+}
+
+/* Carte de crédits : au centre de l'écran, mise en valeur par une lueur dorée. */
+#app-credit {
+  position: fixed;
+  left: 50%;
+  top: 45%;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  width: max-content;
+  max-width: min(30rem, 94vw);
+  padding: 1.4em 1.7em;
+  border-radius: 22px;
+  background: linear-gradient(150deg, #33333f 0%, #1a1a26 100%);
+  color: #f6f6f8;
+  font-size: 1.02rem;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 212, 94, 0.28),
+    0 0 46px rgba(255, 200, 70, 0.4);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.82);
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.35s ease,
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.credit-text {
+  white-space: nowrap;
+}
+
+#app-credit.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+#app-credit strong {
+  color: #ffd45e;
+  font-weight: 700;
+}
+
+.credit-spark {
+  flex: none;
+  font-size: 1.2em;
+  animation: credit-twinkle 1.9s ease-in-out infinite;
+}
+
+/* La ✨ de droite scintille en miroir et en décalé de celle de gauche. */
+.credit-spark:last-child {
+  animation-delay: 0.95s;
+  animation-direction: reverse;
+}
+
+@keyframes credit-twinkle {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.65) rotate(-25deg);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.4) rotate(12deg);
+  }
+  55% {
+    opacity: 0.55;
+    transform: scale(0.95) rotate(-6deg);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.25) rotate(18deg);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(0.65) rotate(-25deg);
+  }
+}
+
+/* Easter egg déclenché volontairement (5 clics) : le saut du trophée et le
+   scintillement des ✨ jouent même en "animations réduites". Seul le ressort
+   d'entrée de la carte est calmé. */
+@media (prefers-reduced-motion: reduce) {
+  #app-credit {
+    transition: opacity 0.25s ease;
+  }
+  #app-credit,
+  #app-credit.show {
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Feuille de score détaillée (dialog). */
 #sheet-dialog,
 #delete-dialog {

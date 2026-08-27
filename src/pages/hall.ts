@@ -24,6 +24,7 @@ sheetDialog.addEventListener("click", (e) => {
 renderScoreTable("best-scores-table", getBestScores(), true);
 renderScoreTable("worst-scores-table", getWorstScores());
 renderStats();
+setupCreditsEasterEgg();
 
 /* ---------- Tableaux meilleurs / pires ---------- */
 
@@ -163,4 +164,76 @@ function renderStats(): void {
     li.append(nameEl, gamesEl, avgEl);
     list.appendChild(li);
   }
+}
+
+/* ---------- Easter egg : 5 clics sur le trophée ---------- */
+
+function setupCreditsEasterEgg(): void {
+  const trophy = document.getElementById("hof-trophy");
+  if (!trophy) return;
+
+  const MAX_GAP_MS = 1200; // délai max entre deux clics pour garder le compte
+  let count = 0;
+  let last = 0;
+
+  trophy.addEventListener("animationend", () =>
+    trophy.classList.remove("celebrate"),
+  );
+
+  trophy.addEventListener("click", () => {
+    const now = Date.now();
+    count = now - last < MAX_GAP_MS ? count + 1 : 1;
+    last = now;
+    if (count < 5) return;
+
+    count = 0;
+    trophy.classList.remove("celebrate");
+    void trophy.offsetWidth; // force le redémarrage de l'animation
+    trophy.classList.add("celebrate");
+    showCredits();
+  });
+}
+
+let creditsTimer: ReturnType<typeof setTimeout> | undefined;
+
+function showCredits(): void {
+  const card = document.getElementById("app-credit") ?? buildCreditCard();
+  clearTimeout(creditsTimer);
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => card.classList.add("show")),
+  );
+  creditsTimer = setTimeout(() => card.classList.remove("show"), 4200);
+}
+
+function buildCreditCard(): HTMLElement {
+  const card = document.createElement("div");
+  card.id = "app-credit";
+
+  const text = document.createElement("span");
+  text.className = "credit-text";
+  text.append(
+    "Conçu par ",
+    strong("Marlo"),
+    document.createElement("br"),
+    "développé par ",
+    strong("Poulet"),
+  );
+
+  card.append(spark(), text, spark());
+  document.body.appendChild(card);
+  return card;
+}
+
+function spark(): HTMLElement {
+  const s = document.createElement("span");
+  s.className = "credit-spark";
+  s.textContent = "✨";
+  s.setAttribute("aria-hidden", "true");
+  return s;
+}
+
+function strong(label: string): HTMLElement {
+  const s = document.createElement("strong");
+  s.textContent = label;
+  return s;
 }
