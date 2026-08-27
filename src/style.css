@@ -577,10 +577,8 @@ button:hover {
   color: #1d2b31;
 }
 
-/* Saisie d'un score : même pilule blanche pour le <select> (listes courtes)
-   et le <button> (listes longues → jetons). Marges gauche/droite identiques
-   pour que la valeur soit centrée pareil dans les deux cas. */
-.score-select,
+/* Saisie d'un score : pilule blanche identique pour toutes les lignes, qui
+   ouvre la fenêtre de jetons. */
 .score-cell {
   appearance: none;
   -webkit-appearance: none;
@@ -595,21 +593,10 @@ button:hover {
   line-height: 1.15;
   color: #1d2b31;
   text-align: center;
-  text-align-last: center;
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
 
-/* Flèche du menu déroulant, logée dans la marge droite (symétrique de la
-   gauche → le texte reste centré). */
-.score-select {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8' fill='none' stroke='%23667' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M1 1.5l5 5 5-5'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.4em center;
-  background-size: 0.62em;
-}
-
-.score-select:hover,
 .score-cell:hover {
   border-color: rgba(0, 0, 0, 0.32);
 }
@@ -618,28 +605,24 @@ button:hover {
   transform: scale(0.97);
 }
 
-.score-select:focus-visible,
 .score-cell:focus-visible {
   outline: none;
   border-color: var(--secondary-color);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.22);
 }
 
-.score-select.is-empty,
 .score-cell.is-empty {
   color: #9aa4a8;
   font-weight: 600;
   border-style: dashed;
 }
 
-.score-select.is-filled,
 .score-cell.is-filled {
   border-color: #7cc182;
   background-color: #f1faf3;
   color: #1b5e20;
 }
 
-.score-select:disabled,
 .score-cell:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -649,61 +632,130 @@ button:hover {
 /* ---------- Fenêtre de choix de valeur (jetons) ---------- */
 #value-picker {
   border: none;
-  border-radius: 18px;
+  border-radius: 20px;
   padding: 0;
-  width: min(23rem, 92vw);
-  box-shadow: 0 16px 48px rgba(10, 20, 25, 0.35);
+  width: min(27rem, 94vw);
+  box-shadow: 0 20px 60px rgba(10, 20, 25, 0.4);
+  animation: picker-in 0.16s ease-out;
+}
+
+@keyframes picker-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
 }
 
 #value-picker::backdrop {
-  background: rgba(12, 22, 27, 0.5);
+  background: rgba(12, 22, 27, 0.55);
 }
 
-.picker-title {
-  margin: 0;
-  padding: 1.1em 1.2em 0.7em;
+/* En-tête : pastille de la variante + nom de la ligne, filet de sa couleur. */
+.picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 0.85em 1.1em;
+  border-bottom: 2px solid var(--pv, var(--secondary-color));
+}
+
+.picker-variant {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: var(--pv, #5b6b73);
+  font-size: 1.05em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+
+.picker-line {
   font-size: 1.05rem;
   font-weight: 800;
-  text-align: center;
+  color: #1d2b31;
 }
 
+/* Flex (et non grid) pour que la dernière ligne, si incomplète, reste
+   centrée plutôt que plaquée à gauche. */
 .picker-values {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(3.1em, 1fr));
-  gap: 0.5em;
-  padding: 0 1.1em 1.2em;
-  max-height: 60vh;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.9em 1em;
+  max-height: 68vh;
   overflow-y: auto;
 }
 
+/* Jetons ronds, dans le même langage visuel que les pastilles de l'appli.
+   Assez compacts pour afficher les 31 valeurs d'une somme de dés sans
+   défilement sur un téléphone tenu en portrait. */
 .picker-value {
   appearance: none;
-  border: 1.5px solid #d6dcdf;
-  border-radius: 12px;
+  flex: none;
+  width: 2.9em;
+  height: 2.9em;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
   background: #fff;
-  padding: 0.75em 0.3em;
   font: inherit;
   font-size: 1.05rem;
-  font-weight: 700;
+  font-weight: 800;
+  line-height: 1;
   color: #1d2b31;
+  text-align: center;
   cursor: pointer;
-  transition: background-color 0.12s, border-color 0.12s, color 0.12s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1.5px rgba(0, 0, 0, 0.12);
+  transition: transform 0.1s, box-shadow 0.12s, background-color 0.12s,
+    color 0.12s;
 }
 
 .picker-value:hover {
-  border-color: var(--secondary-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 2px var(--pv, var(--secondary-color));
 }
 
+.picker-value:active {
+  transform: scale(0.92);
+}
+
+/* Valeur déjà saisie : jeton plein dans la couleur de la variante. */
 .picker-value.current {
-  background: var(--secondary-color);
-  border-color: var(--secondary-color);
+  background: var(--pv, var(--secondary-color));
   color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.6);
 }
 
-.picker-value.clear {
-  grid-column: 1 / -1;
+/* "Effacer" : action discrète en pied, séparée par un filet. */
+.picker-clear {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 0.8em 1.1em calc(0.8em + env(safe-area-inset-bottom));
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
   color: var(--danger-color);
-  border-color: #e6b8b3;
+  cursor: pointer;
+}
+
+.picker-clear:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.picker-clear[hidden] {
+  display: none;
 }
 
 

@@ -24,7 +24,6 @@ type LineScores = Record<LineName, number>;
 type Pick = (value: number | undefined) => void;
 
 const AUTO_ADVANCE_MS = 800;
-const SELECT_MAX_OPTIONS = 3; // au-delà : grille de jetons
 
 const DERIVED_LINES: LineName[] = [
   "Bonus",
@@ -58,8 +57,10 @@ const currentPlayerName = requireEl("current-player-name");
 const prevPlayerBtn = requireEl("prev-player-btn");
 const nextPlayerBtn = requireEl("next-player-btn");
 const picker = requireEl<HTMLDialogElement>("value-picker");
-const pickerTitle = requireEl("picker-title");
+const pickerVariant = requireEl("picker-variant");
+const pickerLine = requireEl("picker-line");
 const pickerValues = requireEl("picker-values");
+const pickerClear = requireEl<HTMLButtonElement>("picker-clear");
 
 let autoAdvance: ReturnType<typeof setTimeout> | undefined;
 
@@ -230,11 +231,7 @@ function buildControl(
   const lockable = variant === "Montante" || variant === "Descendante";
   const pick: Pick = (value) => onPick(variant, lineName, value);
 
-  const widget =
-    values.length <= SELECT_MAX_OPTIONS
-      ? buildSelect(values, pick)
-      : buildButton(values, lineName, pick);
-
+  const widget = buildButton(values, lineName, variant, pick);
   widget.el.setAttribute("aria-label", `${lineName}, ${variant}`);
   td.appendChild(widget.el);
 
@@ -269,43 +266,14 @@ function fillDerived(variant: Variant): void {
   }
 }
 
-/* ---------- Widgets de saisie ---------- */
+/* ---------- Saisie d'un score ---------- */
 
-function buildSelect(values: number[], onChange: Pick): Widget {
-  const select = document.createElement("select");
-  select.className = "score-select";
-
-  const blank = document.createElement("option");
-  blank.value = "";
-  blank.textContent = "–";
-  select.appendChild(blank);
-  for (const v of values) {
-    const opt = document.createElement("option");
-    opt.value = String(v);
-    opt.textContent = String(v);
-    select.appendChild(opt);
-  }
-
-  select.addEventListener("change", () => {
-    onChange(select.value === "" ? undefined : Number(select.value));
-  });
-
-  return {
-    el: select,
-    setValue(value) {
-      select.value = value !== undefined ? String(value) : "";
-      select.classList.toggle("is-filled", value !== undefined);
-      select.classList.toggle("is-empty", value === undefined);
-    },
-    setLocked(locked) {
-      select.disabled = locked;
-    },
-  };
-}
-
+// Une seule et même pilule pour toutes les lignes : un clic ouvre la fenêtre
+// de jetons.
 function buildButton(
   values: number[],
   lineName: LineName,
+  variant: Variant,
   onChange: Pick,
 ): Widget {
   const button = document.createElement("button");
@@ -316,7 +284,7 @@ function buildButton(
     const current = button.dataset.value
       ? Number(button.dataset.value)
       : undefined;
-    openPicker(lineName, values, current, onChange);
+    openPicker(lineName, values, current, variant, onChange);
   });
 
   return {
@@ -334,12 +302,16 @@ function buildButton(
 }
 
 function openPicker(
-  title: string,
+  lineName: string,
   values: number[],
   current: number | undefined,
+  variant: Variant,
   onPickValue: Pick,
 ): void {
-  pickerTitle.textContent = title;
+  picker.style.setProperty("--pv", getVariantColor(variant));
+  pickerVariant.textContent = getVariantIcon(variant);
+  pickerVariant.title = variant;
+  pickerLine.textContent = lineName;
 
   const frag = document.createDocumentFragment();
   for (const v of values) {
@@ -353,18 +325,13 @@ function openPicker(
     });
     frag.appendChild(chip);
   }
-  if (current !== undefined) {
-    const clear = document.createElement("button");
-    clear.type = "button";
-    clear.className = "picker-value clear";
-    clear.textContent = "Effacer";
-    clear.addEventListener("click", () => {
-      picker.close();
-      onPickValue(undefined);
-    });
-    frag.appendChild(clear);
-  }
-
   pickerValues.replaceChildren(frag);
+
+  pickerClear.hidden = current === undefined;
+  pickerClear.onclick = () => {
+    picker.close();
+    onPickValue(undefined);
+  };
+
   picker.showModal();
 }
