@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yams — Hall of Fame</title>
+
+    <link rel="icon" href="/de.png" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yams" />
+  </head>
+  <body>
+    <div id="hall-screen" class="screen">
+      <h2>🏆 Hall of Fame</h2>
+
+      <section>
+        <h3>👑 Meilleurs scores</h3>
+        <table id="best-scores-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Joueur</th>
+              <th>Date</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section>
+        <h3>💩 Pires scores</h3>
+        <table id="worst-scores-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Joueur</th>
+              <th>Date</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <div id="backup-controls">
+        <button id="export-btn" class="btn btn-secondary">⬇️ Exporter mes données</button>
+        <label for="import-input" class="btn btn-secondary">⬆️ Importer une sauvegarde</label>
+        <input id="import-input" type="file" accept="application/json,.json" hidden />
+      </div>
+
+      <div id="back-btn-container">
+        <button id="back-to-home-btn" class="btn btn-secondary">
+          🏠 Retour
+        </button>
+      </div>
+      <div id="app-version"></div>
+    </div>
+
+    <script type="module" src="/src/pages/hall.ts"></script>
+  </body>
+</html>

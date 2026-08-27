@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yams — Fin de partie</title>
+
+    <link rel="icon" href="/de.png" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yams" />
+  </head>
+  <body>
+    <div id="end-screen" class="screen">
+      <h2>🎉 Fin de la partie !</h2>
+      <div id="podium-container">
+        <img src="/podium.png" alt="Podium" id="podium-image" />
+        <div class="podium-slot first" id="podium-1"></div>
+        <div class="podium-slot second" id="podium-2"></div>
+        <div class="podium-slot third" id="podium-3"></div>
+      </div>
+      <table id="ranking-table"></table>
+      <div id="quit-btn-container">
+        <button id="quit-btn" class="btn btn-danger">🏠 Quitter</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/end.ts"></script>
+  </body>
+</html>

@@ -1,10 +1,12 @@
-// Écran de jeu : grille de score du joueur courant, navigation entre joueurs,
-// sauvegarde / reprise de la partie.
+// Page de jeu : grille de score du joueur courant, navigation entre joueurs,
+// sauvegarde continue de la partie.
 
-import { game } from "../state";
-import { showScreen, updateResumeButton } from "../navigation";
+import { bootstrap } from "../bootstrap";
+import { goTo } from "../nav";
+import { game, hydrateGame, toSavedGame } from "../state";
 import { getVariantIcon } from "../variants";
-import { saveSavedGame } from "../storage/savedGameRepo";
+import { requireEl } from "../ui";
+import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
 import {
   SECTIONS,
   isLineEnabled,
@@ -12,11 +14,18 @@ import {
   calculateSpecialScore,
   isGameFinished,
 } from "../scoring";
-import { showEndScreen } from "./endScreen";
-import { requireEl } from "../ui";
-import type { LineName, SavedGame, Variant } from "../types";
+import type { LineName, Variant } from "../types";
 
 type LineScores = Record<LineName, number>;
+
+bootstrap();
+
+const saved = getSavedGame();
+if (!saved) {
+  goTo("home");
+  throw new Error("Aucune partie en cours : retour à l'accueil.");
+}
+hydrateGame(saved);
 
 const scoreTablesContainer = requireEl("score-tables");
 const currentPlayerName = requireEl("current-player-name");
@@ -25,41 +34,24 @@ const nextPlayerBtn = requireEl("next-player-btn");
 
 let autoAdvanceTimeout: ReturnType<typeof setTimeout> | undefined;
 
-export function initGame(): void {
-  prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
-  nextPlayerBtn.addEventListener("click", () => changePlayer(1));
+prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
+nextPlayerBtn.addEventListener("click", () => changePlayer(1));
 
-  requireEl("pause-btn").addEventListener("click", () => {
-    saveGame();
-    showScreen("home");
-    updateResumeButton();
-  });
-}
+requireEl("pause-btn").addEventListener("click", () => {
+  persist();
+  goTo("home");
+});
 
-export function startGame(): void {
-  game.currentPlayerIndex = 0;
-  scoreTablesContainer.innerHTML = "";
-  displayCurrentPlayer();
-}
+displayCurrentPlayer();
 
-export function resumeGame(saved: SavedGame): void {
-  game.players = saved.players;
-  game.variants = saved.selectedVariants;
-  game.currentPlayerIndex = saved.currentPlayerIndex;
-  displayCurrentPlayer();
-}
-
-export function saveGame(): void {
-  saveSavedGame({
-    players: game.players,
-    selectedVariants: game.variants,
-    currentPlayerIndex: game.currentPlayerIndex,
-  });
+function persist(): void {
+  saveSavedGame(toSavedGame());
 }
 
 function changePlayer(delta: number): void {
   const count = game.players.length;
   game.currentPlayerIndex = (game.currentPlayerIndex + delta + count) % count;
+  persist();
   displayCurrentPlayer();
 }
 
@@ -152,11 +144,13 @@ function fillScoreCell(
     }
 
     updateCalculatedScores(scores);
+    persist();
 
     clearTimeout(autoAdvanceTimeout);
     autoAdvanceTimeout = setTimeout(() => {
       if (isGameFinished(game.players, game.variants)) {
-        showEndScreen();
+        persist();
+        goTo("end");
       } else {
         nextPlayerBtn.click();
       }

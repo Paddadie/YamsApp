@@ -1,10 +1,14 @@
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
-const pkg = JSON.parse(
-  readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
-) as { version: string };
+const fromRoot = (path: string): string =>
+  fileURLToPath(new URL(path, import.meta.url));
+
+const pkg = JSON.parse(readFileSync(fromRoot("package.json"), "utf-8")) as {
+  version: string;
+};
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -15,6 +19,19 @@ export default defineConfig({
   // Exposé au code applicatif via la constante globale __APP_VERSION__.
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+  },
+
+  // Application multi-pages : un fichier HTML (donc un point d'entrée) par écran.
+  build: {
+    rollupOptions: {
+      input: {
+        home: fromRoot("index.html"),
+        players: fromRoot("players.html"),
+        game: fromRoot("game.html"),
+        end: fromRoot("end.html"),
+        hall: fromRoot("hall.html"),
+      },
+    },
   },
 
   plugins: [
@@ -38,6 +55,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Précache les cinq pages + le JS/CSS produit.
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
       },
       devOptions: {

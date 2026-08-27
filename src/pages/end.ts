@@ -1,12 +1,27 @@
-// Écran de fin de partie : podium et tableau de classement.
+// Page de fin de partie : podium et classement, puis enregistrement au
+// Hall of Fame quand l'utilisateur quitte.
 
-import { game } from "../state";
-import { showScreen } from "../navigation";
+import { bootstrap } from "../bootstrap";
+import { goTo } from "../nav";
+import { game, hydrateGame } from "../state";
 import { getVariantIcon } from "../variants";
-import { clearSavedGame } from "../storage/savedGameRepo";
-import { saveBestAndWorstScores } from "./hallOfFame";
 import { renderTable, requireEl } from "../ui";
+import { getSavedGame, clearSavedGame } from "../storage/savedGameRepo";
+import { clearDraft } from "../storage/draftRepo";
+import { saveBestAndWorstScores } from "../hallOfFame";
 import type { Variant } from "../types";
+
+bootstrap();
+
+const saved = getSavedGame();
+if (!saved) {
+  goTo("home");
+  throw new Error("Aucune partie terminée à afficher : retour à l'accueil.");
+}
+hydrateGame(saved);
+// Les données sont en mémoire : la partie n'est plus "en cours".
+clearSavedGame();
+clearDraft();
 
 const podiumSlots = [
   requireEl("podium-1"),
@@ -21,14 +36,14 @@ interface Result {
   total: number;
 }
 
-export function initEndScreen(): void {
-  requireEl("quit-btn").addEventListener("click", () => {
-    saveBestAndWorstScores(game.players, game.variants);
-    location.reload();
-  });
-}
+requireEl("quit-btn").addEventListener("click", () => {
+  saveBestAndWorstScores(game.players, game.variants);
+  goTo("home");
+});
 
-export function showEndScreen(): void {
+renderRanking();
+
+function renderRanking(): void {
   const results: Result[] = game.players
     .map((player) => {
       const details = {} as Record<Variant, number>;
@@ -54,7 +69,4 @@ export function showEndScreen(): void {
     { strong: r.total },
   ]);
   renderTable(rankingTable, headers, rows);
-
-  clearSavedGame();
-  showScreen("end");
 }

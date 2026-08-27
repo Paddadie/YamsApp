@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Yams — Partie</title>
+
+    <link rel="icon" href="/de.png" />
+    <meta name="theme-color" content="#ffffff" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yams" />
+  </head>
+  <body>
+    <div id="game-screen" class="screen">
+      <div class="player-header">
+        <button id="prev-player-btn" class="nav-arrow">⬅️</button>
+        <h2 id="current-player-name"></h2>
+        <button id="next-player-btn" class="nav-arrow">➡️</button>
+      </div>
+      <div id="score-tables"></div>
+      <div id="pause-btn-container">
+        <button id="pause-btn" class="btn btn-secondary">⏸ Pause</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/game.ts"></script>
+  </body>
+</html>

@@ -1,9 +1,10 @@
-// Modèle de la partie en cours : joueurs, variantes retenues, joueur actif.
-// Les modules d'écran lisent `game` et mutent via les fonctions ci-dessous.
+// Modèle de la partie en mémoire pour la page en cours.
+// En MPA, chaque page réhydrate `game` depuis le stockage à son chargement
+// (voir savedGameRepo) et le ré-enregistre après chaque modification.
 
-import type { Player, PlayerScores, Variant } from "./types";
+import type { Player, PlayerScores, SavedGame, Variant } from "./types";
 
-const PLAYER_COLORS = [
+export const PLAYER_COLORS = [
   "#FADADD",
   "#AEC6CF",
   "#BFD8B8",
@@ -28,30 +29,31 @@ export const game: GameState = {
   currentPlayerIndex: 0,
 };
 
-function emptyScores(variants: Variant[]): PlayerScores {
+export function emptyScores(variants: Variant[]): PlayerScores {
   const scores = {} as PlayerScores;
   for (const variant of variants) scores[variant] = {};
   return scores;
 }
 
-// Ajoute un joueur s'il n'est pas déjà présent. Renvoie true si ajouté.
-export function addPlayer(name: string): boolean {
-  if (game.players.some((p) => p.name === name)) return false;
-  game.players.push({
+// Construit les joueurs de la partie à partir des noms retenus avant-partie.
+export function createPlayers(names: string[], variants: Variant[]): Player[] {
+  return names.map((name, i) => ({
     name,
-    color: PLAYER_COLORS[game.players.length % PLAYER_COLORS.length],
-    scores: emptyScores(game.variants),
-  });
-  return true;
+    color: PLAYER_COLORS[i % PLAYER_COLORS.length],
+    scores: emptyScores(variants),
+  }));
 }
 
-export function removePlayer(index: number): void {
-  game.players.splice(index, 1);
+export function hydrateGame(saved: SavedGame): void {
+  game.players = saved.players;
+  game.variants = saved.selectedVariants;
+  game.currentPlayerIndex = saved.currentPlayerIndex;
 }
 
-// Réinitialise les grilles des joueurs déjà saisis pour les variantes retenues.
-export function resetPlayersScores(): void {
-  for (const player of game.players) {
-    player.scores = emptyScores(game.variants);
-  }
+export function toSavedGame(): SavedGame {
+  return {
+    players: game.players,
+    selectedVariants: game.variants,
+    currentPlayerIndex: game.currentPlayerIndex,
+  };
 }
