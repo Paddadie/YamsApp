@@ -13,7 +13,9 @@ import { getPlayerStats } from "./playerStatsRepo";
 import { isSavedGame } from "./savedGameRepo";
 import type { ScoreEntry } from "../types";
 
-const SCHEMA_VERSION = 1;
+// v2 : le tableau des pires scores ne garde que les parties classiques.
+// v3 : stats joueurs → { games, classiqueGames, classiquePoints }.
+const SCHEMA_VERSION = 3;
 
 export function migrateStorage(): void {
   const done = Number(localStorage.getItem(STORAGE_KEYS.schemaVersion));
@@ -23,7 +25,7 @@ export function migrateStorage(): void {
   migratePlayerStats();
   migrateSavedGame();
   migrateScoreList(STORAGE_KEYS.bestScores);
-  migrateScoreList(STORAGE_KEYS.worstScores);
+  migrateScoreList(STORAGE_KEYS.worstScores, true);
   migrateKnownNames();
 
   localStorage.setItem(STORAGE_KEYS.schemaVersion, String(SCHEMA_VERSION));
@@ -49,7 +51,9 @@ function migrateRules(): void {
   if (raw !== undefined) writeJson(STORAGE_KEYS.rules, normalizeRules(raw));
 }
 
-// Stats joueurs : ancien format `{ [nom]: nombreDeParties }` → `{ games, points }`.
+// Stats joueurs : anciens formats (`{ [nom]: nombreDeParties }`, `{ games,
+// points }`) → forme canonique. L'ancien cumul `points` (toutes variantes)
+// n'est pas repris : la moyenne classique repart des prochaines parties.
 function migratePlayerStats(): void {
   if (localStorage.getItem(STORAGE_KEYS.playerStats) !== null) {
     writeJson(STORAGE_KEYS.playerStats, getPlayerStats());
@@ -70,8 +74,9 @@ function migrateSavedGame(): void {
 
 // Hall of Fame : complète les champs manquants, jette les entrées sans score
 // exploitable (évite qu'une seule entrée cassée fasse rejeter toute la liste
-// à la lecture).
-function migrateScoreList(key: string): void {
+// à la lecture). `onlyClassique` : jette aussi les entrées explicitement
+// non classiques (les entrées sans variante — anciennes — sont conservées).
+function migrateScoreList(key: string, onlyClassique = false): void {
   const raw = parse(key);
   if (!Array.isArray(raw)) return;
 
@@ -80,6 +85,13 @@ function migrateScoreList(key: string): void {
     if (!entry || typeof entry !== "object") continue;
     const e = entry as Record<string, unknown>;
     if (typeof e.name !== "string") continue;
+    if (
+      onlyClassique &&
+      typeof e.variant === "string" &&
+      e.variant !== "Classique"
+    ) {
+      continue;
+    }
     const score =
       typeof e.score === "number" ? e.score : Number(e.score);
     if (!Number.isFinite(score)) continue;

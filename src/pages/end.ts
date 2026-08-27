@@ -56,10 +56,19 @@ interface Result {
 }
 
 const results = computeResults();
+const hasClassique = game.variants.includes("Classique");
 
 requireEl("quit-btn").addEventListener("click", () => {
   saveBestAndWorstScores(game.players, game.variants, grid);
-  recordGameResult(results.map((r) => ({ name: r.name, total: r.total })));
+  // Les statistiques ne comptent que les parties classiques : `classiqueScore`
+  // vaut null quand la partie n'incluait pas cette variante (la partie est
+  // alors comptée dans `games` mais pas dans la moyenne).
+  recordGameResult(
+    results.map((r) => ({
+      name: r.name,
+      classiqueScore: hasClassique ? r.details["Classique"] : null,
+    })),
+  );
   clearSavedGame();
   clearDraft();
   goTo("home");
