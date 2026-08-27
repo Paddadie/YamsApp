@@ -35,6 +35,17 @@ html {
   font-size: clamp(16px, 0.35vw + 14px, 18px);
 }
 
+/* Coque plein écran via une chaîne height:100% (html → body → .screen) plutôt
+   que 100vh/100dvh : la valeur reste stable d'un chargement à l'autre, alors
+   que les unités viewport bougent quand la barre d'outils de la tablette
+   apparaît/disparaît (d'où le contenu qui débordait après une navigation). */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 body {
   font-family: var(--font-family);
   background: var(--bg-color);
@@ -257,8 +268,7 @@ button:hover {
   position: relative;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  height: 100dvh;
+  height: 100%;
   overflow: hidden;
 }
 
