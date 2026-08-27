@@ -1,40 +1,64 @@
 # Yams
 
-Application de **feuille de score de Yams**, sans back‑end : une PWA statique
-(HTML + CSS + modules ES natifs, aucune dépendance, aucun build).
-Ouvrir `index.html` via un petit serveur statique suffit à la lancer.
+Application de **feuille de score de Yams** — PWA installable, hors‑ligne, sans
+back‑end. Les données restent sur l'appareil (`localStorage`).
 
-## Écrans
+Stack : **Vite + TypeScript**, vanilla (pas de framework), `vite-plugin-pwa`
+pour le service worker et le bandeau de mise à jour.
 
-Accueil → Joueurs → Jeu → Fin de partie, plus le Hall of Fame.
-Un seul `<div class="screen">` porte la classe `.active` à la fois ; toute la
-bascule passe par `showScreen()` dans `js/navigation.js`. Le CSS gère
-l'affichage (`.screen` / `.screen.active`), le JS ne touche jamais à `display`.
+## Démarrer
 
-## Organisation de `js/`
+```bash
+npm install
+npm run dev      # serveur de dev sur http://localhost:5173/YamsApp/
+npm run build    # tsc -b + vite build -> dist/
+npm run preview  # sert le dist/ compilé
+```
 
-| Fichier | Rôle |
+## Déploiement
+
+Push sur `main` → le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+build et publie `dist/` sur GitHub Pages (`https://paddadie.github.io/YamsApp/`).
+
+> Réglage unique à faire dans le repo : **Settings → Pages → Build and deployment
+> → Source = GitHub Actions**.
+
+`base: '/YamsApp/'` dans [`vite.config.ts`](vite.config.ts) doit correspondre au
+nom du repo.
+
+## Mise à jour de l'app
+
+`vite-plugin-pwa` précache tout le `dist/`. Au prochain chargement après un
+déploiement, [`src/pwa/updatePrompt.ts`](src/pwa/updatePrompt.ts) détecte la
+nouvelle version et affiche un bandeau **« Mettre à jour »** ; l'utilisateur
+choisit le moment (un rechargement forcé pourrait couper une partie).
+Aucun numéro de version à incrémenter à la main — c'est le hash du contenu qui
+fait foi. La version affichée en bas du Hall of Fame vient de `package.json`
+(constante `__APP_VERSION__` injectée au build).
+
+## Organisation de `src/`
+
+| Chemin | Rôle |
 |---|---|
-| `main.js` | Point d'entrée : appelle les `init*()` au chargement du DOM. |
-| `state.js` | Modèle de la partie (`game` : joueurs, variantes, joueur courant) + mutations. |
-| `storage.js` | **Toute** la persistance `localStorage` : les clés et des accesseurs typés. |
-| `scoring.js` | Règles du Yams : définition des sections et calculs. Aucun DOM. |
-| `variants.js` | Source unique des variantes (libellé, icône, défaut). |
-| `ui.js` | Helpers de rendu DOM partagés (`renderList`, `appendRows`, `renderTable`). |
-| `navigation.js` | `showScreen()` + boutons transverses (reprendre, Hall of Fame, retour, version). |
-| `home.js` | Écran d'accueil : cases de variantes (générées) et lancement. |
-| `players.js` | Écran d'ajout des joueurs. |
-| `game.js` | Écran de jeu : grille de score, navigation joueurs, sauvegarde / reprise. |
-| `endScreen.js` | Écran de fin : podium et classement. |
-| `hallOfFame.js` | Meilleurs et pires scores, conservés entre les parties. |
+| `main.ts` | Point d'entrée : enregistre le SW puis appelle les `init*()`. |
+| `types.ts` | Types du domaine (`Player`, `Variant`, `SavedGame`, `ScoreEntry`…). |
+| `state.ts` | Modèle de la partie (`game`) + mutations (`addPlayer`, `resetPlayersScores`…). |
+| `scoring.ts` | Règles du Yams : sections et calculs. Aucun DOM. |
+| `variants.ts` | Source unique des variantes (libellé, icône, défaut). |
+| `ui.ts` | Helpers DOM partagés (`requireEl`, `renderList`, `renderTable`). |
+| `navigation.ts` | `showScreen()` + boutons transverses. |
+| `screens/home.ts` | Écran d'accueil (cases de variantes générées, lancement). |
+| `screens/players.ts` | Écran d'ajout des joueurs. |
+| `screens/game.ts` | Écran de jeu : grille, navigation joueurs, sauvegarde/reprise. |
+| `screens/endScreen.ts` | Podium et classement final. |
+| `screens/hallOfFame.ts` | Meilleurs/pires scores + export/import de sauvegarde. |
+| `pwa/updatePrompt.ts` | Enregistrement du SW + bandeau « Mettre à jour ». |
+| `storage/` | Persistance. `keys.ts` (clés), `localStore.ts` (accès bas niveau), un repo typé par entité (`savedGameRepo`, `knownPlayersRepo`, `hallOfFameRepo`), `backup.ts` (export/import JSON). |
 
-Règle de dépendances : `navigation` / `home` / `players` / `game` / `endScreen`
-sont les modules d'**écran** ; ils s'appuient sur `state`, `storage`, `scoring`,
-`variants` et `ui`, jamais l'inverse.
+Règle de dépendances : les modules d'écran s'appuient sur `state`, `scoring`,
+`variants`, `ui` et `storage/*`, jamais l'inverse.
 
-## Service worker et versions
+## Un seul écran visible à la fois
 
-`version.json` porte la version (ex. `v3.7.0`). `sw.js` s'en sert comme nom de
-cache : **incrémenter `version.json` à chaque changement d'un fichier listé dans
-`ASSETS`** pour forcer le rafraîchissement du cache. La liste `ASSETS` doit
-rester synchronisée avec le contenu de `js/`.
+Chaque `<div class="screen">` reçoit `.active` via `showScreen()` ; le CSS gère
+l'affichage (`.screen` / `.screen.active`). Le JS ne touche jamais à `display`.

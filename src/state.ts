@@ -1,6 +1,8 @@
 // Modèle de la partie en cours : joueurs, variantes retenues, joueur actif.
 // Les modules d'écran lisent `game` et mutent via les fonctions ci-dessous.
 
+import type { Player, PlayerScores, Variant } from "./types";
+
 const PLAYER_COLORS = [
   "#FADADD",
   "#AEC6CF",
@@ -14,20 +16,26 @@ const PLAYER_COLORS = [
   "#C1D3D8",
 ];
 
-export const game = {
+interface GameState {
+  players: Player[];
+  variants: Variant[];
+  currentPlayerIndex: number;
+}
+
+export const game: GameState = {
   players: [],
   variants: [],
   currentPlayerIndex: 0,
 };
 
-function emptyScores(variants) {
-  const scores = {};
+function emptyScores(variants: Variant[]): PlayerScores {
+  const scores = {} as PlayerScores;
   for (const variant of variants) scores[variant] = {};
   return scores;
 }
 
 // Ajoute un joueur s'il n'est pas déjà présent. Renvoie true si ajouté.
-export function addPlayer(name) {
+export function addPlayer(name: string): boolean {
   if (game.players.some((p) => p.name === name)) return false;
   game.players.push({
     name,
@@ -37,12 +45,12 @@ export function addPlayer(name) {
   return true;
 }
 
-export function removePlayer(index) {
+export function removePlayer(index: number): void {
   game.players.splice(index, 1);
 }
 
 // Réinitialise les grilles des joueurs déjà saisis pour les variantes retenues.
-export function resetPlayersScores() {
+export function resetPlayersScores(): void {
   for (const player of game.players) {
     player.scores = emptyScores(game.variants);
   }

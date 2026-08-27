@@ -1,51 +1,55 @@
 // Écran de jeu : grille de score du joueur courant, navigation entre joueurs,
 // sauvegarde / reprise de la partie.
 
-import { game } from "./state.js";
-import { showScreen, updateResumeButton } from "./navigation.js";
-import { getVariantIcon } from "./variants.js";
-import { saveSavedGame } from "./storage.js";
+import { game } from "../state";
+import { showScreen, updateResumeButton } from "../navigation";
+import { getVariantIcon } from "../variants";
+import { saveSavedGame } from "../storage/savedGameRepo";
 import {
   SECTIONS,
   isLineEnabled,
   updateCalculatedScores,
   calculateSpecialScore,
   isGameFinished,
-} from "./scoring.js";
-import { showEndScreen } from "./endScreen.js";
+} from "../scoring";
+import { showEndScreen } from "./endScreen";
+import { requireEl } from "../ui";
+import type { LineName, SavedGame, Variant } from "../types";
 
-const scoreTablesContainer = document.getElementById("score-tables");
-const currentPlayerName = document.getElementById("current-player-name");
-const prevPlayerBtn = document.getElementById("prev-player-btn");
-const nextPlayerBtn = document.getElementById("next-player-btn");
+type LineScores = Record<LineName, number>;
 
-let autoAdvanceTimeout;
+const scoreTablesContainer = requireEl("score-tables");
+const currentPlayerName = requireEl("current-player-name");
+const prevPlayerBtn = requireEl("prev-player-btn");
+const nextPlayerBtn = requireEl("next-player-btn");
 
-export function initGame() {
+let autoAdvanceTimeout: ReturnType<typeof setTimeout> | undefined;
+
+export function initGame(): void {
   prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
   nextPlayerBtn.addEventListener("click", () => changePlayer(1));
 
-  document.getElementById("pause-btn").addEventListener("click", () => {
+  requireEl("pause-btn").addEventListener("click", () => {
     saveGame();
     showScreen("home");
     updateResumeButton();
   });
 }
 
-export function startGame() {
+export function startGame(): void {
   game.currentPlayerIndex = 0;
   scoreTablesContainer.innerHTML = "";
   displayCurrentPlayer();
 }
 
-export function resumeGame(saved) {
+export function resumeGame(saved: SavedGame): void {
   game.players = saved.players;
   game.variants = saved.selectedVariants;
   game.currentPlayerIndex = saved.currentPlayerIndex;
   displayCurrentPlayer();
 }
 
-export function saveGame() {
+export function saveGame(): void {
   saveSavedGame({
     players: game.players,
     selectedVariants: game.variants,
@@ -53,13 +57,13 @@ export function saveGame() {
   });
 }
 
-function changePlayer(delta) {
+function changePlayer(delta: number): void {
   const count = game.players.length;
   game.currentPlayerIndex = (game.currentPlayerIndex + delta + count) % count;
   displayCurrentPlayer();
 }
 
-function displayCurrentPlayer() {
+function displayCurrentPlayer(): void {
   const player = game.players[game.currentPlayerIndex];
   currentPlayerName.textContent = player.name;
   scoreTablesContainer.innerHTML = "";
@@ -91,7 +95,7 @@ function displayCurrentPlayer() {
         if (values.length > 0) {
           fillScoreCell(cell, lineName, variant, values, scores);
         } else {
-          cell.textContent = calculateSpecialScore(lineName, scores);
+          cell.textContent = String(calculateSpecialScore(lineName, scores));
         }
 
         row.appendChild(cell);
@@ -112,13 +116,19 @@ function displayCurrentPlayer() {
   scoreTablesContainer.appendChild(wrapper);
 }
 
-function fillScoreCell(cell, lineName, variant, values, scores) {
+function fillScoreCell(
+  cell: HTMLTableCellElement,
+  lineName: LineName,
+  variant: Variant,
+  values: number[],
+  scores: LineScores,
+): void {
   const select = document.createElement("select");
   select.className = "score-select";
   select.innerHTML =
     `<option value="">--</option>` +
     values.map((v) => `<option value="${v}">${v}</option>`).join("");
-  select.value = scores[lineName] !== undefined ? scores[lineName] : "";
+  select.value = scores[lineName] !== undefined ? String(scores[lineName]) : "";
 
   const enabled =
     variant === "Montante" || variant === "Descendante"
@@ -126,7 +136,7 @@ function fillScoreCell(cell, lineName, variant, values, scores) {
       : true;
 
   select.disabled = !enabled;
-  select.setAttribute("aria-disabled", !enabled);
+  select.setAttribute("aria-disabled", String(!enabled));
   if (!enabled) {
     cell.classList.add("disabled-cell");
     select.title = "Remplissez d’abord la ligne précédente.";
@@ -137,7 +147,8 @@ function fillScoreCell(cell, lineName, variant, values, scores) {
       delete scores[lineName];
     } else {
       const num = parseInt(select.value, 10);
-      scores[lineName] = isNaN(num) ? undefined : num;
+      if (isNaN(num)) delete scores[lineName];
+      else scores[lineName] = num;
     }
 
     updateCalculatedScores(scores);
@@ -157,7 +168,7 @@ function fillScoreCell(cell, lineName, variant, values, scores) {
   cell.appendChild(select);
 }
 
-function buildSpacerRow() {
+function buildSpacerRow(): HTMLTableRowElement {
   const spacerRow = document.createElement("tr");
   spacerRow.className = "spacer-row";
   const spacerCell = document.createElement("td");

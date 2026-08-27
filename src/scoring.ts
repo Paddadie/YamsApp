@@ -1,18 +1,24 @@
 // Règles de score du Yams : définition des sections et calculs.
-// Aucun accès au DOM ici — uniquement des données et des fonctions pures
-// (à l'exception des totaux qui sont mémorisés dans l'objet `scores`).
+// Aucun accès au DOM ici — uniquement des données et des fonctions
+// (à l'exception des totaux, mémorisés dans l'objet `scores`).
+
+import type { LineName, Player, Variant } from "./types";
+
+type LineValues = number[];
+type Section = Record<LineName, LineValues>;
+type LineScores = Record<LineName, number>;
 
 /* ---------- Définition des lignes ---------- */
 
-// Section haute : lignes 1 à 6 (valeurs 0, n, 2n, ... 5n), puis Bonus et Total.
-export const UPPER_SECTION = {};
+// Section haute : lignes 1 à 6 (valeurs 0, n, 2n, … 5n), puis Bonus et Total.
+export const UPPER_SECTION: Section = {};
 for (let i = 1; i <= 6; i++) {
   UPPER_SECTION[i] = Array.from({ length: 6 }, (_, index) => index * i);
 }
 UPPER_SECTION.Bonus = [];
 UPPER_SECTION["Total Haut"] = [];
 
-export const LOWER_SECTION = {
+export const LOWER_SECTION: Section = {
   "Brelan (Σ)": Array.from({ length: 31 }, (_, i) => i),
   "Full (25)": [0, 25],
   "Carré (40)": [0, 40],
@@ -23,24 +29,28 @@ export const LOWER_SECTION = {
   "Total Bas": [],
 };
 
-export const TOTAL_SECTION = {
+export const TOTAL_SECTION: Section = {
   "Score Final": [],
 };
 
-export const SECTIONS = [UPPER_SECTION, LOWER_SECTION, TOTAL_SECTION];
+export const SECTIONS: Section[] = [UPPER_SECTION, LOWER_SECTION, TOTAL_SECTION];
 
 // Lignes réellement saisissables (celles qui ont une liste de valeurs).
 export const upperScoringNames = Object.keys(UPPER_SECTION).filter(
-  (k) => UPPER_SECTION[k].length > 0
+  (k) => UPPER_SECTION[k].length > 0,
 );
 export const lowerScoringNames = Object.keys(LOWER_SECTION).filter(
-  (k) => LOWER_SECTION[k].length > 0
+  (k) => LOWER_SECTION[k].length > 0,
 );
 export const allScoringNames = [...upperScoringNames, ...lowerScoringNames];
 
 /* ---------- Verrouillage des lignes (Montante / Descendante) ---------- */
 
-export function isLineEnabled(lineName, variant, scores) {
+export function isLineEnabled(
+  lineName: LineName,
+  variant: Variant,
+  scores: LineScores,
+): boolean {
   const montanteOrder = [
     ...lowerScoringNames.slice().reverse(),
     ...upperScoringNames.slice().reverse(),
@@ -59,12 +69,15 @@ export function isLineEnabled(lineName, variant, scores) {
 
 /* ---------- Calculs de totaux ---------- */
 
-function getUpperSum(scores) {
+function getUpperSum(scores: LineScores): number {
   return upperScoringNames.reduce((sum, key) => sum + (scores[key] || 0), 0);
 }
 
 // Calcule (et mémorise dans `scores`) une ligne dérivée.
-export function calculateSpecialScore(name, scores) {
+export function calculateSpecialScore(
+  name: LineName,
+  scores: LineScores,
+): number | string {
   if (name === "Bonus") {
     const total = getUpperSum(scores);
     const filled = upperScoringNames.every((k) => scores[k] !== undefined);
@@ -86,14 +99,14 @@ export function calculateSpecialScore(name, scores) {
   if (name === "Score Final") {
     const haut = calculateSpecialScore("Total Haut", scores);
     const bas = calculateSpecialScore("Total Bas", scores);
-    const value = haut + bas;
+    const value = Number(haut) + Number(bas);
     scores["Score Final"] = value;
     return value;
   }
   return "";
 }
 
-export function updateCalculatedScores(scores) {
+export function updateCalculatedScores(scores: LineScores): void {
   calculateSpecialScore("Bonus", scores);
   calculateSpecialScore("Total Haut", scores);
   calculateSpecialScore("Total Bas", scores);
@@ -102,10 +115,10 @@ export function updateCalculatedScores(scores) {
 
 /* ---------- Fin de partie ---------- */
 
-export function isGameFinished(players, variants) {
+export function isGameFinished(players: Player[], variants: Variant[]): boolean {
   return players.every((player) =>
     variants.every((variant) =>
-      allScoringNames.every((k) => player.scores[variant][k] !== undefined)
-    )
+      allScoringNames.every((k) => player.scores[variant][k] !== undefined),
+    ),
   );
 }

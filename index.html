@@ -5,13 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yams</title>
 
-    <!-- Favicon / Icone PWA -->
-    <link rel="icon" href="assets/de.png" />
-    <link rel="manifest" href="manifest.json" />
+    <!-- Favicon / Icône PWA -->
+    <link rel="icon" href="/de.png" />
     <meta name="theme-color" content="#ffffff" />
-
-    <!-- CSS principal -->
-    <link rel="stylesheet" href="style.css" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Yams" />
   </head>
   <body>
     <!-- ÉCRAN ACCUEIL -->
@@ -20,7 +18,7 @@
 
       <section class="variants">
         <h2>Choisissez les variantes :</h2>
-        <!-- Cases à cocher générées par js/home.js à partir de js/variants.js -->
+        <!-- Cases à cocher générées par src/screens/home.ts d'après src/variants.ts -->
         <div class="variant-options"></div>
       </section>
 
@@ -90,7 +88,7 @@
     <div id="end-screen" class="screen">
       <h2>🎉 Fin de la partie !</h2>
       <div id="podium-container">
-        <img src="assets/podium.png" alt="Podium" id="podium-image" />
+        <img src="/podium.png" alt="Podium" id="podium-image" />
         <div class="podium-slot first" id="podium-1"></div>
         <div class="podium-slot second" id="podium-2"></div>
         <div class="podium-slot third" id="podium-3"></div>
@@ -135,27 +133,20 @@
         </table>
       </section>
 
+      <div id="backup-controls">
+        <button id="export-btn" class="btn btn-secondary">⬇️ Exporter mes données</button>
+        <label for="import-input" class="btn btn-secondary">⬆️ Importer une sauvegarde</label>
+        <input id="import-input" type="file" accept="application/json,.json" hidden />
+      </div>
+
       <div id="back-btn-container">
         <button id="back-to-home-btn" class="btn btn-secondary">
           🏠 Retour
         </button>
       </div>
-      <div id="app-version">Chargement de la version...</div>
+      <div id="app-version"></div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL -->
-    <script type="module" src="js/main.js"></script>
-
-    <!-- SERVICE WORKER -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("sw.js")
-            .then((reg) => console.log("✅ Service Worker enregistré", reg))
-            .catch((err) => console.log("❌ Échec enregistrement SW", err));
-        });
-      }
-    </script>
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

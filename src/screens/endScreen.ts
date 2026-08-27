@@ -1,30 +1,37 @@
 // Écran de fin de partie : podium et tableau de classement.
 
-import { game } from "./state.js";
-import { showScreen } from "./navigation.js";
-import { getVariantIcon } from "./variants.js";
-import { clearSavedGame } from "./storage.js";
-import { saveBestAndWorstScores } from "./hallOfFame.js";
-import { renderTable } from "./ui.js";
+import { game } from "../state";
+import { showScreen } from "../navigation";
+import { getVariantIcon } from "../variants";
+import { clearSavedGame } from "../storage/savedGameRepo";
+import { saveBestAndWorstScores } from "./hallOfFame";
+import { renderTable, requireEl } from "../ui";
+import type { Variant } from "../types";
 
 const podiumSlots = [
-  document.getElementById("podium-1"),
-  document.getElementById("podium-2"),
-  document.getElementById("podium-3"),
+  requireEl("podium-1"),
+  requireEl("podium-2"),
+  requireEl("podium-3"),
 ];
-const rankingTable = document.getElementById("ranking-table");
+const rankingTable = requireEl<HTMLTableElement>("ranking-table");
 
-export function initEndScreen() {
-  document.getElementById("quit-btn").addEventListener("click", () => {
+interface Result {
+  name: string;
+  details: Record<Variant, number>;
+  total: number;
+}
+
+export function initEndScreen(): void {
+  requireEl("quit-btn").addEventListener("click", () => {
     saveBestAndWorstScores(game.players, game.variants);
     location.reload();
   });
 }
 
-export function showEndScreen() {
-  const results = game.players
+export function showEndScreen(): void {
+  const results: Result[] = game.players
     .map((player) => {
-      const details = {};
+      const details = {} as Record<Variant, number>;
       let total = 0;
       for (const variant of game.variants) {
         const score = player.scores[variant]["Score Final"] || 0;
@@ -36,7 +43,7 @@ export function showEndScreen() {
     .sort((a, b) => b.total - a.total);
 
   podiumSlots.forEach((slot, i) => {
-    slot.textContent = results[i]?.name || "";
+    slot.textContent = results[i]?.name ?? "";
   });
 
   const headers = ["🥇", "Joueur", ...game.variants.map(getVariantIcon), "Total"];
