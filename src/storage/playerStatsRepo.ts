@@ -58,11 +58,19 @@ export function recordGameResult(
   writeJson(STORAGE_KEYS.playerStats, stats);
 }
 
+// Supprime toute entrée correspondant à ce nom (casse / espaces ignorés :
+// d'anciennes données peuvent contenir des clés dépareillées).
 export function removePlayerStats(name: string): void {
+  const key = name.trim().toLowerCase();
   const stats = getPlayerStats();
-  if (!(name in stats)) return;
-  delete stats[name];
-  writeJson(STORAGE_KEYS.playerStats, stats);
+  let changed = false;
+  for (const existing of Object.keys(stats)) {
+    if (existing.trim().toLowerCase() === key) {
+      delete stats[existing];
+      changed = true;
+    }
+  }
+  if (changed) writeJson(STORAGE_KEYS.playerStats, stats);
 }
 
 // Déplace les stats sous un autre nom (renommage). Fusionne si le nom cible

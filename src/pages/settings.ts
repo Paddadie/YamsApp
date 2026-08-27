@@ -29,6 +29,8 @@ import {
   removePlayerStats,
   renamePlayerStats,
 } from "../storage/playerStatsRepo";
+import { getDraft, saveDraft } from "../storage/draftRepo";
+import { getSavedGame, clearSavedGame } from "../storage/savedGameRepo";
 import { getVariantIcon, getVariantColor } from "../variants";
 import type { ScoreEntry } from "../types";
 
@@ -398,9 +400,7 @@ function setupPlayerAdmin(): void {
   });
   requireEl("player-delete-confirm").addEventListener("click", () => {
     if (deletingPlayer === null) return;
-    removeKnownName(deletingPlayer);
-    removePlayerStats(deletingPlayer);
-    removeFromScores(deletingPlayer);
+    purgePlayer(deletingPlayer);
     deletingPlayer = null;
     playerDeleteDialog.close();
     renderPlayerAdmin();
@@ -408,22 +408,79 @@ function setupPlayerAdmin(): void {
   });
 }
 
+function foldName(name: string): string {
+  return name.trim().toLowerCase();
+}
+
+// Tous les noms qui laissent une trace quelque part : joueurs connus,
+// statistiques, Hall of Fame, brouillon de partie, partie en cours. Sert à
+// pouvoir supprimer un reliquat même s'il ne figure plus dans la liste des
+// joueurs connus.
+function allPlayerNames(): string[] {
+  const seen = new Map<string, string>(); // fold -> forme d'affichage
+  const add = (raw: string): void => {
+    const name = raw.trim();
+    if (name && !seen.has(foldName(name))) seen.set(foldName(name), name);
+  };
+  getKnownNames().forEach(add);
+  Object.keys(getPlayerStats()).forEach(add);
+  for (const store of SCORE_STORES) store.get().forEach((e) => add(e.name));
+  getDraft()?.playerNames.forEach(add);
+  getSavedGame()?.players.forEach((p) => add(p.name));
+  return [...seen.values()].sort((a, b) =>
+    a.localeCompare(b, "fr", { sensitivity: "base" }),
+  );
+}
+
+function statFor(name: string) {
+  const key = foldName(name);
+  const entry = Object.entries(getPlayerStats()).find(
+    ([k]) => foldName(k) === key,
+  );
+  return entry?.[1];
+}
+
+// Efface toute trace du joueur : nom connu, stats, Hall of Fame, brouillon,
+// et la partie en cours si elle l'inclut (elle est alors abandonnée).
+function purgePlayer(name: string): void {
+  removeKnownName(name);
+  removePlayerStats(name);
+  removeFromScores(name);
+  removeFromDraft(name);
+  clearGameIfContains(name);
+}
+
+function removeFromDraft(name: string): void {
+  const draft = getDraft();
+  if (!draft) return;
+  const key = foldName(name);
+  const kept = draft.playerNames.filter((n) => foldName(n) !== key);
+  if (kept.length !== draft.playerNames.length) {
+    saveDraft({ ...draft, playerNames: kept });
+  }
+}
+
+function clearGameIfContains(name: string): void {
+  const game = getSavedGame();
+  const key = foldName(name);
+  if (game?.players.some((p) => foldName(p.name) === key)) clearSavedGame();
+}
+
 function renderPlayerAdmin(): void {
   const list = requireEl("players-admin");
-  const stats = getPlayerStats();
-  const names = getKnownNames();
+  const names = allPlayerNames();
   list.replaceChildren();
 
   if (names.length === 0) {
     const li = document.createElement("li");
     li.className = "score-admin-empty";
-    li.textContent = "Aucun joueur enregistré.";
+    li.textContent = "Aucun joueur.";
     list.appendChild(li);
     return;
   }
 
   for (const name of names) {
-    list.appendChild(playerAdminRow(name, stats[name]?.games ?? 0));
+    list.appendChild(playerAdminRow(name, statFor(name)?.games ?? 0));
   }
 }
 
@@ -514,13 +571,13 @@ function removeFromScores(name: string): void {
 
 function openPlayerDelete(name: string): void {
   deletingPlayer = name;
-  const stat = getPlayerStats()[name];
-  const key = name.trim().toLowerCase();
+  const key = foldName(name);
+  const stat = statFor(name);
   const hofCount = SCORE_STORES.reduce(
-    (n, store) =>
-      n + store.get().filter((e) => e.name.trim().toLowerCase() === key).length,
+    (n, store) => n + store.get().filter((e) => foldName(e.name) === key).length,
     0,
   );
+  const inGame = !!getSavedGame()?.players.some((p) => foldName(p.name) === key);
 
   playerDeleteSummary.replaceChildren();
   summaryRow(playerDeleteSummary, "Joueur", name);
@@ -531,5 +588,8 @@ function openPlayerDelete(name: string): void {
       : "—";
   summaryRow(playerDeleteSummary, "Moyenne classique", avg);
   summaryRow(playerDeleteSummary, "Entrées Hall of Fame", String(hofCount));
+  if (inGame) {
+    summaryRow(playerDeleteSummary, "Partie en cours", "sera abandonnée");
+  }
   playerDeleteDialog.showModal();
 }
