@@ -125,8 +125,6 @@ function segButton(mode: string, label: string): HTMLButtonElement {
   return b;
 }
 
-/* ---------- Bonus (section chiffres) ---------- */
-
 function setupBonus(): void {
   const input = requireEl<HTMLInputElement>("bonus-points");
   const sync = (): void => {
@@ -141,8 +139,6 @@ function setupBonus(): void {
   sync();
 }
 
-/* ---------- Chance : activée / non ---------- */
-
 function setupChance(): void {
   const toggle = requireEl<HTMLInputElement>("chance-toggle");
   const sync = (): void => {
@@ -155,8 +151,6 @@ function setupChance(): void {
   });
   sync();
 }
-
-/* ---------- Réinitialisation ---------- */
 
 function setupReset(): void {
   requireEl("reset-rules").addEventListener("click", () => {

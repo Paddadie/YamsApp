@@ -9,7 +9,7 @@ import { renderTable, requireEl } from "../ui";
 import { getSavedGame, clearSavedGame } from "../storage/savedGameRepo";
 import { clearDraft } from "../storage/draftRepo";
 import { recordGameResult } from "../storage/playerStatsRepo";
-import { buildGrid } from "../scoring";
+import { buildGrid, writeDerived } from "../scoring";
 import {
   previewHallOfFame,
   saveBestAndWorstScores,
@@ -31,6 +31,14 @@ if (!saved) {
 hydrateGame(saved);
 
 const grid = buildGrid(game.rules);
+
+// Recalcule bonus/totaux/score final pour chaque feuille : garantit des valeurs
+// justes même pour une partie sauvegardée par une ancienne version.
+for (const player of game.players) {
+  for (const variant of game.variants) {
+    writeDerived(player.scores[variant], grid);
+  }
+}
 
 // L'impact sur le Hall of Fame se calcule AVANT d'y écrire quoi que ce soit.
 const preview = previewHallOfFame(game.players, game.variants);

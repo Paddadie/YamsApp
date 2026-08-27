@@ -3,6 +3,7 @@
 // compatibles avec les données déjà enregistrées sur les appareils.)
 
 export const STORAGE_KEYS = {
+  schemaVersion: "yams-schema-version",
   draft: "yams-draft",
   savedGame: "yams-saved-game",
   knownNames: "yams-player-names",

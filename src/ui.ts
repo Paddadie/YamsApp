@@ -2,15 +2,13 @@
 
 type Cell = string | number | { strong: string | number };
 
-// Récupère un élément par id, en échouant clairement s'il est absent du HTML.
 export function requireEl<T extends HTMLElement = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
   if (!el) throw new Error(`Élément #${id} introuvable`);
   return el as T;
 }
 
-// Ajoute des lignes à un <tbody>. Chaque cellule est une chaîne/un nombre,
-// ou `{ strong: valeur }` pour la mettre en gras.
+// Chaque cellule est une chaîne/un nombre, ou `{ strong: valeur }` pour le gras.
 export function appendRows(tbody: HTMLElement, rows: Cell[][]): void {
   for (const cells of rows) {
     const tr = document.createElement("tr");
@@ -29,7 +27,6 @@ export function appendRows(tbody: HTMLElement, rows: Cell[][]): void {
   }
 }
 
-// Reconstruit entièrement une <table> à partir d'en-têtes et de lignes.
 export function renderTable(
   table: HTMLTableElement,
   headers: string[],

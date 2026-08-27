@@ -52,6 +52,15 @@ Toutes les lectures de `localStorage` passent par un *guard* de forme
 (`readJson(key, guard)`) : un contenu corrompu est ignoré plutôt que de faire
 planter une page.
 
+`storage/migrate.ts` met les données d'anciennes versions au format courant :
+champ `rules` ajouté aux parties sauvegardées, `playerStats`
+`{ [nom]: nombre }` → `{ games, points }`, dédoublonnage des noms connus
+(casse/espaces), entrées de Hall of Fame réparées. Les clés n'ont jamais
+changé : **non destructif**, rien n'est perdu (on ne supprime que du JSON
+illisible). Exécuté **une fois par version** (marqueur `yams-schema-version`) :
+les lancements suivants ne font qu'une lecture. Un import de sauvegarde efface
+le marqueur pour re-normaliser au lancement d'après.
+
 ## Règles configurables (`scoring.ts`)
 
 `scoring.ts` n'a **pas** de grille figée. `buildGrid(rules)` renvoie les
@@ -88,7 +97,7 @@ bandeau **« Mettre à jour »** ; l'utilisateur choisit le moment. Aucune versi
 
 | Chemin | Rôle |
 |---|---|
-| `bootstrap.ts` | Amorçage commun : styles + enregistrement du service worker. |
+| `bootstrap.ts` | Amorçage commun : migration des données + styles + service worker. |
 | `nav.ts` | `goTo(page)` + table des fichiers HTML. |
 | `types.ts` | Types du domaine (`Player`, `Variant`, `GameRules`, `SavedGame`, `ScoreEntry`…). |
 | `state.ts` | Modèle de partie en mémoire + `createPlayers` / `hydrateGame` / `toSavedGame`. |

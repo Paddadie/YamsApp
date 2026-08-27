@@ -96,7 +96,6 @@ function modeValues(mode: LineMode): LineValues {
   return mode.type === "sum" ? SUM_VALUES : [0, mode.points];
 }
 
-// Construit la section "Combinaisons" à partir des règles d'une partie.
 export function buildLowerSection(rules: GameRules): Section {
   const section: Section = {};
   section[modeLabel("Brelan", rules.brelan)] = modeValues(rules.brelan);

@@ -38,7 +38,6 @@ export function emptyScores(variants: Variant[]): PlayerScores {
   return scores;
 }
 
-// Construit les joueurs de la partie à partir des noms retenus avant-partie.
 export function createPlayers(names: string[], variants: Variant[]): Player[] {
   return names.map((name, i) => ({
     name,

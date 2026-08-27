@@ -35,7 +35,6 @@ const selected = new Set(roster.playerNames);
 
 playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
-  // resolveName : espaces de bord retirés + reprise de la casse déjà connue.
   const name = resolveName(nameInput.value);
   nameInput.value = "";
   nameInput.focus();
