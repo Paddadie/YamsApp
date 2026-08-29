@@ -33,3 +33,15 @@ export function saveDraft(draft: GameDraft): void {
 export function clearDraft(): void {
   removeKey(STORAGE_KEYS.draft);
 }
+
+// Roster de la dernière partie lancée, pour proposer « les mêmes joueurs ».
+const isNameList = (v: unknown): v is string[] =>
+  Array.isArray(v) && v.every((x) => typeof x === "string");
+
+export function getLastRoster(): string[] {
+  return readJson(STORAGE_KEYS.lastRoster, isNameList) ?? [];
+}
+
+export function saveLastRoster(names: string[]): void {
+  writeJson(STORAGE_KEYS.lastRoster, names);
+}

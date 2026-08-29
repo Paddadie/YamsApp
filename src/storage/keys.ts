@@ -6,6 +6,7 @@ export const STORAGE_KEYS = {
   schemaVersion: "yams-schema-version",
   draft: "yams-draft",
   savedGame: "yams-saved-game",
+  lastRoster: "yams-last-roster",
   knownNames: "yams-player-names",
   playerStats: "yams-player-stats",
   rules: "yams-rules",
