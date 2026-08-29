@@ -147,6 +147,15 @@ button:hover {
   background-color: #9a3412;
 }
 
+/* Action neutre, sans connotation (ni retour accueil, ni validation, ni danger). */
+.btn-neutral {
+  background-color: #6b7280;
+}
+
+.btn-neutral:hover {
+  background-color: #565d6a;
+}
+
 .btn:disabled {
   background-color: var(--disabled-color);
   color: var(--white);
@@ -506,6 +515,11 @@ button:hover {
 
 #game-screen .action-bar {
   background: transparent;
+}
+
+/* Consultation depuis l'écran de fin : cellules en lecture seule. */
+#game-screen.review .score-cell {
+  pointer-events: none;
 }
 
 /* La grille est posée à plat, sans carte : la couleur du joueur transparaît. */

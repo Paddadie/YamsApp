@@ -44,8 +44,11 @@ hydrateGame(saved);
 // Grille figée pour toute la partie (règles copiées au lancement).
 const grid = buildGrid(game.rules);
 
-// Reprendre une partie déjà complète renvoie directement à l'écran de fin.
-if (isGameFinished(game.players, game.variants, grid)) {
+// `?review` : consultation depuis l'écran de fin — grille en lecture seule,
+// on ne redirige donc pas une partie terminée vers l'écran de fin.
+const isReview = new URLSearchParams(location.search).has("review");
+
+if (!isReview && isGameFinished(game.players, game.variants, grid)) {
   goTo("end");
   throw new Error("Partie déjà terminée : passage à l'écran de fin.");
 }
@@ -78,10 +81,21 @@ let derivedCells = new Map<Variant, Map<LineName, HTMLTableCellElement>>();
 
 prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
 nextPlayerBtn.addEventListener("click", () => changePlayer(1));
-requireEl("pause-btn").addEventListener("click", () => {
-  persist();
-  goTo("home");
-});
+
+const pauseBtn = requireEl<HTMLButtonElement>("pause-btn");
+if (isReview) {
+  gameScreen.classList.add("review");
+  pauseBtn.textContent = "🥇 Classement final";
+  // Le bleu sert partout à revenir à l'accueil : ici on va au classement.
+  pauseBtn.classList.replace("btn-secondary", "btn-gold");
+  pauseBtn.addEventListener("click", () => goTo("end"));
+} else {
+  pauseBtn.addEventListener("click", () => {
+    persist();
+    goTo("home");
+  });
+}
+
 picker.addEventListener("click", (e) => {
   if (e.target === picker) picker.close();
 });
@@ -91,6 +105,7 @@ renderPlayer();
 /* ---------- État ---------- */
 
 function persist(): void {
+  if (isReview) return; // consultation : rien à réécrire
   saveSavedGame(toSavedGame());
 }
 
@@ -279,12 +294,14 @@ function buildButton(
   button.type = "button";
   button.className = "score-cell";
 
-  button.addEventListener("click", () => {
-    const current = button.dataset.value
-      ? Number(button.dataset.value)
-      : undefined;
-    openPicker(lineName, values, current, variant, onChange);
-  });
+  if (!isReview) {
+    button.addEventListener("click", () => {
+      const current = button.dataset.value
+        ? Number(button.dataset.value)
+        : undefined;
+      openPicker(lineName, values, current, variant, onChange);
+    });
+  }
 
   return {
     el: button,
