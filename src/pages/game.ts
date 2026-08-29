@@ -140,6 +140,24 @@ function changePlayer(delta: number): void {
   game.currentPlayerIndex = (game.currentPlayerIndex + delta + n) % n;
   persist();
   renderPlayer();
+  slideSheet(delta);
+}
+
+// La feuille du joueur qui arrive entre par le côté vers lequel on va, pendant
+// que le fond de page se fond vers sa couleur.
+function slideSheet(delta: number): void {
+  const sheet = scoreTablesContainer.firstElementChild;
+  if (!(sheet instanceof HTMLElement)) return;
+  const cls = delta > 0 ? "sheet-enter--next" : "sheet-enter--prev";
+  sheet.classList.add("sheet-enter", cls);
+  // Deux animations tournent en parallèle (glissement + fondu) : on n'attend
+  // que la plus longue, sinon la fin du fondu couperait le glissement.
+  const done = (e: AnimationEvent): void => {
+    if (e.animationName !== "sheet-slide") return;
+    sheet.removeEventListener("animationend", done);
+    sheet.classList.remove("sheet-enter", cls);
+  };
+  sheet.addEventListener("animationend", done);
 }
 
 function onPick(variant: Variant, lineName: LineName, value: number | undefined): void {
@@ -529,4 +547,9 @@ function openPicker(
   };
 
   picker.showModal();
+  // showModal() donne le focus au premier élément focusable, donc au jeton « 0 »
+  // — qui se retrouve cerclé de l'anneau bleu du navigateur alors que les autres
+  // sont gris. On porte le focus sur le dialogue lui-même (tabindex="-1") :
+  // aucun jeton n'est distingué, et la tabulation entre normalement dedans.
+  picker.focus();
 }

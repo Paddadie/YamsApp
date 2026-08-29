@@ -93,9 +93,21 @@ requireEl("quit-btn").addEventListener("click", () => {
   goTo("home");
 });
 
+/* ---------- Mise en scène du résultat ---------- */
+// Les marches sortent du sol de la dernière vers la première : on garde le
+// vainqueur pour la fin. Le classement complet suit, du dernier au premier.
+// Séquence jouée une seule fois par partie — c'est le moment fort, il peut se
+// permettre de durer, contrairement aux animations du jeu lui-même.
+
+const STEP_DELAYS: Record<number, number> = { 3: 0.08, 2: 0.26, 1: 0.44 };
+const STEP_MS = 450;
+const RANKING_DELAY = 0.72; // le classement démarre une fois le podium posé
+const ROW_STAGGER = 0.07;
+
 renderPodium(results);
-renderRecordBanner();
 renderRanking(results);
+revealRanking();
+renderRecordBanner();
 renderLegend();
 
 function computeResults(): Result[] {
@@ -150,6 +162,7 @@ function renderRecordBanner(): void {
   const { name, score, variant } = impact.newRecord;
   banner.textContent = `👑 Nouveau record du téléphone : ${name} — ${score} (${variant})`;
   banner.hidden = false;
+  reveal(banner, RANKING_DELAY);
 }
 
 function renderLegend(): void {
@@ -162,6 +175,7 @@ function renderLegend(): void {
   if (parts.length === 0) return;
   legend.textContent = parts.join("  ·  ");
   legend.hidden = false;
+  reveal(legend, RANKING_DELAY + 0.3);
 }
 
 function renderPodium(results: Result[]): void {
@@ -173,9 +187,42 @@ function renderPodium(results: Result[]): void {
   }
 }
 
+/* ---------- Mise en scène du résultat (suite) ---------- */
+
+function reveal(el: HTMLElement, delaySeconds: number): void {
+  el.style.setProperty("--d", `${delaySeconds}s`);
+  el.classList.add("reveal");
+}
+
+// Le score du vainqueur défile de 0 jusqu'à son total, au moment où sa marche
+// se pose.
+function countUp(el: HTMLElement, to: number, delayMs: number): void {
+  const DURATION = 900;
+  el.textContent = "0";
+  window.setTimeout(() => {
+    const start = performance.now();
+    const tick = (now: number): void => {
+      const p = Math.min(1, (now - start) / DURATION);
+      const eased = 1 - Math.pow(1 - p, 3); // ralentit en approchant du total
+      el.textContent = String(Math.round(to * eased));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, delayMs);
+}
+
+function revealRanking(): void {
+  const rows = rankingTable.querySelectorAll<HTMLTableRowElement>("tbody tr");
+  rows.forEach((row, i) => {
+    reveal(row, RANKING_DELAY + (rows.length - 1 - i) * ROW_STAGGER);
+  });
+}
+
 function buildStep(result: Result, rank: number): HTMLElement {
   const step = document.createElement("div");
   step.className = `podium-step rank-${rank}`;
+  const delay = STEP_DELAYS[rank] ?? 0;
+  step.style.setProperty("--d", `${delay}s`);
 
   const medal = document.createElement("span");
   medal.className = "podium-medal";
@@ -188,6 +235,7 @@ function buildStep(result: Result, rank: number): HTMLElement {
   const score = document.createElement("span");
   score.className = "podium-score";
   score.textContent = String(result.total);
+  if (rank === 1) countUp(score, result.total, delay * 1000 + STEP_MS);
 
   const num = document.createElement("span");
   num.className = "podium-num";

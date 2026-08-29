@@ -99,7 +99,13 @@ button:hover {
   border-radius: var(--border-radius);
   color: var(--white);
   cursor: pointer;
-  transition: background-color var(--transition);
+  transition: background-color var(--transition), transform 0.08s ease;
+}
+
+/* Enfoncement au toucher : sur mobile c'est le seul retour immédiat que reçoit
+   le doigt, avant même que l'écran suivant ne s'affiche. */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .btn-primary {
@@ -399,6 +405,10 @@ button:hover {
   display: none;
 }
 
+.roster-tool:active {
+  transform: scale(0.96);
+}
+
 #roster {
   flex: 1;
   min-height: 4em;
@@ -532,6 +542,83 @@ button:hover {
     0 6px 16px rgba(0, 0, 0, 0.22);
 }
 
+/* ---------- Mélange animé : « battage de cartes » ---------- */
+/* Chaque tuile part de son ancienne position (--dy, posé en JS) et rejoint sa
+   nouvelle place. Celles qui remontent se penchent et prennent une ombre pour
+   passer par-dessus ; celles qui descendent se penchent dans l'autre sens et
+   s'assombrissent, comme glissées dessous. Pas de décalage horizontal : #roster
+   défile en Y, l'axe X y est clippé. */
+.roster-row.shuffling {
+  position: relative;
+}
+
+@keyframes roster-riffle-over {
+  from {
+    transform: translateY(var(--dy)) rotate(0deg);
+    box-shadow: inset 0.3em 0 0 var(--player-color, var(--primary-color)),
+      0 0 0 rgba(0, 0, 0, 0);
+  }
+  45% {
+    transform: translateY(calc(var(--dy) * 0.5)) rotate(-1.4deg);
+    box-shadow: inset 0.3em 0 0 var(--player-color, var(--primary-color)),
+      0 7px 18px rgba(0, 0, 0, 0.26);
+  }
+  to {
+    transform: translateY(0) rotate(0deg);
+    box-shadow: inset 0.3em 0 0 var(--player-color, var(--primary-color)),
+      0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes roster-riffle-under {
+  from {
+    transform: translateY(var(--dy)) rotate(0deg);
+    filter: brightness(1);
+  }
+  45% {
+    transform: translateY(calc(var(--dy) * 0.5)) rotate(1.4deg);
+    filter: brightness(0.9);
+  }
+  to {
+    transform: translateY(0) rotate(0deg);
+    filter: brightness(1);
+  }
+}
+
+.roster-row.riffle-over {
+  z-index: 4;
+  animation: roster-riffle-over 0.38s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+.roster-row.riffle-under {
+  z-index: 1;
+  animation: roster-riffle-under 0.38s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+
+/* Le numéro d'ordre change de valeur pendant le vol : on l'efface le temps du
+   battage, il se repose d'un petit rebond à l'arrivée. */
+.roster-row.shuffling .check {
+  color: transparent;
+}
+
+@keyframes roster-badge-pop {
+  from {
+    transform: scale(0.5);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.roster-row.badge-pop .check {
+  animation: roster-badge-pop 0.24s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Une tuile en vol ne doit pas pouvoir être cochée au passage. */
+#roster.shuffle-lock .roster-row {
+  pointer-events: none;
+}
+
 .roster-divider {
   padding: 0.45em 0.9em;
   font-size: 0.72rem;
@@ -626,6 +713,10 @@ button:hover {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* Explicite : déclarer overflow-y seul rend l'axe X défilable, et le
+     glissement d'un changement de joueur rouvrirait le défilement fantôme.
+     Ici on veut couper la feuille au bord, pas la faire défiler. */
+  overflow-x: hidden;
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
@@ -956,18 +1047,26 @@ button:hover {
   padding: 0;
   width: min(27rem, 94vw);
   box-shadow: 0 20px 60px rgba(10, 20, 25, 0.4);
-  animation: picker-in 0.16s ease-out;
+  animation: dialog-in 0.16s ease-out;
 }
 
-@keyframes picker-in {
+/* Entrée commune à tous les <dialog> de l'appli (cf. le bloc « Dialogues »). */
+@keyframes dialog-in {
   from {
     opacity: 0;
     transform: translateY(10px) scale(0.96);
   }
 }
 
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
 #value-picker::backdrop {
   background: rgba(12, 22, 27, 0.55);
+  animation: backdrop-in 0.16s ease-out;
 }
 
 /* En-tête : pastille de la variante + nom de la ligne, filet de sa couleur. */
@@ -1045,6 +1144,19 @@ button:hover {
 
 .picker-value:active {
   transform: scale(0.92);
+}
+
+/* Au clavier seulement : contour posé à l'extérieur du jeton, pour ne pas se
+   confondre avec le cerclage gris que portent tous les jetons. */
+.picker-value:focus-visible {
+  outline: 2px solid var(--pv, var(--secondary-color));
+  outline-offset: 2px;
+}
+
+/* Cible du focus à l'ouverture (cf. openPicker) : jamais visible. */
+#value-picker:focus,
+#value-picker:focus-visible {
+  outline: none;
 }
 
 /* Valeur déjà saisie : jeton plein dans la couleur de la variante. */
@@ -1665,16 +1777,6 @@ button:hover {
 /* Easter egg déclenché volontairement (5 clics) : le saut du trophée et le
    scintillement des ✨ jouent même en "animations réduites". Seul le ressort
    d'entrée de la carte est calmé. */
-@media (prefers-reduced-motion: reduce) {
-  #app-credit {
-    transition: opacity 0.25s ease;
-  }
-  #app-credit,
-  #app-credit.show {
-    transform: translate(-50%, -50%);
-  }
-}
-
 /* Dialogues : feuille de score détaillée + confirmations (paramètres).
    Tout <dialog> ajouté à l'appli doit figurer ici, sinon il retombe sur le
    cadre par défaut du navigateur (bord carré, aucun fond assombri). */
@@ -1690,6 +1792,7 @@ button:hover {
   max-height: 90dvh;
   overflow-y: auto;
   box-shadow: 0 20px 55px rgba(10, 20, 25, 0.4);
+  animation: dialog-in 0.16s ease-out;
 }
 
 #delete-dialog,
@@ -1711,6 +1814,7 @@ button:hover {
 #import-dialog::backdrop,
 #message-dialog::backdrop {
   background: rgba(12, 22, 27, 0.55);
+  animation: backdrop-in 0.16s ease-out;
 }
 
 /* Titre des dialogues de confirmation. */
@@ -2284,5 +2388,87 @@ button:hover {
   }
   .podium-step.rank-3 {
     min-height: 4.2em;
+  }
+}
+
+/* ========== ANIMATIONS ========== */
+/* Règle du projet : aucune animation n'est désactivée par
+   `prefers-reduced-motion`. Elles sont toutes délibérées et attendues (jauge de
+   bonus, trophée, battage des joueurs, changement de joueur, fin de partie), et
+   l'appareil de référence a « Réduire les animations » activé en permanence :
+   les masquer reviendrait à ne jamais les montrer à personne. Ne pas
+   réintroduire de bloc @media (prefers-reduced-motion) sans le redemander. */
+
+/* ---------- Changement de joueur (écran de jeu) ---------- */
+/* La feuille du joueur qui arrive entre par le côté vers lequel on va ; le fond
+   de page, lui, se fond déjà vers sa couleur (cf. #game-screen plus haut).
+   Deux animations distinctes plutôt qu'une : le fondu se termine tôt, pendant
+   que le glissement continue de ralentir jusqu'à l'arrêt. C'est ce décalage qui
+   adoucit — avec une seule animation, la feuille finit d'apparaître et de
+   bouger au même instant, ce qui se perçoit comme un à-coup. La course est
+   courte (4,5 %) et la courbe très amortie : rien ne bloque la saisie, on peut
+   toucher une case pendant le mouvement. */
+.sheet-enter {
+  animation: sheet-slide 0.3s cubic-bezier(0.16, 1, 0.3, 1) both,
+    sheet-fade 0.18s ease-out both;
+}
+
+.sheet-enter--next {
+  --from: 4.5%;
+}
+
+.sheet-enter--prev {
+  --from: -4.5%;
+}
+
+@keyframes sheet-slide {
+  from {
+    transform: translateX(var(--from, 4.5%));
+  }
+}
+
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ========== MISE EN SCÈNE DE LA FIN DE PARTIE ========== */
+/* Jouée une seule fois par partie : les marches du podium sortent du sol de la
+   dernière vers la première, la médaille arrive une fois la marche posée, puis
+   le classement se remplit du dernier au premier. Le délai de chaque élément
+   est posé en JS dans --d (cf. src/pages/end.ts). */
+.reveal {
+  animation: reveal-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) backwards;
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.9em);
+  }
+}
+
+/* Les marches montent de plus loin : elles ont une hauteur à révéler. */
+.podium-step {
+  animation: podium-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) backwards;
+}
+
+@keyframes podium-rise {
+  from {
+    opacity: 0;
+    transform: translateY(2.2em);
+  }
+}
+
+.podium-medal {
+  animation: medal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+    calc(var(--d, 0s) + 0.22s) backwards;
+}
+
+@keyframes medal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(-18deg);
   }
 }

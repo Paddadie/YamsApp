@@ -42,6 +42,18 @@ const startBtn = requireEl<HTMLButtonElement>("start-game-btn");
 
 const selected = new Set(roster.playerNames);
 
+// La couleur appartient au joueur, pas à sa place : sans ça, mélanger l'ordre
+// (ou déplacer une ligne) ferait changer de teinte toutes les pastilles d'un
+// coup. Attribuée à la sélection, rendue à la désélection.
+const colorOf = new Map<string, string>();
+
+// Battage de cartes au clic sur « Ordre aléatoire ».
+const SHUFFLE_MS = 420; // 0.38s d'animation + marge : pas de coupure sur la fin
+const BADGE_POP_MS = 240;
+let shuffling = false;
+
+for (const name of roster.playerNames) assignColor(name);
+
 playerForm.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = resolveName(nameInput.value);
@@ -68,19 +80,24 @@ reuseBtn.addEventListener("click", () => {
 });
 
 shuffleBtn.addEventListener("click", () => {
-  const n = roster.playerNames;
-  for (let i = n.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [n[i], n[j]] = [n[j], n[i]];
-  }
-  commit();
+  if (shuffling || roster.playerNames.length < 2) return;
+  const before = capturePositions();
+  const scroll = list.scrollTop;
+  shuffleOrder();
+  commit(); // la liste est reconstruite directement dans le nouvel ordre
+  list.scrollTop = scroll;
+  playRiffle(before);
 });
 
 startBtn.addEventListener("click", () => {
   if (roster.playerNames.length < 2) return;
   saveLastRoster(roster.playerNames.slice());
   saveSavedGame({
-    players: createPlayers(roster.playerNames, roster.variants),
+    players: createPlayers(
+      roster.playerNames,
+      roster.variants,
+      roster.playerNames.map((name) => colorOf.get(name) ?? PLAYER_COLORS[0]),
+    ),
     selectedVariants: roster.variants,
     currentPlayerIndex: 0,
     rules: getRules(), // règles figées pour toute la partie
@@ -94,12 +111,25 @@ render();
 function select(name: string): void {
   selected.add(name);
   roster.playerNames.push(name);
+  assignColor(name);
 }
 
 function deselect(name: string): void {
   selected.delete(name);
+  colorOf.delete(name);
   const i = roster.playerNames.indexOf(name);
   if (i >= 0) roster.playerNames.splice(i, 1);
+}
+
+// Premier coloris encore libre ; au-delà de la palette, on recycle.
+function assignColor(name: string): void {
+  if (colorOf.has(name)) return;
+  const used = new Set(colorOf.values());
+  colorOf.set(
+    name,
+    PLAYER_COLORS.find((c) => !used.has(c)) ??
+      PLAYER_COLORS[colorOf.size % PLAYER_COLORS.length],
+  );
 }
 
 function toggle(name: string): void {
@@ -203,7 +233,7 @@ function buildRow(
   if (isSelected) {
     row.style.setProperty(
       "--player-color",
-      PLAYER_COLORS[order % PLAYER_COLORS.length],
+      colorOf.get(name) ?? PLAYER_COLORS[order % PLAYER_COLORS.length],
     );
     const handle = document.createElement("span");
     handle.className = "drag-handle";
@@ -278,4 +308,71 @@ function startDrag(e: PointerEvent, row: HTMLLIElement, name: string): void {
   handle.addEventListener("pointermove", onMove);
   handle.addEventListener("pointerup", onEnd);
   handle.addEventListener("pointercancel", onEnd);
+}
+
+/* ---------- Mélange animé : « battage de cartes » ---------- */
+// Technique FLIP : on note où se trouve chaque tuile AVANT le mélange, on
+// laisse `render()` reconstruire la liste dans le nouvel ordre, puis on repose
+// chaque tuile à son ancienne place et on la relâche — elle glisse jusqu'à sa
+// nouvelle. Les tuiles qui remontent passent par-dessus (soulevées, décalées à
+// gauche), celles qui descendent passent par-dessous.
+
+function shuffleOrder(): void {
+  const n = roster.playerNames;
+  const start = n.slice();
+  do {
+    for (let i = n.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [n[i], n[j]] = [n[j], n[i]];
+    }
+  } while (n.every((name, i) => name === start[i])); // sinon rien ne bouge
+}
+
+function selectedRows(): HTMLLIElement[] {
+  return [...list.querySelectorAll<HTMLLIElement>(".roster-row.selected")];
+}
+
+function capturePositions(): Map<string, number> {
+  const tops = new Map<string, number>();
+  for (const row of selectedRows()) {
+    tops.set(row.dataset.name ?? "", row.getBoundingClientRect().top);
+  }
+  return tops;
+}
+
+function playRiffle(before: Map<string, number>): void {
+  const rows = selectedRows();
+  let moved = false;
+
+  for (const row of rows) {
+    row.classList.add("shuffling"); // masque le numéro, qui change en vol
+    const from = before.get(row.dataset.name ?? "");
+    if (from === undefined) continue;
+    const dy = Math.round(from - row.getBoundingClientRect().top);
+    if (dy === 0) continue;
+    moved = true;
+    row.style.setProperty("--dy", `${dy}px`);
+    row.classList.add(dy > 0 ? "riffle-over" : "riffle-under");
+  }
+
+  if (!moved) {
+    for (const row of rows) row.classList.remove("shuffling");
+    return;
+  }
+
+  shuffling = true;
+  list.classList.add("shuffle-lock"); // pas de clic sur une tuile en vol
+
+  window.setTimeout(() => {
+    for (const row of rows) {
+      row.classList.remove("shuffling", "riffle-over", "riffle-under");
+      row.style.removeProperty("--dy");
+      row.classList.add("badge-pop"); // le numéro se repose à l'arrivée
+    }
+    window.setTimeout(() => {
+      for (const row of rows) row.classList.remove("badge-pop");
+      list.classList.remove("shuffle-lock");
+      shuffling = false;
+    }, BADGE_POP_MS);
+  }, SHUFFLE_MS);
 }
