@@ -17,7 +17,12 @@ import {
   isGameFinished,
   computeDerived,
   writeDerived,
+  BONUS_LINE,
   BONUS_THRESHOLD,
+  DERIVED_LINES,
+  FINAL_SCORE_LINE,
+  LOWER_TOTAL_LINE,
+  UPPER_TOTAL_LINE,
   type Derived,
 } from "../scoring";
 import type { LineName, PlayerScores, Variant } from "../types";
@@ -26,13 +31,6 @@ type LineScores = Record<LineName, number>;
 type Pick = (value: number | undefined) => void;
 
 const AUTO_ADVANCE_MS = 800;
-
-const DERIVED_LINES: LineName[] = [
-  "Bonus",
-  "Total Haut",
-  "Total Bas",
-  "Score Final",
-];
 
 bootstrap();
 
@@ -216,7 +214,7 @@ function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
 
       const tr = document.createElement("tr");
       if (computed) tr.classList.add("computed");
-      if (lineName === "Score Final") tr.classList.add("final");
+      if (lineName === FINAL_SCORE_LINE) tr.classList.add("final");
       if (!computed && dataRow++ % 2 === 1) tr.classList.add("alt");
 
       const nameCell = document.createElement("td");
@@ -316,10 +314,10 @@ function fillDerived(variant: Variant, live = false): void {
   if (!cells) return;
   const d = computeDerived(currentPlayer().scores[variant], grid);
   const text: Record<LineName, string> = {
-    Bonus: bonusLabel(d),
-    "Total Haut": String(d.totalHaut),
-    "Total Bas": String(d.totalBas),
-    "Score Final": String(d.scoreFinal),
+    [BONUS_LINE]: bonusLabel(d),
+    [UPPER_TOTAL_LINE]: String(d.totalHaut),
+    [LOWER_TOTAL_LINE]: String(d.totalBas),
+    [FINAL_SCORE_LINE]: String(d.scoreFinal),
   };
   // La jauge n'a de sens qu'à variante unique : sur plusieurs colonnes elle
   // devient illisible, on retombe alors sur le seul libellé.
@@ -327,7 +325,7 @@ function fillDerived(variant: Variant, live = false): void {
   for (const line of DERIVED_LINES) {
     const cell = cells.get(line);
     if (!cell) continue;
-    if (line === "Bonus" && gaugeBonus) renderBonusCell(cell, d, live);
+    if (line === BONUS_LINE && gaugeBonus) renderBonusCell(cell, d, live);
     else cell.textContent = text[line];
   }
 }

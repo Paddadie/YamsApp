@@ -4,6 +4,7 @@
 //    pour une moyenne pertinente (les autres variantes produisent trop souvent
 //    des scores catastrophiques).
 
+import { sameName } from "../playerName";
 import { STORAGE_KEYS } from "./keys";
 import { readJson, writeJson } from "./localStore";
 
@@ -71,11 +72,10 @@ export function recordGameResult(
 // Supprime toute entrée correspondant à ce nom (casse / espaces ignorés :
 // d'anciennes données peuvent contenir des clés dépareillées).
 export function removePlayerStats(name: string): void {
-  const key = name.trim().toLowerCase();
   const stats = getPlayerStats();
   let changed = false;
   for (const existing of Object.keys(stats)) {
-    if (existing.trim().toLowerCase() === key) {
+    if (sameName(existing, name)) {
       delete stats[existing];
       changed = true;
     }

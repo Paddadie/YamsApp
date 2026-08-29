@@ -2,24 +2,19 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yams — Partie</title>
-
-    <link rel="icon" href="/de.png" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Yams" />
+    <!--@head-->
   </head>
   <body>
     <div id="game-screen" class="screen">
       <div class="player-header">
-        <button id="prev-player-btn" class="nav-arrow">⬅️</button>
-        <h2 id="current-player-name"></h2>
-        <button id="next-player-btn" class="nav-arrow">➡️</button>
+        <button id="prev-player-btn" type="button" class="nav-arrow" aria-label="Joueur précédent">⬅️</button>
+        <h1 id="current-player-name"></h1>
+        <button id="next-player-btn" type="button" class="nav-arrow" aria-label="Joueur suivant">➡️</button>
       </div>
       <div id="score-tables"></div>
-      <div id="pause-btn-container" class="action-bar">
-        <button id="pause-btn" class="btn btn-secondary">⏸ Pause</button>
+      <div class="action-bar">
+        <button id="pause-btn" type="button" class="btn btn-secondary">⏸ Pause</button>
       </div>
     </div>
 

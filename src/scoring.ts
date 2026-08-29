@@ -8,23 +8,35 @@ type LineValues = number[];
 type Section = Record<LineName, LineValues>;
 type LineScores = Record<LineName, number>;
 
+// Lignes calculées, jamais saisies : leur libellé sert de clé dans `scores`,
+// et plusieurs écrans les reconnaissent par ce nom. Une seule définition ici
+// évite que la grille et les écrans divergent silencieusement.
+export const BONUS_LINE = "Bonus";
+export const UPPER_TOTAL_LINE = "Total Haut";
+export const LOWER_TOTAL_LINE = "Total Bas";
+export const FINAL_SCORE_LINE = "Score Final";
+
+// Dans l'ordre où elles apparaissent dans la grille.
+export const DERIVED_LINES: LineName[] = [
+  BONUS_LINE,
+  UPPER_TOTAL_LINE,
+  LOWER_TOTAL_LINE,
+  FINAL_SCORE_LINE,
+];
+
 /* ---------- Section haute (non configurable) ---------- */
 
 // Lignes 1 à 6 (valeurs 0, n, 2n, … 5n), puis Bonus et Total.
-export const UPPER_SECTION: Section = {};
+const UPPER_SECTION: Section = {};
 for (let i = 1; i <= 6; i++) {
   UPPER_SECTION[i] = Array.from({ length: 6 }, (_, index) => index * i);
 }
-UPPER_SECTION.Bonus = [];
-UPPER_SECTION["Total Haut"] = [];
+UPPER_SECTION[BONUS_LINE] = [];
+UPPER_SECTION[UPPER_TOTAL_LINE] = [];
 
-export const TOTAL_SECTION: Section = {
-  "Score Final": [],
+const TOTAL_SECTION: Section = {
+  [FINAL_SCORE_LINE]: [],
 };
-
-export const upperScoringNames = Object.keys(UPPER_SECTION).filter(
-  (k) => UPPER_SECTION[k].length > 0,
-);
 
 /* ---------- Règles configurables ---------- */
 
@@ -96,7 +108,7 @@ function modeValues(mode: LineMode): LineValues {
   return mode.type === "sum" ? SUM_VALUES : [0, mode.points];
 }
 
-export function buildLowerSection(rules: GameRules): Section {
+function buildLowerSection(rules: GameRules): Section {
   const section: Section = {};
   section[modeLabel("Brelan", rules.brelan)] = modeValues(rules.brelan);
   section[modeLabel("Full", rules.full)] = modeValues(rules.full);
@@ -105,7 +117,7 @@ export function buildLowerSection(rules: GameRules): Section {
   section[modeLabel("Gde Suite", rules.grandeSuite)] = modeValues(rules.grandeSuite);
   if (rules.chance) section["Chance (Σ)"] = SUM_VALUES;
   section[modeLabel("Yams", rules.yams)] = modeValues(rules.yams);
-  section["Total Bas"] = [];
+  section[LOWER_TOTAL_LINE] = [];
   return section;
 }
 
@@ -127,6 +139,9 @@ export interface Grid {
 const scoringNames = (section: Section): string[] =>
   Object.keys(section).filter((k) => section[k].length > 0);
 
+// La section haute ne dépend pas des règles : calculée une seule fois.
+const upperScoringNames = scoringNames(UPPER_SECTION);
+
 export function buildGrid(rules: GameRules): Grid {
   const lower = buildLowerSection(rules);
   const lowerScoringNames = scoringNames(lower);
@@ -145,24 +160,32 @@ export function buildGrid(rules: GameRules): Grid {
 
 /* ---------- Verrouillage des lignes (Montante / Descendante) ---------- */
 
+// Seules la Montante et la Descendante imposent un ordre de remplissage ;
+// partout ailleurs toutes les lignes restent ouvertes.
+function isLockedVariant(variant: Variant): boolean {
+  return variant === "Montante" || variant === "Descendante";
+}
+
+// Ordre imposé de remplissage. Descendante : haut puis bas, dans l'ordre de la
+// grille. Montante : exactement l'inverse.
+function fillOrder(variant: Variant, grid: Grid): LineName[] {
+  const descending = [...grid.upperScoringNames, ...grid.lowerScoringNames];
+  return variant === "Montante" ? descending.reverse() : descending;
+}
+
 export function isLineEnabled(
   lineName: LineName,
   variant: Variant,
   scores: LineScores,
   grid: Grid,
 ): boolean {
-  const montanteOrder = [
-    ...grid.lowerScoringNames.slice().reverse(),
-    ...grid.upperScoringNames.slice().reverse(),
-  ];
-  const descendanteOrder = [...grid.upperScoringNames, ...grid.lowerScoringNames];
+  if (!isLockedVariant(variant)) return true;
 
-  const order = variant === "Montante" ? montanteOrder : descendanteOrder;
-
-  if (!order.includes(lineName)) return true;
-
+  const order = fillOrder(variant, grid);
   const index = order.indexOf(lineName);
-  if (index === 0) return true;
+
+  // Ligne hors de l'ordre imposé (une ligne calculée) ou toute première : libre.
+  if (index <= 0) return true;
 
   return scores[order[index - 1]] !== undefined;
 }
@@ -210,10 +233,10 @@ export function computeDerived(scores: LineScores, grid: Grid): Derived {
 // of Fame, qui lisent scores["Score Final"]).
 export function writeDerived(scores: LineScores, grid: Grid): Derived {
   const d = computeDerived(scores, grid);
-  scores["Bonus"] = d.bonus;
-  scores["Total Haut"] = d.totalHaut;
-  scores["Total Bas"] = d.totalBas;
-  scores["Score Final"] = d.scoreFinal;
+  scores[BONUS_LINE] = d.bonus;
+  scores[UPPER_TOTAL_LINE] = d.totalHaut;
+  scores[LOWER_TOTAL_LINE] = d.totalBas;
+  scores[FINAL_SCORE_LINE] = d.scoreFinal;
   return d;
 }
 

@@ -12,6 +12,7 @@ bandeau de mise à jour.
 ```bash
 npm install
 npm run dev      # http://localhost:5173/YamsApp/
+npm test         # vitest : logique de score, Hall of Fame, dates, noms
 npm run build    # tsc -b + vite build -> dist/
 npm run preview  # sert le dist/ compilé
 ```
@@ -54,8 +55,8 @@ planter une page.
 
 `storage/migrate.ts` met les données d'anciennes versions au format courant :
 champ `rules` ajouté aux parties sauvegardées, `playerStats`
-`{ [nom]: nombre }` → `{ games, points }`, dédoublonnage des noms connus
-(casse/espaces), entrées de Hall of Fame réparées. Les clés n'ont jamais
+`{ [nom]: nombre }` → `{ games, classiqueGames, classiquePoints, classiqueBest }`,
+dédoublonnage des noms connus (casse/espaces), entrées de Hall of Fame réparées. Les clés n'ont jamais
 changé : **non destructif**, rien n'est perdu (on ne supprime que du JSON
 illisible). Exécuté **une fois par version** (marqueur `yams-schema-version`) :
 les lancements suivants ne font qu'une lecture. Un import de sauvegarde efface
@@ -100,14 +101,26 @@ bandeau **« Mettre à jour »** ; l'utilisateur choisit le moment. Aucune versi
 | `bootstrap.ts` | Amorçage commun : migration des données + styles + service worker. |
 | `nav.ts` | `goTo(page)` + table des fichiers HTML. |
 | `types.ts` | Types du domaine (`Player`, `Variant`, `GameRules`, `SavedGame`, `ScoreEntry`…). |
+| `playerName.ts` | Comparaison / tri des noms de joueurs (casse et espaces ignorés). |
+| `dates.ts` | Affichage des dates du Hall of Fame (relatif jusqu'à 30 jours). |
 | `state.ts` | Modèle de partie en mémoire + `createPlayers` / `hydrateGame` / `toSavedGame`. |
 | `scoring.ts` | Grille + calculs + `normalizeRules`. Aucun DOM. |
 | `hallOfFame.ts` | Intégration d'une partie terminée + prévisualisation. Aucun DOM. |
 | `variants.ts` | Source unique des variantes (libellé, icône, couleur). |
-| `ui.ts` | Helpers DOM (`requireEl`, `appendRows`, `renderTable`). |
+| `ui.ts` | Helpers DOM (`requireEl`, `renderTable`, `makeActivatable`, `variantBadge`). |
 | `pages/*.ts` | Un module par page : câblage DOM. |
 | `pwa/updatePrompt.ts` | Enregistrement du SW + bandeau « Mettre à jour ». |
 | `storage/` | `keys.ts`, `localStore.ts` (avec guards), et un repo typé par usage : `draftRepo`, `savedGameRepo`, `rulesRepo`, `knownPlayersRepo`, `playerStatsRepo`, `hallOfFameRepo`, `backup`. |
 
 Règle de dépendances : les modules `pages/*` s'appuient sur `state`, `scoring`,
 `variants`, `ui`, `storage/*` — jamais l'inverse.
+
+## Tests
+
+`npm test` (Vitest) couvre la logique pure, celle qui n'a pas de DOM et qui
+casserait silencieusement : barème et bornes des règles (`scoring.ts`),
+verrous Montante/Descendante, classements du Hall of Fame — dont l'invariant
+« la prévisualisation de l'écran de fin annonce exactement ce qui sera
+enregistré » —, formatage des dates et comparaison des noms.
+`src/test/setup.ts` fournit un `localStorage` en mémoire : pas besoin de jsdom.
+Les tests tournent aussi en CI avant le déploiement.

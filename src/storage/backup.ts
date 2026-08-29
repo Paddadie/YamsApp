@@ -78,16 +78,20 @@ export function downloadBackup(): void {
   URL.revokeObjectURL(url);
 }
 
-export type ImportResult = "ok" | "invalid" | "error";
+// Lecture SANS écriture : l'écran des paramètres valide d'abord le fichier,
+// montre ce qu'il contient, puis n'appelle importAllData() qu'après
+// confirmation — l'import écrase toutes les données locales.
+export type ReadResult =
+  | { ok: true; data: BackupData }
+  | { ok: false; reason: "invalid" | "unreadable" };
 
-export async function importBackupFile(file: File): Promise<ImportResult> {
-  let data: unknown;
+export async function readBackupFile(file: File): Promise<ReadResult> {
+  let parsed: unknown;
   try {
-    data = JSON.parse(await file.text());
+    parsed = JSON.parse(await file.text());
   } catch {
-    return "error";
+    return { ok: false, reason: "unreadable" };
   }
-  if (!isValidBackupData(data)) return "invalid";
-  importAllData(data);
-  return "ok";
+  if (!isValidBackupData(parsed)) return { ok: false, reason: "invalid" };
+  return { ok: true, data: parsed };
 }

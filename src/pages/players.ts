@@ -6,7 +6,7 @@
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { createPlayers, PLAYER_COLORS } from "../state";
-import { requireEl } from "../ui";
+import { makeActivatable, plural, requireEl } from "../ui";
 import {
   addKnownName,
   getKnownNames,
@@ -113,10 +113,6 @@ function commit(): void {
   render();
 }
 
-function plural(n: number, word: string): string {
-  return `${n} ${word}${n > 1 ? "s" : ""}`;
-}
-
 function render(): void {
   const stats = getPlayerStats();
   const gamesOf = (name: string): number => stats[name]?.games ?? 0;
@@ -180,11 +176,13 @@ function buildRow(
   order: number,
 ): HTMLLIElement {
   const isSelected = order >= 0;
+  const gamesText =
+    gamesPlayed === 0 ? "jamais joué" : plural(gamesPlayed, "partie");
+
   const row = document.createElement("li");
   row.className = isSelected ? "roster-row selected" : "roster-row";
   row.dataset.name = name;
-  row.tabIndex = 0;
-  row.setAttribute("role", "button");
+  makeActivatable(row, `${name}, ${gamesText}`, () => toggle(name));
   row.setAttribute("aria-pressed", String(isSelected));
 
   const check = document.createElement("span");
@@ -198,8 +196,7 @@ function buildRow(
 
   const gamesEl = document.createElement("span");
   gamesEl.className = "games";
-  gamesEl.textContent =
-    gamesPlayed === 0 ? "jamais joué" : plural(gamesPlayed, "partie");
+  gamesEl.textContent = gamesText;
 
   row.append(check, nameEl, gamesEl);
 
@@ -217,13 +214,6 @@ function buildRow(
     row.appendChild(handle);
   }
 
-  row.addEventListener("click", () => toggle(name));
-  row.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault();
-      toggle(name);
-    }
-  });
   return row;
 }
 

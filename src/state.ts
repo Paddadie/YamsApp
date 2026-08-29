@@ -32,7 +32,7 @@ export const game: GameState = {
   rules: DEFAULT_RULES,
 };
 
-export function emptyScores(variants: Variant[]): PlayerScores {
+function emptyScores(variants: Variant[]): PlayerScores {
   const scores = {} as PlayerScores;
   for (const variant of variants) scores[variant] = {};
   return scores;

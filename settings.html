@@ -2,19 +2,14 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yams — Paramètres</title>
-
-    <link rel="icon" href="/de.png" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Yams" />
+    <!--@head-->
   </head>
   <body>
     <div id="settings-screen" class="screen">
       <div class="screen-body">
         <div id="app-version"></div>
-        <h2>⚙️ Paramètres</h2>
+        <h1>⚙️ Paramètres</h1>
 
         <p class="settings-hint">
           Les règles s'appliquent à la prochaine partie lancée, pas à une partie
@@ -22,7 +17,7 @@
         </p>
 
         <section class="settings-group">
-          <h3>Section chiffres</h3>
+          <h2>Section chiffres</h2>
           <div class="setting-row">
             <span class="setting-label">Bonus</span>
             <div class="setting-control">
@@ -33,7 +28,7 @@
         </section>
 
         <section class="settings-group">
-          <h3>Combinaisons</h3>
+          <h2>Combinaisons</h2>
 
           <div class="setting-row" data-key="brelan">
             <span class="setting-label">Brelan</span>
@@ -69,7 +64,7 @@
         </section>
 
         <section class="settings-group">
-          <h3>Joueurs enregistrés</h3>
+          <h2>Joueurs enregistrés</h2>
           <p class="settings-hint">
             Permet de modifier ou supprimer un joueur enregistré.
           </p>
@@ -77,24 +72,24 @@
         </section>
 
         <section class="settings-group">
-          <h3>Scores enregistrés</h3>
+          <h2>Scores enregistrés</h2>
           <p class="settings-hint">
             Permet de supprimer une entrée des classements du Hall of Fame.
           </p>
           <div class="score-admin-block">
-            <h4 class="score-admin-title">👑 Meilleurs</h4>
+            <h3 class="score-admin-title">👑 Meilleurs</h3>
             <ul id="best-admin" class="score-admin-list"></ul>
           </div>
           <div class="score-admin-block">
-            <h4 class="score-admin-title">💩 Pires</h4>
+            <h3 class="score-admin-title">💩 Pires</h3>
             <ul id="worst-admin" class="score-admin-list"></ul>
           </div>
         </section>
 
         <section class="settings-group">
-          <h3>Données</h3>
+          <h2>Données</h2>
           <div id="backup-controls">
-            <button id="export-btn" class="btn btn-export">
+            <button id="export-btn" type="button" class="btn btn-export">
               ⬇️ Exporter mes données
             </button>
             <label for="import-input" class="btn btn-import">
@@ -170,6 +165,33 @@
           class="btn btn-danger"
         >
           Oui, supprimer
+        </button>
+      </div>
+    </dialog>
+
+    <dialog id="import-dialog">
+      <p class="sheet-title">Importer cette sauvegarde ?</p>
+      <dl id="import-summary" class="delete-summary"></dl>
+      <p class="delete-warn">
+        Toutes les données de cet appareil (joueurs, statistiques, Hall of Fame,
+        partie en cours) seront remplacées par celles du fichier.
+      </p>
+      <div class="delete-actions">
+        <button type="button" id="import-cancel" class="btn btn-secondary">
+          Annuler
+        </button>
+        <button type="button" id="import-confirm" class="btn btn-danger">
+          Oui, importer
+        </button>
+      </div>
+    </dialog>
+
+    <dialog id="message-dialog">
+      <p class="sheet-title" id="message-title"></p>
+      <p class="message-text" id="message-text"></p>
+      <div class="delete-actions">
+        <button type="button" id="message-ok" class="btn btn-primary">
+          OK
         </button>
       </div>
     </dialog>

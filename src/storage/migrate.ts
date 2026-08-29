@@ -6,6 +6,7 @@
 // perdu. On ne supprime que sur du JSON illisible ; sinon on complète / répare
 // la forme, ou on laisse tel quel (le guard de lecture renverra null).
 
+import { compareNames, foldName } from "../playerName";
 import { STORAGE_KEYS } from "./keys";
 import { writeJson } from "./localStore";
 import { normalizeRules } from "../scoring";
@@ -121,11 +122,10 @@ function migrateKnownNames(): void {
   for (const value of raw) {
     if (typeof value !== "string") continue;
     const name = value.trim();
-    const fold = name.toLowerCase();
-    if (!name || seen.has(fold)) continue;
-    seen.add(fold);
+    if (!name || seen.has(foldName(name))) continue;
+    seen.add(foldName(name));
     clean.push(name);
   }
-  clean.sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" }));
+  clean.sort(compareNames);
   writeJson(STORAGE_KEYS.knownNames, clean);
 }

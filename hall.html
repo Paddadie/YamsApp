@@ -2,24 +2,19 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yams — Hall of Fame</title>
-
-    <link rel="icon" href="/de.png" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Yams" />
+    <!--@head-->
   </head>
   <body>
     <div id="hall-screen" class="screen">
       <div id="hall-content">
-        <h2><span id="hof-trophy" class="hof-trophy">🏆</span> Hall of Fame</h2>
+        <h1><span id="hof-trophy" class="hof-trophy">🏆</span> Hall of Fame</h1>
         <p class="hall-hint">Touchez une partie pour voir le détail des points.</p>
 
         <div id="record-card" hidden></div>
 
         <section class="hall-block hall-block--best">
-          <h3>👑 Meilleurs scores</h3>
+          <h2>👑 Meilleurs scores</h2>
           <table id="best-scores-table">
             <thead>
               <tr>
@@ -34,7 +29,7 @@
         </section>
 
         <section class="hall-block hall-block--worst">
-          <h3>💩 Pires scores</h3>
+          <h2>💩 Pires scores</h2>
           <p class="hall-note">Parties classiques uniquement</p>
           <table id="worst-scores-table">
             <thead>
@@ -49,13 +44,13 @@
         </section>
 
         <section class="hall-block hall-block--stats">
-          <h3>📊 Statistiques</h3>
+          <h2>📊 Statistiques</h2>
           <p class="hall-note">Parties classiques uniquement</p>
           <ul id="stats-list"></ul>
         </section>
       </div>
 
-      <div id="hall-footer" class="action-bar">
+      <div class="action-bar">
         <a href="index.html" class="btn btn-secondary">🏠 Retour</a>
       </div>
     </div>

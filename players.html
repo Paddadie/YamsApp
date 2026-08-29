@@ -2,18 +2,13 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Yams — Joueurs</title>
-
-    <link rel="icon" href="/de.png" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Yams" />
+    <!--@head-->
   </head>
   <body>
-    <div id="players-screen" class="screen">
+    <div class="screen">
       <div class="screen-body">
-        <h2>🪑 Autour de la table</h2>
+        <h1>🪑 Autour de la table</h1>
 
         <form id="player-form">
           <input
@@ -37,8 +32,8 @@
         <ul id="roster"></ul>
       </div>
 
-      <div id="start-game-container" class="action-bar">
-        <button id="start-game-btn" class="btn btn-primary" disabled>
+      <div class="action-bar">
+        <button id="start-game-btn" type="button" class="btn btn-primary" disabled>
           🎲 Commencer la partie
         </button>
         <a href="index.html" class="btn btn-secondary">🏠 Retour</a>

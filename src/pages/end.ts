@@ -5,7 +5,7 @@ import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { game, hydrateGame } from "../state";
 import { getVariantIcon } from "../variants";
-import { renderTable, requireEl, type Cell } from "../ui";
+import { MEDALS, renderTable, requireEl, type Cell } from "../ui";
 import {
   getSavedGame,
   saveSavedGame,
@@ -13,15 +13,15 @@ import {
 } from "../storage/savedGameRepo";
 import { clearDraft } from "../storage/draftRepo";
 import { recordGameResult } from "../storage/playerStatsRepo";
-import { buildGrid, writeDerived } from "../scoring";
+import { buildGrid, writeDerived, FINAL_SCORE_LINE } from "../scoring";
 import {
+  impactFor,
+  isHallOfFameImpact,
   previewHallOfFame,
   saveBestAndWorstScores,
-  type HallOfFamePreview,
 } from "../hallOfFame";
-import type { Variant } from "../types";
+import type { HallOfFameImpact, Variant } from "../types";
 
-const MEDALS = ["🥇", "🥈", "🥉"];
 const BEST_BADGE = "🏆";
 const WORST_BADGE = "💩";
 
@@ -44,8 +44,15 @@ for (const player of game.players) {
   }
 }
 
-// L'impact sur le Hall of Fame se calcule AVANT d'y écrire quoi que ce soit.
-const preview = previewHallOfFame(game.players, game.variants);
+// L'impact sur le Hall of Fame ne se mesure qu'AVANT d'y écrire : une fois les
+// scores versés, les recalculer les comparerait à eux-mêmes (la bannière
+// « nouveau record » disparaîtrait notamment). On mémorise donc le résultat
+// dans la partie au premier affichage, et on le relit ensuite tel quel.
+// Une partie enregistrée par une version antérieure n'a pas ce champ : on
+// recalcule alors, faute de mieux.
+const impact: HallOfFameImpact = isHallOfFameImpact(saved.hofImpact)
+  ? saved.hofImpact
+  : previewHallOfFame(game.players, game.variants);
 
 // La partie sauvegardée n'est effacée qu'au clic sur « Quitter » : ainsi un
 // rafraîchissement de cette page réaffiche le podium au lieu de tout perdre.
@@ -77,7 +84,7 @@ if (!saved.recorded) {
       classiqueScore: hasClassique ? r.details["Classique"] : null,
     })),
   );
-  saveSavedGame({ ...saved, recorded: true });
+  saveSavedGame({ ...saved, recorded: true, hofImpact: impact });
 }
 
 requireEl("quit-btn").addEventListener("click", () => {
@@ -97,7 +104,7 @@ function computeResults(): Result[] {
       const details = {} as Record<Variant, number>;
       let total = 0;
       for (const variant of game.variants) {
-        const score = player.scores[variant]["Score Final"] || 0;
+        const score = player.scores[variant][FINAL_SCORE_LINE] || 0;
         details[variant] = score;
         total += score;
       }
@@ -121,7 +128,7 @@ function renderRanking(results: Result[]): void {
     MEDALS[i] ?? `${i + 1}`,
     r.name,
     ...game.variants.map((v) =>
-      cellWithBadge(r.details[v], preview.impactFor(r.name, v)),
+      cellWithBadge(r.details[v], impactFor(impact, r.name, v)),
     ),
     ...(multi ? [{ strong: r.total }] : []),
   ]);
@@ -130,17 +137,17 @@ function renderRanking(results: Result[]): void {
 
 function cellWithBadge(
   value: number,
-  impact: ReturnType<HallOfFamePreview["impactFor"]>,
+  where: { inBest: boolean; inWorst: boolean },
 ): Cell {
-  if (impact.inBest) return { text: value, badge: BEST_BADGE };
-  if (impact.inWorst) return { text: value, badge: WORST_BADGE };
+  if (where.inBest) return { text: value, badge: BEST_BADGE };
+  if (where.inWorst) return { text: value, badge: WORST_BADGE };
   return String(value);
 }
 
 function renderRecordBanner(): void {
   const banner = requireEl("record-banner");
-  if (!preview.newRecord) return;
-  const { name, score, variant } = preview.newRecord;
+  if (!impact.newRecord) return;
+  const { name, score, variant } = impact.newRecord;
   banner.textContent = `👑 Nouveau record du téléphone : ${name} — ${score} (${variant})`;
   banner.hidden = false;
 }
@@ -148,15 +155,17 @@ function renderRecordBanner(): void {
 function renderLegend(): void {
   const legend = requireEl("hof-legend");
   const parts: string[] = [];
-  if (preview.entersBest > 0) parts.push(`${BEST_BADGE} entre au Hall of Fame`);
-  if (preview.entersWorst > 0) parts.push(`${WORST_BADGE} entre dans les pires scores`);
+  if (impact.best.length > 0) parts.push(`${BEST_BADGE} entre au Hall of Fame`);
+  if (impact.worst.length > 0) {
+    parts.push(`${WORST_BADGE} entre dans les pires scores`);
+  }
   if (parts.length === 0) return;
   legend.textContent = parts.join("  ·  ");
   legend.hidden = false;
 }
 
 function renderPodium(results: Result[]): void {
-  podium.innerHTML = "";
+  podium.replaceChildren();
   // Ordre visuel : 2e à gauche, 1er au centre (marche la plus haute), 3e à droite.
   for (const rank of [2, 1, 3]) {
     const result = results[rank - 1];

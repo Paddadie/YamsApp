@@ -39,6 +39,16 @@ export interface GameRules {
   yams: LineMode;
 }
 
+// Effet d'une partie terminée sur le Hall of Fame (badges 🏆/💩 et bannière de
+// record de l'écran de fin). Mesuré AVANT d'écrire les scores, puis mémorisé :
+// une fois la partie versée au Hall of Fame, la recalculer comparerait ses
+// scores à eux-mêmes et ne verrait plus aucun changement.
+export interface HallOfFameImpact {
+  best: string[]; // clés `nom|variante` entrant aux meilleurs scores
+  worst: string[]; // idem pour les pires scores
+  newRecord: { name: string; score: number; variant: Variant } | null;
+}
+
 export interface SavedGame {
   players: Player[];
   selectedVariants: Variant[];
@@ -47,6 +57,8 @@ export interface SavedGame {
   // Posé par l'écran de fin une fois les scores versés au Hall of Fame et aux
   // stats : évite un double comptage si on y revient / rafraîchit.
   recorded?: boolean;
+  // Enregistré en même temps que `recorded` (voir HallOfFameImpact).
+  hofImpact?: HallOfFameImpact;
 }
 
 export interface ScoreEntry {

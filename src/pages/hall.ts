@@ -2,12 +2,25 @@
 // de score détaillée) et statistiques par joueur.
 
 import { bootstrap } from "../bootstrap";
-import { requireEl } from "../ui";
+import {
+  MEDALS,
+  makeActivatable,
+  plural,
+  requireEl,
+  strongText,
+  variantBadge,
+} from "../ui";
 import { getBestScores, getWorstScores } from "../storage/hallOfFameRepo";
 import { getPlayerStats } from "../storage/playerStatsRepo";
-import { getVariantIcon, getVariantColor } from "../variants";
+import { compareNames } from "../playerName";
+import {
+  BONUS_LINE,
+  FINAL_SCORE_LINE,
+  LOWER_TOTAL_LINE,
+  UPPER_TOTAL_LINE,
+} from "../scoring";
 import { formatDate } from "../dates";
-import type { ScoreEntry, Variant } from "../types";
+import type { ScoreEntry } from "../types";
 
 bootstrap();
 
@@ -18,8 +31,9 @@ const sheetMeta = requireEl("sheet-meta");
 const sheetTotalValue = requireEl("sheet-total-value");
 const sheetTable = requireEl<HTMLTableElement>("sheet-table");
 
-// Lignes de la feuille qui sont des totaux calculés, pas des scores saisis.
-const DERIVED_LINES = new Set(["Bonus", "Total Haut", "Total Bas"]);
+// Lignes de la feuille qui sont des totaux calculés, pas des scores saisis
+// (le score final, lui, est affiché à part dans l'en-tête du dialogue).
+const SUBTOTAL_LINES = new Set([BONUS_LINE, UPPER_TOTAL_LINE, LOWER_TOTAL_LINE]);
 
 interface SheetRank {
   kind: "best" | "worst";
@@ -31,11 +45,14 @@ sheetDialog.addEventListener("click", (e) => {
   if (e.target === sheetDialog) sheetDialog.close();
 });
 
+const bestScores = getBestScores();
+const worstScores = getWorstScores();
+
 renderRecordCard();
 // Le tableau des pires scores ne contient que des parties classiques : la
 // colonne « Variante » n'a d'intérêt que pour les meilleurs scores.
-renderScoreTable("best-scores-table", getBestScores(), true);
-renderScoreTable("worst-scores-table", getWorstScores());
+renderScoreTable("best-scores-table", bestScores, "best", true);
+renderScoreTable("worst-scores-table", worstScores, "worst");
 renderStats();
 setupCreditsEasterEgg();
 
@@ -43,7 +60,7 @@ setupCreditsEasterEgg();
 
 function renderRecordCard(): void {
   const card = requireEl("record-card");
-  const top = getBestScores()[0];
+  const top = bestScores[0];
   if (!top) {
     card.hidden = true;
     return;
@@ -74,25 +91,11 @@ function renderRecordCard(): void {
   card.replaceChildren(crown, body);
 
   // Cliquable vers la feuille détaillée, comme les lignes des tableaux.
-  const openable = Boolean(top.sheet && top.lineOrder);
-  const rank: SheetRank = { kind: "best", position: 1 };
-  card.classList.toggle("clickable", openable);
-  card.onclick = openable ? () => openSheet(top, rank) : null;
-  card.onkeydown = openable
-    ? (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openSheet(top, rank);
-        }
-      }
-    : null;
-  if (openable) {
-    card.tabIndex = 0;
-    card.setAttribute("role", "button");
-    card.setAttribute("aria-label", `Voir la feuille de ${top.name}`);
-  } else {
-    card.removeAttribute("tabindex");
-    card.removeAttribute("role");
+  if (top.sheet && top.lineOrder) {
+    card.classList.add("clickable");
+    makeActivatable(card, `Voir la feuille de ${top.name}`, () =>
+      openSheet(top, { kind: "best", position: 1 }),
+    );
   }
 }
 
@@ -101,14 +104,13 @@ function renderRecordCard(): void {
 function renderScoreTable(
   tableId: string,
   entries: ScoreEntry[],
+  kind: SheetRank["kind"],
   showVariant = false,
 ): void {
   const tbody = requireEl(tableId).querySelector("tbody");
   if (!tbody) return;
   tbody.replaceChildren();
 
-  const kind: SheetRank["kind"] =
-    tableId === "worst-scores-table" ? "worst" : "best";
   const columns = showVariant ? 4 : 3;
 
   if (entries.length === 0) {
@@ -122,18 +124,10 @@ function renderScoreTable(
     if (showVariant) tr.append(variantCell(entry.variant));
     tr.append(cell(formatDate(entry.date)), cell(String(entry.score), true));
     if (entry.sheet && entry.lineOrder) {
-      const rank: SheetRank = { kind, position: i + 1 };
       tr.classList.add("clickable");
-      tr.tabIndex = 0;
-      tr.setAttribute("role", "button");
-      tr.setAttribute("aria-label", `Voir la feuille de ${entry.name}`);
-      tr.addEventListener("click", () => openSheet(entry, rank));
-      tr.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openSheet(entry, rank);
-        }
-      });
+      makeActivatable(tr, `Voir la feuille de ${entry.name}`, () =>
+        openSheet(entry, { kind, position: i + 1 }),
+      );
     }
     tbody.appendChild(tr);
   });
@@ -147,17 +141,6 @@ function emptyRow(text: string, colSpan = 3): HTMLTableRowElement {
   td.textContent = text;
   tr.appendChild(td);
   return tr;
-}
-
-// Pastille ronde colorée avec l'icône de la variante, comme les en-têtes de
-// colonnes pendant une partie.
-function variantBadge(variant: Variant): HTMLElement {
-  const badge = document.createElement("span");
-  badge.className = "variant-badge";
-  badge.style.setProperty("--vc", getVariantColor(variant));
-  badge.textContent = getVariantIcon(variant);
-  badge.title = variant;
-  return badge;
 }
 
 // `–` pour les entrées d'avant les variantes.
@@ -175,15 +158,7 @@ function cell(text: string, strong = false): HTMLTableCellElement {
   return td;
 }
 
-function strongText(text: string): HTMLElement {
-  const s = document.createElement("strong");
-  s.textContent = text;
-  return s;
-}
-
 /* ---------- Feuille de score détaillée ---------- */
-
-const MEDALS = ["🥇", "🥈", "🥉"];
 
 function rankChip(rank: SheetRank): { label: string; cls: string } {
   const noun = rank.kind === "best" ? "meilleur score" : "pire score";
@@ -224,10 +199,10 @@ function openSheet(entry: ScoreEntry, rank?: SheetRank): void {
 
   const tbody = document.createElement("tbody");
   for (const line of entry.lineOrder ?? []) {
-    if (line === "Score Final") continue; // déjà affiché en gros dans l'en-tête
+    if (line === FINAL_SCORE_LINE) continue; // déjà affiché en gros dans l'en-tête
     const value = entry.sheet?.[line];
     const tr = document.createElement("tr");
-    if (DERIVED_LINES.has(line)) tr.className = "sheet-derived";
+    if (SUBTOTAL_LINES.has(line)) tr.className = "sheet-derived";
     tr.append(cell(line), cell(value === undefined ? "–" : String(value), true));
     tbody.appendChild(tr);
   }
@@ -247,7 +222,7 @@ function renderStats(): void {
     s.classiquePoints / s.classiqueGames;
   const rows = Object.entries(getPlayerStats())
     .filter(([, s]) => s.classiqueGames > 0)
-    .sort(([an, a], [bn, b]) => avg(b) - avg(a) || an.localeCompare(bn));
+    .sort(([an, a], [bn, b]) => avg(b) - avg(a) || compareNames(an, bn));
 
   if (rows.length === 0) {
     const li = document.createElement("li");
@@ -267,7 +242,7 @@ function renderStats(): void {
 
     const avgEl = document.createElement("span");
     avgEl.className = "stats-avg";
-    avgEl.textContent = `moy. ${Math.round(stat.classiquePoints / stat.classiqueGames)}`;
+    avgEl.textContent = `moy. ${Math.round(avg(stat))}`;
 
     const main = document.createElement("div");
     main.className = "stats-main";
@@ -275,9 +250,7 @@ function renderStats(): void {
 
     const sub = document.createElement("span");
     sub.className = "stats-sub";
-    const bits = [
-      `${stat.classiqueGames} partie${stat.classiqueGames > 1 ? "s" : ""}`,
-    ];
+    const bits = [plural(stat.classiqueGames, "partie")];
     if (stat.classiqueBest > 0) bits.unshift(`record ${stat.classiqueBest}`);
     sub.textContent = bits.join(" · ");
 

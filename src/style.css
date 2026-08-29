@@ -58,10 +58,14 @@ h2 {
   text-align: center;
 }
 
+/* Chaque écran porte un <h1> : un document doit avoir un titre de premier
+   niveau, sinon la structure est illisible aux lecteurs d'écran. Seul
+   l'accueil l'affiche en grand (#home-screen h1) ; ailleurs c'est le titre de
+   l'écran, qui garde volontairement la taille d'un h2 pour ne rien déplacer. */
 h1 {
-  font-size: 2.2em;
+  font-size: 1.5em;
   font-weight: 700;
-  margin-bottom: 0.5em;
+  margin: 0.83em 0;
 }
 
 button {
@@ -560,7 +564,7 @@ button:hover {
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
 }
 
-.player-header h2 {
+.player-header h1 {
   margin: 0;
   font-size: 1.5em;
 }
@@ -1235,7 +1239,7 @@ button:hover {
   flex-shrink: 0;
 }
 
-#hall-content > h2 {
+#hall-content > h1 {
   margin: 0.2rem 0 0;
 }
 
@@ -1254,7 +1258,7 @@ button:hover {
   padding-top: clamp(1rem, 4vh, 2.5rem);
 }
 
-#end-screen h2 {
+#end-screen h1 {
   margin: 0;
   font-size: clamp(1.5rem, 4.5vh, 2.1rem);
 }
@@ -1336,7 +1340,7 @@ button:hover {
   --hall-accent: #97a2ab;
 }
 
-#hall-screen h3 {
+#hall-screen h2 {
   margin: 0 0 0.55rem;
   padding: 0 clamp(0.8rem, 3vw, 1.4rem);
   font-size: clamp(1rem, 2vh, 1.3rem);
@@ -1671,9 +1675,15 @@ button:hover {
   }
 }
 
-/* Dialogues : feuille de score détaillée + confirmations (paramètres). */
+/* Dialogues : feuille de score détaillée + confirmations (paramètres).
+   Tout <dialog> ajouté à l'appli doit figurer ici, sinon il retombe sur le
+   cadre par défaut du navigateur (bord carré, aucun fond assombri). */
 #sheet-dialog,
-#delete-dialog {
+#delete-dialog,
+#player-edit-dialog,
+#player-delete-dialog,
+#import-dialog,
+#message-dialog {
   border: none;
   border-radius: 18px;
   width: min(23rem, 92vw);
@@ -1682,7 +1692,11 @@ button:hover {
   box-shadow: 0 20px 55px rgba(10, 20, 25, 0.4);
 }
 
-#delete-dialog {
+#delete-dialog,
+#player-edit-dialog,
+#player-delete-dialog,
+#import-dialog,
+#message-dialog {
   padding: 1.2em;
 }
 
@@ -1691,7 +1705,11 @@ button:hover {
 }
 
 #sheet-dialog::backdrop,
-#delete-dialog::backdrop {
+#delete-dialog::backdrop,
+#player-edit-dialog::backdrop,
+#player-delete-dialog::backdrop,
+#import-dialog::backdrop,
+#message-dialog::backdrop {
   background: rgba(12, 22, 27, 0.55);
 }
 
@@ -1874,9 +1892,10 @@ button:hover {
   padding: 0.4rem 1.1rem 0.9rem;
 }
 
-.settings-group h3 {
+.settings-group h2 {
   margin: 0.6rem 0 0.2rem;
   font-size: 1.05rem;
+  text-align: left; /* la règle globale h1,h2 centre : pas ici */
 }
 
 .settings-hint {
@@ -2125,7 +2144,7 @@ button:hover {
   color: #999;
 }
 
-/* Pop-up de confirmation de suppression (réutilise le style de #sheet-dialog). */
+/* Contenu des pop-ups de confirmation (suppression de score, de joueur). */
 .delete-summary {
   margin: 0 0 1em;
   display: grid;
@@ -2190,6 +2209,13 @@ button:hover {
 
 .player-edit-error[hidden] {
   display: none;
+}
+
+.message-text {
+  margin: 0 0 1.2em;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #444;
 }
 
 /* ========== TABLETTE & GRANDS ÉCRANS ========== */

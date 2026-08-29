@@ -7,7 +7,7 @@
 
 export type Page = "home" | "players" | "game" | "end" | "hall" | "settings";
 
-export const PAGE_FILES: Record<Page, string> = {
+const PAGE_FILES: Record<Page, string> = {
   home: "index.html",
   players: "players.html",
   game: "game.html",

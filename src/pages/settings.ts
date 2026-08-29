@@ -3,16 +3,22 @@
 
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
-import { requireEl } from "../ui";
+import { plural, requireEl, variantBadge } from "../ui";
 import { getRules, saveRules } from "../storage/rulesRepo";
 import {
   DEFAULT_RULES,
   BONUS_MIN,
   BONUS_MAX,
+  FINAL_SCORE_LINE,
   LINE_POINTS_MIN,
   LINE_POINTS_MAX,
 } from "../scoring";
-import { downloadBackup, importBackupFile } from "../storage/backup";
+import {
+  downloadBackup,
+  importAllData,
+  readBackupFile,
+  type BackupData,
+} from "../storage/backup";
 import {
   getBestScores,
   getWorstScores,
@@ -31,7 +37,8 @@ import {
 } from "../storage/playerStatsRepo";
 import { getDraft, saveDraft } from "../storage/draftRepo";
 import { getSavedGame, clearSavedGame } from "../storage/savedGameRepo";
-import { getVariantIcon, getVariantColor } from "../variants";
+import { compareNames, foldName, sameName } from "../playerName";
+import { formatDate } from "../dates";
 import type { ScoreEntry } from "../types";
 
 type ModeKey =
@@ -79,6 +86,11 @@ const playerDeleteDialog = requireEl<HTMLDialogElement>("player-delete-dialog");
 const playerDeleteSummary = requireEl("player-delete-summary");
 let editingPlayer: string | null = null;
 let deletingPlayer: string | null = null;
+
+const importDialog = requireEl<HTMLDialogElement>("import-dialog");
+const messageDialog = requireEl<HTMLDialogElement>("message-dialog");
+const messageTitle = requireEl("message-title");
+const messageText = requireEl("message-text");
 
 const resetBtn = requireEl<HTMLButtonElement>("reset-rules");
 
@@ -218,7 +230,7 @@ function setupChance(): void {
 }
 
 function setupReset(): void {
-  requireEl("reset-rules").addEventListener("click", () => {
+  resetBtn.addEventListener("click", () => {
     rules = structuredClone(DEFAULT_RULES);
     persist();
     for (const sync of syncers) sync();
@@ -233,21 +245,107 @@ function setupBackup(): void {
   const importInput = requireEl<HTMLInputElement>("import-input");
   importInput.addEventListener("change", () => {
     const file = importInput.files?.[0];
+    // Réinitialisé tout de suite : sinon ré-importer le même fichier après une
+    // annulation ne déclencherait aucun événement `change`.
     importInput.value = "";
     if (file) void restore(file);
   });
 }
 
+// L'import remplace TOUTES les données locales : on lit et valide le fichier
+// d'abord, on montre ce qu'il contient, et on n'écrit qu'après confirmation.
 async function restore(file: File): Promise<void> {
-  const result = await importBackupFile(file);
-  if (result === "ok") {
-    alert("Sauvegarde restaurée.");
-    goTo("home");
-  } else if (result === "invalid") {
-    alert("Fichier de sauvegarde invalide.");
-  } else {
-    alert("Impossible de lire ce fichier.");
+  const read = await readBackupFile(file);
+  if (!read.ok) {
+    showMessage(
+      "Import impossible",
+      read.reason === "invalid"
+        ? "Ce fichier n'est pas une sauvegarde Yams."
+        : "Ce fichier n'a pas pu être lu.",
+    );
+    return;
   }
+
+  if (!(await confirmImport(file, read.data))) return;
+
+  importAllData(read.data);
+  showMessage("Sauvegarde restaurée", "Les données du fichier ont été rétablies.", () =>
+    goTo("home"),
+  );
+}
+
+function confirmImport(file: File, data: BackupData): Promise<boolean> {
+  renderImportSummary(file, data);
+
+  return new Promise((resolve) => {
+    // Le dialogue est réutilisé à chaque import : un AbortController retire
+    // d'un coup tous les écouteurs, y compris quand la fermeture vient d'Échap
+    // ou d'un clic sur le fond (qui passent par l'événement `close`).
+    const open = new AbortController();
+    const { signal } = open;
+    const settle = (accepted: boolean): void => {
+      open.abort();
+      importDialog.close();
+      resolve(accepted);
+    };
+
+    requireEl("import-confirm").addEventListener("click", () => settle(true), {
+      signal,
+    });
+    requireEl("import-cancel").addEventListener("click", () => settle(false), {
+      signal,
+    });
+    importDialog.addEventListener("close", () => settle(false), { signal });
+    importDialog.addEventListener(
+      "click",
+      (e) => {
+        if (e.target === importDialog) importDialog.close();
+      },
+      { signal },
+    );
+
+    importDialog.showModal();
+  });
+}
+
+function renderImportSummary(file: File, data: BackupData): void {
+  const summary = requireEl("import-summary");
+  summary.replaceChildren();
+  summaryRow(summary, "Fichier", file.name);
+  if (data.exportedAt) {
+    summaryRow(summary, "Exportée le", formatDate(data.exportedAt));
+  }
+  summaryRow(summary, "Joueurs", String(data.knownNames.length));
+  summaryRow(
+    summary,
+    "Entrées Hall of Fame",
+    String(data.bestScores.length + data.worstScores.length),
+  );
+  summaryRow(summary, "Partie en cours", data.savedGame ? "oui" : "non");
+}
+
+// Remplace les anciens alert() : même habillage que les autres pop-ups.
+// `onClose` part sur l'événement `close` et non sur le clic « OK », pour être
+// honoré aussi quand l'utilisateur ferme avec Échap.
+function showMessage(title: string, text: string, onClose?: () => void): void {
+  messageTitle.textContent = title;
+  messageText.textContent = text;
+
+  const open = new AbortController();
+  const { signal } = open;
+  requireEl("message-ok").addEventListener("click", () => messageDialog.close(), {
+    signal,
+  });
+  messageDialog.addEventListener(
+    "close",
+    () => {
+      open.abort();
+      onClose?.();
+    },
+    { signal },
+  );
+
+  messageDialog.showModal();
 }
 
 /* ---------- Nettoyage des classements du Hall of Fame ---------- */
@@ -346,12 +444,7 @@ function renderDeleteSummary(entry: ScoreEntry): void {
   if (entry.variant) {
     const wrap = document.createElement("span");
     wrap.className = "delete-variant";
-    const badge = document.createElement("span");
-    badge.className = "variant-badge";
-    badge.style.setProperty("--vc", getVariantColor(entry.variant));
-    badge.textContent = getVariantIcon(entry.variant);
-    badge.title = entry.variant;
-    wrap.append(badge, document.createTextNode(entry.variant));
+    wrap.append(variantBadge(entry.variant), entry.variant);
     summaryRow(deleteSummary, "Variante", wrap);
   }
 }
@@ -382,7 +475,7 @@ function renderDeleteSheet(entry: ScoreEntry): void {
   for (const line of entry.lineOrder) {
     const value = entry.sheet[line];
     const tr = document.createElement("tr");
-    if (line === "Score Final") tr.className = "sheet-final";
+    if (line === FINAL_SCORE_LINE) tr.className = "sheet-final";
     const tdLine = document.createElement("td");
     tdLine.textContent = line;
     const tdValue = document.createElement("td");
@@ -428,10 +521,6 @@ function setupPlayerAdmin(): void {
   });
 }
 
-function foldName(name: string): string {
-  return name.trim().toLowerCase();
-}
-
 // Tous les noms qui laissent une trace quelque part : joueurs connus,
 // statistiques, Hall of Fame, brouillon de partie, partie en cours. Sert à
 // pouvoir supprimer un reliquat même s'il ne figure plus dans la liste des
@@ -447,17 +536,11 @@ function allPlayerNames(): string[] {
   for (const store of SCORE_STORES) store.get().forEach((e) => add(e.name));
   getDraft()?.playerNames.forEach(add);
   getSavedGame()?.players.forEach((p) => add(p.name));
-  return [...seen.values()].sort((a, b) =>
-    a.localeCompare(b, "fr", { sensitivity: "base" }),
-  );
+  return [...seen.values()].sort(compareNames);
 }
 
-function statFor(name: string) {
-  const key = foldName(name);
-  const entry = Object.entries(getPlayerStats()).find(
-    ([k]) => foldName(k) === key,
-  );
-  return entry?.[1];
+function statFor(name: string, stats = getPlayerStats()) {
+  return Object.entries(stats).find(([k]) => sameName(k, name))?.[1];
 }
 
 // Efface toute trace du joueur : nom connu, stats, Hall of Fame, brouillon,
@@ -473,8 +556,7 @@ function purgePlayer(name: string): void {
 function removeFromDraft(name: string): void {
   const draft = getDraft();
   if (!draft) return;
-  const key = foldName(name);
-  const kept = draft.playerNames.filter((n) => foldName(n) !== key);
+  const kept = draft.playerNames.filter((n) => !sameName(n, name));
   if (kept.length !== draft.playerNames.length) {
     saveDraft({ ...draft, playerNames: kept });
   }
@@ -482,8 +564,7 @@ function removeFromDraft(name: string): void {
 
 function clearGameIfContains(name: string): void {
   const game = getSavedGame();
-  const key = foldName(name);
-  if (game?.players.some((p) => foldName(p.name) === key)) clearSavedGame();
+  if (game?.players.some((p) => sameName(p.name, name))) clearSavedGame();
 }
 
 function renderPlayerAdmin(): void {
@@ -499,8 +580,10 @@ function renderPlayerAdmin(): void {
     return;
   }
 
+  // Stats lues une seule fois : statFor() ferait sinon un parse JSON par ligne.
+  const stats = getPlayerStats();
   for (const name of names) {
-    list.appendChild(playerAdminRow(name, statFor(name)?.games ?? 0));
+    list.appendChild(playerAdminRow(name, statFor(name, stats)?.games ?? 0));
   }
 }
 
@@ -514,8 +597,7 @@ function playerAdminRow(name: string, games: number): HTMLLIElement {
 
   const gamesEl = document.createElement("span");
   gamesEl.className = "score-admin-games";
-  gamesEl.textContent =
-    games === 0 ? "jamais joué" : `${games} partie${games > 1 ? "s" : ""}`;
+  gamesEl.textContent = games === 0 ? "jamais joué" : plural(games, "partie");
 
   const edit = document.createElement("button");
   edit.type = "button";
@@ -567,11 +649,10 @@ function savePlayerEdit(): void {
 
 // Renomme les entrées du Hall of Fame portant ce nom (casse / espaces ignorés).
 function renameInScores(from: string, to: string): void {
-  const key = from.trim().toLowerCase();
   for (const store of SCORE_STORES) {
     let changed = false;
     const updated = store.get().map((entry) => {
-      if (entry.name.trim().toLowerCase() !== key) return entry;
+      if (!sameName(entry.name, from)) return entry;
       changed = true;
       return { ...entry, name: to };
     });
@@ -581,23 +662,21 @@ function renameInScores(from: string, to: string): void {
 
 // Retire toutes les entrées du Hall of Fame portant ce nom.
 function removeFromScores(name: string): void {
-  const key = name.trim().toLowerCase();
   for (const store of SCORE_STORES) {
     const list = store.get();
-    const kept = list.filter((entry) => entry.name.trim().toLowerCase() !== key);
+    const kept = list.filter((entry) => !sameName(entry.name, name));
     if (kept.length !== list.length) store.save(kept);
   }
 }
 
 function openPlayerDelete(name: string): void {
   deletingPlayer = name;
-  const key = foldName(name);
   const stat = statFor(name);
   const hofCount = SCORE_STORES.reduce(
-    (n, store) => n + store.get().filter((e) => foldName(e.name) === key).length,
+    (n, store) => n + store.get().filter((e) => sameName(e.name, name)).length,
     0,
   );
-  const inGame = !!getSavedGame()?.players.some((p) => foldName(p.name) === key);
+  const inGame = !!getSavedGame()?.players.some((p) => sameName(p.name, name));
 
   playerDeleteSummary.replaceChildren();
   summaryRow(playerDeleteSummary, "Joueur", name);
