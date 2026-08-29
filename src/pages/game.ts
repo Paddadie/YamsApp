@@ -17,6 +17,8 @@ import {
   isGameFinished,
   computeDerived,
   writeDerived,
+  BONUS_THRESHOLD,
+  type Derived,
 } from "../scoring";
 import type { LineName, PlayerScores, Variant } from "../types";
 
@@ -66,6 +68,9 @@ const pickerValues = requireEl("picker-values");
 const pickerClear = requireEl<HTMLButtonElement>("picker-clear");
 
 let autoAdvance: ReturnType<typeof setTimeout> | undefined;
+// Posé par l'animation de fin de bonus : on repousse l'auto-avance le temps
+// de la voir en entier (remplissage + gonflement/tremblement + verdict).
+let bonusJustAnimated = false;
 
 interface Widget {
   el: HTMLElement;
@@ -79,8 +84,26 @@ interface ScoreControl {
 let controls = new Map<Variant, ScoreControl[]>();
 let derivedCells = new Map<Variant, Map<LineName, HTMLTableCellElement>>();
 
-prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
-nextPlayerBtn.addEventListener("click", () => changePlayer(1));
+// Animation de fin de bonus, en deux temps : la barre se remplit jusqu'à sa
+// valeur finale, PUIS elle vire au vert/rouge et gonfle/tremble, PUIS il ne
+// reste que le verdict.
+const BONUS_FILL_MS = 550;
+const BONUS_REACT_MS = 750;
+const BONUS_ANIM_MS = BONUS_FILL_MS + BONUS_REACT_MS;
+
+// Joueurs dont l'animation de fin de bonus a déjà été jouée (une seule fois).
+// Déclaré ici : renderPlayer() y accède dès le rendu initial.
+const bonusAnimated = new Set<string>();
+
+// blur() : sinon la flèche garde le focus (et sa pastille) collé après un tap.
+prevPlayerBtn.addEventListener("click", () => {
+  prevPlayerBtn.blur();
+  changePlayer(-1);
+});
+nextPlayerBtn.addEventListener("click", () => {
+  nextPlayerBtn.blur();
+  changePlayer(1);
+});
 
 const pauseBtn = requireEl<HTMLButtonElement>("pause-btn");
 if (isReview) {
@@ -126,11 +149,17 @@ function onPick(variant: Variant, lineName: LineName, value: number | undefined)
   if (value === undefined) delete scores[lineName];
   else scores[lineName] = value;
 
+  bonusJustAnimated = false;
   writeDerived(scores, grid);
-  refreshColumn(variant);
+  refreshColumn(variant); // peut lever bonusJustAnimated
   persist();
 
+  // Effacer une valeur ne fait pas passer au joueur suivant : c'est qu'on va
+  // en resaisir une autre.
   clearTimeout(autoAdvance);
+  if (value === undefined) return;
+
+  const delay = bonusJustAnimated ? BONUS_ANIM_MS + 900 : AUTO_ADVANCE_MS;
   autoAdvance = setTimeout(() => {
     if (isGameFinished(game.players, game.variants, grid)) {
       persist();
@@ -138,7 +167,7 @@ function onPick(variant: Variant, lineName: LineName, value: number | undefined)
     } else {
       changePlayer(1);
     }
-  }, AUTO_ADVANCE_MS);
+  }, delay);
 }
 
 /* ---------- Rendu ---------- */
@@ -149,12 +178,16 @@ function renderPlayer(): void {
   gameScreen.style.backgroundColor = player.color;
   if (themeMeta) themeMeta.content = player.color;
 
+  // Repère des cases remplies : la teinte de la page, plus vive et à peine
+  // assombrie (surtout pas grisée : ça ferait "bouton désactivé").
+  gameScreen.style.setProperty("--filled-bg", richen(player.color));
+
   controls = new Map(game.variants.map((v) => [v, []]));
   derivedCells = new Map(game.variants.map((v) => [v, new Map()]));
 
   const table = document.createElement("table");
   table.className = "score-table";
-  table.append(buildHead(), buildBody(player.scores));
+  table.appendChild(buildBody(player.scores));
 
   const wrapper = document.createElement("div");
   wrapper.className = "score-wrapper";
@@ -164,30 +197,18 @@ function renderPlayer(): void {
   for (const variant of game.variants) fillDerived(variant);
 }
 
-function buildHead(): HTMLTableSectionElement {
-  const thead = document.createElement("thead");
-  const row = document.createElement("tr");
-  row.appendChild(document.createElement("th")); // coin vide
-  for (const variant of game.variants) {
-    const th = document.createElement("th");
-    th.title = variant;
-    const icon = document.createElement("span");
-    icon.className = "variant-icon";
-    icon.style.setProperty("--vc", getVariantColor(variant));
-    icon.textContent = getVariantIcon(variant);
-    th.appendChild(icon);
-    row.appendChild(th);
-  }
-  thead.appendChild(row);
-  return thead;
-}
-
 function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
   const tbody = document.createElement("tbody");
   let dataRow = 0;
 
   grid.sections.forEach(({ label, lines }, sectionIndex) => {
-    if (label) tbody.appendChild(buildSectionHead(label, sectionIndex > 0));
+    // Les pastilles de variante sont posées sur la 1re ligne de section
+    // ("Chiffres") plutôt que dans un <thead> à part : une ligne de gagnée.
+    if (label) {
+      tbody.appendChild(
+        buildSectionHead(label, sectionIndex > 0, sectionIndex === 0),
+      );
+    }
 
     for (const lineName in lines) {
       const values = lines[lineName];
@@ -225,13 +246,37 @@ function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
   return tbody;
 }
 
-function buildSectionHead(label: string, major: boolean): HTMLTableRowElement {
+function buildSectionHead(
+  label: string,
+  major: boolean,
+  withVariants: boolean,
+): HTMLTableRowElement {
   const row = document.createElement("tr");
   row.className = major ? "section-head section-head--major" : "section-head";
-  const cell = document.createElement("td");
-  cell.colSpan = game.variants.length + 1;
-  cell.textContent = label;
-  row.appendChild(cell);
+
+  const labelCell = document.createElement("td");
+  const labelText = document.createElement("span");
+  labelText.className = "section-label";
+  labelText.textContent = label;
+  labelCell.appendChild(labelText);
+  row.appendChild(labelCell);
+
+  if (!withVariants) {
+    labelCell.colSpan = game.variants.length + 1;
+    return row;
+  }
+
+  row.classList.add("section-head--vars");
+  for (const variant of game.variants) {
+    const td = document.createElement("td");
+    const icon = document.createElement("span");
+    icon.className = "variant-icon";
+    icon.style.setProperty("--vc", getVariantColor(variant));
+    icon.textContent = getVariantIcon(variant);
+    icon.title = variant;
+    td.appendChild(icon);
+    row.appendChild(td);
+  }
   return row;
 }
 
@@ -260,24 +305,158 @@ function buildControl(
 }
 
 function refreshColumn(variant: Variant): void {
-  fillDerived(variant);
+  fillDerived(variant, true);
   for (const control of controls.get(variant) ?? []) control.refresh();
 }
 
-function fillDerived(variant: Variant): void {
+// `live` : true quand l'appel suit une saisie (pas le rendu initial). Sert à
+// ne jouer l'animation de fin de bonus qu'au moment réel où la 6e case tombe.
+function fillDerived(variant: Variant, live = false): void {
   const cells = derivedCells.get(variant);
   if (!cells) return;
   const d = computeDerived(currentPlayer().scores[variant], grid);
   const text: Record<LineName, string> = {
-    Bonus: d.bonusHint ?? String(d.bonus),
+    Bonus: bonusLabel(d),
     "Total Haut": String(d.totalHaut),
     "Total Bas": String(d.totalBas),
     "Score Final": String(d.scoreFinal),
   };
+  // La jauge n'a de sens qu'à variante unique : sur plusieurs colonnes elle
+  // devient illisible, on retombe alors sur le seul libellé.
+  const gaugeBonus = game.variants.length === 1;
   for (const line of DERIVED_LINES) {
     const cell = cells.get(line);
-    if (cell) cell.textContent = text[line];
+    if (!cell) continue;
+    if (line === "Bonus" && gaugeBonus) renderBonusCell(cell, d, live);
+    else cell.textContent = text[line];
   }
+}
+
+// "+35" bonus acquis · "0" section bouclée sans l'atteindre · "−12" points
+// qu'il reste à faire.
+function bonusLabel(d: Derived): string {
+  if (d.upperSum >= BONUS_THRESHOLD) return `+${grid.bonusPoints}`;
+  if (d.bonusHint === null) return "0";
+  return `−${BONUS_THRESHOLD - d.upperSum}`;
+}
+
+/* ---------- Ligne "Bonus" (variante unique) ---------- */
+// Jauge de progression vers 63 (couleur de la page assombrie) tant que le
+// bonus n'est ni acquis ni définitivement manqué. Dès que le seuil est
+// atteint — même avec moins de 6 cases — ou que la section chiffres est
+// bouclée sans l'atteindre : animation (gonflement vert / tremblement rouge)
+// puis la jauge disparaît, il ne reste que le verdict ("+35" / "0").
+
+function renderBonusCell(
+  cell: HTMLTableCellElement,
+  d: Derived,
+  live: boolean,
+): void {
+  const won = d.upperSum >= BONUS_THRESHOLD;
+
+  if (!won && !d.upperFilled) {
+    renderBonusProgress(cell, d);
+    return;
+  }
+
+  const key = currentPlayer().name;
+  const firstTime = !bonusAnimated.has(key);
+  bonusAnimated.add(key);
+
+  if (firstTime && live) animateBonusOutcome(cell, d, won);
+  else setBonusResult(cell, won);
+}
+
+function renderBonusProgress(cell: HTMLTableCellElement, d: Derived): void {
+  cell.classList.remove(
+    "bonus-result",
+    "bonus-result--won",
+    "bonus-result--lost",
+  );
+  const gauge = ensureGauge(cell);
+  const fill = gauge.querySelector<HTMLElement>(".bonus-gauge-fill")!;
+  const label = gauge.querySelector<HTMLElement>(".bonus-gauge-label")!;
+  const [r, g, b] = deepen(currentPlayer().color);
+  fill.style.background = `rgb(${r}, ${g}, ${b})`;
+  fill.style.width = `${Math.min(100, (d.upperSum / BONUS_THRESHOLD) * 100)}%`;
+  label.textContent = `−${BONUS_THRESHOLD - d.upperSum}`;
+}
+
+function animateBonusOutcome(
+  cell: HTMLTableCellElement,
+  d: Derived,
+  won: boolean,
+): void {
+  bonusJustAnimated = true;
+  const gauge = ensureGauge(cell);
+  const fill = gauge.querySelector<HTMLElement>(".bonus-gauge-fill")!;
+  const label = gauge.querySelector<HTMLElement>(".bonus-gauge-label")!;
+
+  // 1) la barre se remplit jusqu'à sa valeur réelle, couleur inchangée.
+  requestAnimationFrame(() => {
+    fill.style.width = `${Math.min(100, (d.upperSum / BONUS_THRESHOLD) * 100)}%`;
+  });
+
+  // 2) une fois remplie : vert/rouge + gonflement/tremblement.
+  window.setTimeout(() => {
+    fill.style.background = ""; // la couleur vient alors du CSS
+    gauge.classList.add(won ? "bonus-gauge--won" : "bonus-gauge--lost");
+    label.textContent = won ? `+${grid.bonusPoints}` : "0";
+  }, BONUS_FILL_MS);
+
+  // 3) il ne reste que le verdict.
+  window.setTimeout(() => setBonusResult(cell, won), BONUS_ANIM_MS);
+}
+
+function setBonusResult(cell: HTMLTableCellElement, won: boolean): void {
+  cell.replaceChildren();
+  cell.textContent = won ? `+${grid.bonusPoints}` : "0";
+  cell.classList.add("bonus-result");
+  cell.classList.toggle("bonus-result--won", won);
+  cell.classList.toggle("bonus-result--lost", !won);
+}
+
+function ensureGauge(cell: HTMLTableCellElement): HTMLElement {
+  let gauge = cell.querySelector<HTMLElement>(".bonus-gauge");
+  if (gauge) return gauge;
+  gauge = document.createElement("div");
+  gauge.className = "bonus-gauge";
+  const track = document.createElement("span");
+  track.className = "bonus-gauge-track";
+  const fill = document.createElement("span");
+  fill.className = "bonus-gauge-fill";
+  track.appendChild(fill);
+  const label = document.createElement("span");
+  label.className = "bonus-gauge-label";
+  gauge.append(track, label);
+  cell.replaceChildren(gauge);
+  return gauge;
+}
+
+// Même teinte, en plus vif : on écarte les canaux de leur moyenne (saturation)
+// puis on assombrit très légèrement. Garde la couleur, évite le virage au gris.
+function richen(hex: string): string {
+  const n = parseInt(hex.slice(1), 16);
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const mean = (rgb[0] + rgb[1] + rgb[2]) / 3;
+  const out = rgb.map((v) =>
+    Math.max(0, Math.min(255, Math.round((mean + (v - mean) * 1.7) * 0.9))),
+  );
+  return `rgb(${out[0]}, ${out[1]}, ${out[2]})`;
+}
+
+// Version foncée mais colorée d'un pastel #rrggbb, en [r, g, b] : on retire la
+// composante blanche (le min des canaux), on amplifie l'écart chromatique et on
+// repose sur un socle sombre. Un simple × facteur virerait au gris car les
+// couleurs joueurs sont peu saturées.
+function deepen(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const min = Math.min(...c);
+  const [r, g, b] = c.map((v) =>
+    Math.min(255, Math.round(40 + (v - min) * 2.2)),
+  );
+  return [r, g, b];
 }
 
 /* ---------- Saisie d'un score ---------- */
@@ -306,7 +485,9 @@ function buildButton(
   return {
     el: button,
     setValue(value) {
-      button.textContent = value !== undefined ? String(value) : "–";
+      // Cellule vide : rien dans le texte, le repère "–" est tracé en CSS
+      // (::before) pour un centrage net.
+      button.textContent = value !== undefined ? String(value) : "";
       button.dataset.value = value !== undefined ? String(value) : "";
       button.classList.toggle("is-filled", value !== undefined);
       button.classList.toggle("is-empty", value === undefined);

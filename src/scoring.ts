@@ -173,6 +173,8 @@ const sumLines = (scores: LineScores, names: string[]): number =>
   names.reduce((total, key) => total + (scores[key] || 0), 0);
 
 export interface Derived {
+  upperSum: number; // total de la section chiffres, hors bonus (course au seuil)
+  upperFilled: boolean; // les six cases de la section chiffres sont saisies
   bonus: number; // points de bonus acquis (0 tant que le seuil n'est pas atteint)
   // Repère "-N" tant que la section chiffres n'est pas bouclée sous le seuil,
   // sinon null (on affiche alors `bonus`).
@@ -193,7 +195,15 @@ export function computeDerived(scores: LineScores, grid: Grid): Derived {
   const totalHaut = upperSum + bonus;
   const totalBas = sumLines(scores, grid.lowerScoringNames);
 
-  return { bonus, bonusHint, totalHaut, totalBas, scoreFinal: totalHaut + totalBas };
+  return {
+    upperSum,
+    upperFilled,
+    bonus,
+    bonusHint,
+    totalHaut,
+    totalBas,
+    scoreFinal: totalHaut + totalBas,
+  };
 }
 
 // Recopie les valeurs dérivées dans `scores` (pour la persistance et le Hall

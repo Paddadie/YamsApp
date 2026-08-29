@@ -136,7 +136,6 @@ function buildRow(
 
   const check = document.createElement("span");
   check.className = "check";
-  check.textContent = "✓";
   check.setAttribute("aria-hidden", "true");
 
   const nameEl = document.createElement("span");
