@@ -12,15 +12,17 @@
   </head>
   <body>
     <div id="hall-screen" class="screen">
-      <h2><span id="hof-trophy" class="hof-trophy">🏆</span> Hall of Fame</h2>
-
       <div id="hall-content">
-        <section>
+        <h2><span id="hof-trophy" class="hof-trophy">🏆</span> Hall of Fame</h2>
+        <p class="hall-hint">Touchez une partie pour voir le détail des points.</p>
+
+        <div id="record-card" hidden></div>
+
+        <section class="hall-block hall-block--best">
           <h3>👑 Meilleurs scores</h3>
           <table id="best-scores-table">
             <thead>
               <tr>
-                <th></th>
                 <th>Joueur</th>
                 <th>Variante</th>
                 <th>Date</th>
@@ -31,13 +33,12 @@
           </table>
         </section>
 
-        <section>
+        <section class="hall-block hall-block--worst">
           <h3>💩 Pires scores</h3>
           <p class="hall-note">Parties classiques uniquement</p>
           <table id="worst-scores-table">
             <thead>
               <tr>
-                <th></th>
                 <th>Joueur</th>
                 <th>Date</th>
                 <th>Score</th>
@@ -47,7 +48,7 @@
           </table>
         </section>
 
-        <section>
+        <section class="hall-block hall-block--stats">
           <h3>📊 Statistiques</h3>
           <p class="hall-note">Parties classiques uniquement</p>
           <ul id="stats-list"></ul>
@@ -60,11 +61,18 @@
     </div>
 
     <dialog id="sheet-dialog">
-      <p class="sheet-title" id="sheet-title"></p>
+      <div class="sheet-head">
+        <p class="sheet-player" id="sheet-title"></p>
+        <span class="sheet-rank" id="sheet-rank" hidden></span>
+        <p class="sheet-meta" id="sheet-meta"></p>
+        <p class="sheet-total"><span id="sheet-total-value"></span>&nbsp;pts</p>
+      </div>
       <table id="sheet-table"></table>
-      <button type="button" id="sheet-close" class="btn btn-secondary">
-        Fermer
-      </button>
+      <div class="sheet-actions">
+        <button type="button" id="sheet-close" class="btn btn-secondary">
+          Fermer
+        </button>
+      </div>
     </dialog>
 
     <script type="module" src="/src/pages/hall.ts"></script>

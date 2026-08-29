@@ -1,6 +1,12 @@
 // Petits helpers de rendu DOM partagés par les écrans.
 
-type Cell = string | number | { strong: string | number };
+export type Cell =
+  | string
+  | number
+  | { strong: string | number }
+  // `badge` posé hors flux (coin de la cellule) : n'affecte pas l'alignement
+  // vertical de `text` d'une ligne à l'autre.
+  | { text: string | number; badge: string };
 
 export function requireEl<T extends HTMLElement = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -8,18 +14,23 @@ export function requireEl<T extends HTMLElement = HTMLElement>(id: string): T {
   return el as T;
 }
 
-// Chaque cellule est une chaîne/un nombre, ou `{ strong: valeur }` pour le gras.
 export function appendRows(tbody: HTMLElement, rows: Cell[][]): void {
   for (const cells of rows) {
     const tr = document.createElement("tr");
     for (const cell of cells) {
       const td = document.createElement("td");
-      if (typeof cell === "object") {
+      if (typeof cell !== "object") {
+        td.textContent = String(cell);
+      } else if ("strong" in cell) {
         const strong = document.createElement("strong");
         strong.textContent = String(cell.strong);
         td.appendChild(strong);
       } else {
-        td.textContent = String(cell);
+        td.classList.add("cell-badged");
+        const badge = document.createElement("span");
+        badge.className = "cell-badge";
+        badge.textContent = cell.badge;
+        td.append(String(cell.text), badge);
       }
       tr.appendChild(td);
     }

@@ -1097,6 +1097,22 @@ button:hover {
   vertical-align: middle;
 }
 
+/* Cellule flaggée 🏆 / 💩 : le badge est posé dans le coin, hors flux, pour
+   ne pas décaler la valeur — les scores restent alignés d'une ligne à l'autre. */
+#ranking-table td.cell-badged {
+  position: relative;
+}
+
+#ranking-table .cell-badge {
+  position: absolute;
+  top: 50%;
+  right: 0.1em;
+  transform: translateY(-50%);
+  font-size: 0.92em;
+  line-height: 1;
+  pointer-events: none;
+}
+
 #ranking-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -1112,15 +1128,9 @@ button:hover {
   align-items: center;
 }
 
-#hall-screen > h2 {
-  flex: none;
-  width: 100%;
-  max-width: var(--content-max);
-  padding: 1rem clamp(1rem, 4vw, 2.5rem) 0;
-}
-
-/* Zone centrale : prend la hauteur restante, centre les deux tableaux quand il
-   reste de la place, défile seulement s'ils ne tiennent pas. */
+/* Zone centrale : titre, aide et blocs — tout défile ensemble (la page), mais
+   aucun bloc ne se comprime : toutes les lignes des 3 tableaux restent
+   visibles, quitte à faire défiler. */
 #hall-content {
   flex: 1;
   min-height: 0;
@@ -1129,10 +1139,24 @@ button:hover {
   max-width: var(--content-max);
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  justify-content: safe center;
-  gap: clamp(1.5rem, 5vh, 4rem);
-  padding: clamp(1rem, 3vh, 2.5rem) clamp(1rem, 4vw, 2.5rem);
+  gap: clamp(0.9rem, 2.5vh, 1.6rem);
+  padding: clamp(0.8rem, 2vh, 1.4rem) clamp(1rem, 4vw, 2.5rem);
+}
+
+#hall-content > * {
+  flex-shrink: 0;
+}
+
+#hall-content > h2 {
+  margin: 0.2rem 0 0;
+}
+
+/* Aide sous le titre : les lignes des tableaux sont cliquables. */
+.hall-hint {
+  margin: -0.4rem 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #777;
 }
 
 /* Écran de fin : contenu ancré vers le haut, comme l'accueil. */
@@ -1201,49 +1225,55 @@ button:hover {
   user-select: none;
 }
 
-#hall-screen table {
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+/* Les 3 blocs (meilleurs / pires / stats) : cartes identiques, filet de
+   couleur en tête pour le repère (or / terracotta / neutre). */
+.hall-block {
+  background: #fff;
   border-radius: 12px;
+  border-top: 4px solid var(--hall-accent, #ccc);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
   overflow: hidden;
+  padding: 0.85rem 0 0.15rem;
+}
+
+.hall-block--best {
+  --hall-accent: #d9a520;
+}
+
+.hall-block--worst {
+  --hall-accent: #a9713f;
+}
+
+.hall-block--stats {
+  --hall-accent: #97a2ab;
 }
 
 #hall-screen h3 {
-  font-size: clamp(1.05rem, 2.2vh, 1.55rem);
+  margin: 0 0 0.55rem;
+  padding: 0 clamp(0.8rem, 3vw, 1.4rem);
+  font-size: clamp(1rem, 2vh, 1.3rem);
+  font-weight: 700;
   text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  margin: 0 0 0.4em;
-}
-
-/* Séparation nette entre le tableau des meilleurs et celui des pires scores. */
-#hall-content section + section {
-  padding-top: clamp(1rem, 3vh, 2.5rem);
-  border-top: 2px solid #d0d0d0;
 }
 
 /* Cellules à taille fluide : compactes sur iPhone, généreuses sur tablette. */
 #hall-screen th,
 #hall-screen td {
-  padding: clamp(0.45rem, 1.5vh, 1.1rem) clamp(0.6rem, 2.5vw, 1.5rem);
+  padding: clamp(0.4rem, 1.2vh, 0.8rem) clamp(0.55rem, 2.4vw, 1.4rem);
   font-size: clamp(0.9rem, 1.7vh, 1.2rem);
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid #eee;
 }
 
-/* En-tête « meilleurs » : or métallique (effet médaille). */
-#best-scores-table thead th {
-  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
-  color: #3a2c05;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+#hall-screen thead th {
+  background: #f4f4f6;
+  color: #666;
+  font-size: 0.78em;
+  font-weight: 700;
+  border-bottom: 2px solid #e4e4e6;
 }
 
-/* En-tête « pires » : marron-moutarde boueux, même relief que l'or. */
-#worst-scores-table thead th {
-  background-image: linear-gradient(180deg, #9a7b3e 0%, #6b5228 55%, #453213 100%);
-  color: #fff;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
-  box-shadow: inset 0 1px 0 rgba(255, 225, 170, 0.3);
+#hall-screen tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .hall-empty {
@@ -1254,16 +1284,113 @@ button:hover {
 }
 
 .hall-note {
-  margin: -0.2em 0 0.5em;
+  margin: -0.3rem 0 0.5rem;
+  padding: 0 clamp(0.8rem, 3vw, 1.4rem);
   text-align: center;
-  font-size: 0.8rem;
-  color: #888;
+  font-size: 0.78rem;
+  color: #999;
 }
 
-/* Lignes cliquables → feuille de score détaillée. */
+/* Carte « Record du téléphone » : point focal, ton or. */
+#record-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.1rem;
+  border-radius: 14px;
+  background: linear-gradient(150deg, #fbeecb 0%, #f3d98f 100%);
+  border: 1px solid #e6c268;
+  box-shadow: 0 3px 10px rgba(180, 140, 30, 0.25);
+  color: #3a2c05;
+}
+
+#record-card[hidden] {
+  display: none;
+}
+
+#record-card.clickable {
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+#record-card.clickable:hover {
+  filter: brightness(0.97);
+}
+
+#record-card.clickable::after {
+  content: "›";
+  flex: none;
+  margin-left: auto;
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+
+#record-card:focus-visible {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+.record-crown {
+  flex: none;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.record-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.record-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.record-main {
+  font-size: 1.05rem;
+}
+
+.record-main strong {
+  font-weight: 800;
+}
+
+.record-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+/* Lignes cliquables → feuille de score détaillée. Chevron en fin de ligne
+   comme repère permanent (visible aussi sans survol, sur tactile). */
 #best-scores-table tr.clickable,
 #worst-scores-table tr.clickable {
   cursor: pointer;
+}
+
+#best-scores-table tr.clickable td:last-child,
+#worst-scores-table tr.clickable td:last-child {
+  position: relative;
+}
+
+/* Chevron hors flux (coin droit de la cellule) : ne décale pas le score,
+   qui reste centré comme dans les lignes non cliquables. */
+#best-scores-table tr.clickable td:last-child::after,
+#worst-scores-table tr.clickable td:last-child::after {
+  content: "›";
+  position: absolute;
+  top: 50%;
+  right: 0.35em;
+  transform: translateY(-50%);
+  color: #b0b0b0;
+  font-weight: 400;
+  pointer-events: none;
 }
 
 #best-scores-table tr.clickable:hover td,
@@ -1277,27 +1404,30 @@ button:hover {
   outline-offset: -2px;
 }
 
-/* Statistiques par joueur. */
+/* Statistiques par joueur : 2 lignes par joueur (nom + moyenne, puis
+   record perso · nombre de parties en sous-ligne discrète). */
 #stats-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
 }
 
 .stats-row {
   display: flex;
-  align-items: baseline;
-  gap: 0.75em;
-  padding: 0.7em 1em;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6em clamp(0.8rem, 3vw, 1.4rem);
   border-bottom: 1px solid #eee;
 }
 
 .stats-row:last-child {
   border-bottom: none;
+}
+
+.stats-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75em;
 }
 
 .stats-name {
@@ -1309,14 +1439,15 @@ button:hover {
   white-space: nowrap;
 }
 
-.stats-games {
-  font-size: 0.85rem;
-  color: #888;
-}
-
 .stats-avg {
+  flex: none;
   font-weight: 700;
   color: #2f3a40;
+}
+
+.stats-sub {
+  font-size: 0.78rem;
+  color: #8a8a8a;
 }
 
 /* ---------- Easter egg : 5 clics sur le trophée ---------- */
@@ -1452,64 +1583,170 @@ button:hover {
   }
 }
 
-/* Feuille de score détaillée (dialog). */
+/* Dialogues : feuille de score détaillée + confirmations (paramètres). */
 #sheet-dialog,
 #delete-dialog {
   border: none;
-  border-radius: 16px;
-  padding: 1.2em;
-  width: min(22rem, 92vw);
+  border-radius: 18px;
+  width: min(23rem, 92vw);
   max-height: 90dvh;
   overflow-y: auto;
-  box-shadow: 0 16px 48px rgba(10, 20, 25, 0.35);
+  box-shadow: 0 20px 55px rgba(10, 20, 25, 0.4);
+}
+
+#delete-dialog {
+  padding: 1.2em;
+}
+
+#sheet-dialog {
+  padding: 0;
 }
 
 #sheet-dialog::backdrop,
 #delete-dialog::backdrop {
-  background: rgba(12, 22, 27, 0.5);
+  background: rgba(12, 22, 27, 0.55);
 }
 
+/* Titre des dialogues de confirmation. */
 .sheet-title {
   margin: 0 0 0.8em;
   font-weight: 800;
   text-align: center;
 }
 
-#sheet-table,
+/* --- Feuille de score détaillée : en-tête (joueur, variante, total) --- */
+.sheet-head {
+  padding: 0.8em 1.2em 0.7em;
+  text-align: center;
+  background: linear-gradient(180deg, #fafafa, #eceef1);
+  border-bottom: 1px solid #e3e3e6;
+}
+
+.sheet-player {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  color: #1d2b31;
+}
+
+/* Puce de classement (2ᵉ meilleur score, etc.). */
+.sheet-rank {
+  display: inline-block;
+  margin: 0.3em 0 0;
+  padding: 0.15em 0.7em;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sheet-rank[hidden] {
+  display: none;
+}
+
+.sheet-rank--best {
+  background: #fbeecb;
+  color: #7a5b0c;
+  border: 1px solid #e6c268;
+}
+
+.sheet-rank--worst {
+  background: #eee0d3;
+  color: #6b4526;
+  border: 1px solid #cba985;
+}
+
+.sheet-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  margin: 0.28em 0 0;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.sheet-total {
+  margin: 0.35em 0 0;
+  font-size: 0.75rem;
+  color: #8a8a8a;
+}
+
+.sheet-total span {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #1d2b31;
+}
+
+/* --- Corps : lignes lisibles, valeurs alignées, totaux distingués --- */
+#sheet-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#sheet-table td {
+  padding: 0.32em 1.2em;
+  border-bottom: 1px solid #eee;
+}
+
+#sheet-table td:first-child {
+  color: #555;
+}
+
+#sheet-table td:last-child {
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+#sheet-table tr:last-child td {
+  border-bottom: none;
+}
+
+#sheet-table tr.sheet-derived td {
+  background: #f5f6f8;
+  font-weight: 700;
+  color: #2f3a40;
+}
+
+.sheet-actions {
+  padding: 0.6em 1.2em calc(0.6em + env(safe-area-inset-bottom));
+}
+
+#sheet-dialog .btn {
+  margin: 0 auto;
+  max-width: 14rem;
+  padding: 0.55em 1em;
+  font-size: 0.95rem;
+}
+
+/* Feuille détaillée du dialogue de suppression (paramètres). */
 #delete-sheet {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1em;
 }
 
-#sheet-table td,
 #delete-sheet td {
   padding: 0.35em 0.6em;
   border-bottom: 1px solid #eee;
 }
 
-#sheet-table td:first-child,
 #delete-sheet td:first-child {
   color: #555;
 }
 
-#sheet-table td:last-child,
 #delete-sheet td:last-child {
   text-align: right;
   font-weight: 700;
 }
 
-#sheet-table tr.sheet-final td,
 #delete-sheet tr.sheet-final td {
   border-top: 2px solid rgba(0, 0, 0, 0.4);
   border-bottom: none;
   font-size: 1.1em;
   padding-top: 0.5em;
-}
-
-#sheet-dialog .btn {
-  margin: 0 auto;
-  max-width: 14rem;
 }
 
 /* ========== BOUTON PARAMÈTRES (accueil) ========== */
