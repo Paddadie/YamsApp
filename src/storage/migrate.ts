@@ -15,7 +15,8 @@ import type { ScoreEntry } from "../types";
 
 // v2 : le tableau des pires scores ne garde que les parties classiques.
 // v3 : stats joueurs → { games, classiqueGames, classiquePoints }.
-const SCHEMA_VERSION = 3;
+// v4 : ajout de `classiqueBest` aux stats joueurs.
+const SCHEMA_VERSION = 4;
 
 export function migrateStorage(): void {
   const done = Number(localStorage.getItem(STORAGE_KEYS.schemaVersion));

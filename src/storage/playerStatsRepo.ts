@@ -11,17 +11,23 @@ export interface PlayerStat {
   games: number;
   classiqueGames: number;
   classiquePoints: number;
+  classiqueBest: number; // meilleur score final classique (0 = jamais)
 }
 export type PlayerStats = Record<string, PlayerStat>;
 
 // Lecture tolérante : accepte l'ancien format `{ [nom]: nombreDeParties }` et
-// le format intermédiaire `{ games, points }`.
+// les formats intermédiaires (`{ games, points }`, sans `classiqueBest`).
 export function getPlayerStats(): PlayerStats {
   const raw = readJson<Record<string, unknown>>(STORAGE_KEYS.playerStats) ?? {};
   const stats: PlayerStats = {};
   for (const [name, value] of Object.entries(raw)) {
     if (typeof value === "number" && Number.isFinite(value)) {
-      stats[name] = { games: value, classiqueGames: 0, classiquePoints: 0 };
+      stats[name] = {
+        games: value,
+        classiqueGames: 0,
+        classiquePoints: 0,
+        classiqueBest: 0,
+      };
     } else if (value && typeof value === "object") {
       const s = value as Record<string, unknown>;
       stats[name] = {
@@ -30,6 +36,8 @@ export function getPlayerStats(): PlayerStats {
           typeof s.classiqueGames === "number" ? s.classiqueGames : 0,
         classiquePoints:
           typeof s.classiquePoints === "number" ? s.classiquePoints : 0,
+        classiqueBest:
+          typeof s.classiqueBest === "number" ? s.classiqueBest : 0,
       };
     }
   }
@@ -48,11 +56,13 @@ export function recordGameResult(
       games: 0,
       classiqueGames: 0,
       classiquePoints: 0,
+      classiqueBest: 0,
     };
     stats[name] = {
       games: s.games + 1,
       classiqueGames: s.classiqueGames + (classiqueScore !== null ? 1 : 0),
       classiquePoints: s.classiquePoints + (classiqueScore ?? 0),
+      classiqueBest: Math.max(s.classiqueBest, classiqueScore ?? 0),
     };
   }
   writeJson(STORAGE_KEYS.playerStats, stats);
@@ -86,6 +96,7 @@ export function renamePlayerStats(oldName: string, newName: string): void {
         games: into.games + from.games,
         classiqueGames: into.classiqueGames + from.classiqueGames,
         classiquePoints: into.classiquePoints + from.classiquePoints,
+        classiqueBest: Math.max(into.classiqueBest, from.classiqueBest),
       }
     : from;
   delete stats[oldName];

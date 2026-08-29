@@ -44,6 +44,9 @@ export interface SavedGame {
   selectedVariants: Variant[];
   currentPlayerIndex: number;
   rules: GameRules;
+  // Posé par l'écran de fin une fois les scores versés au Hall of Fame et aux
+  // stats : évite un double comptage si on y revient / rafraîchit.
+  recorded?: boolean;
 }
 
 export interface ScoreEntry {

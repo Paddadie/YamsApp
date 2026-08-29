@@ -5,8 +5,12 @@ import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { game, hydrateGame } from "../state";
 import { getVariantIcon } from "../variants";
-import { renderTable, requireEl } from "../ui";
-import { getSavedGame, clearSavedGame } from "../storage/savedGameRepo";
+import { renderTable, requireEl, type Cell } from "../ui";
+import {
+  getSavedGame,
+  saveSavedGame,
+  clearSavedGame,
+} from "../storage/savedGameRepo";
 import { clearDraft } from "../storage/draftRepo";
 import { recordGameResult } from "../storage/playerStatsRepo";
 import { buildGrid, writeDerived } from "../scoring";
@@ -58,7 +62,11 @@ interface Result {
 const results = computeResults();
 const hasClassique = game.variants.includes("Classique");
 
-requireEl("quit-btn").addEventListener("click", () => {
+// Enregistrement dès l'arrivée sur l'écran de fin, pas au clic sur « Quitter » :
+// si l'utilisateur ferme l'appli sans quitter, la partie n'est pas perdue.
+// `recorded` (posé sur la partie sauvegardée) empêche un double comptage si on
+// rafraîchit cette page ou qu'on y revient via « Reprendre ».
+if (!saved.recorded) {
   saveBestAndWorstScores(game.players, game.variants, grid);
   // Les statistiques ne comptent que les parties classiques : `classiqueScore`
   // vaut null quand la partie n'incluait pas cette variante (la partie est
@@ -69,6 +77,10 @@ requireEl("quit-btn").addEventListener("click", () => {
       classiqueScore: hasClassique ? r.details["Classique"] : null,
     })),
   );
+  saveSavedGame({ ...saved, recorded: true });
+}
+
+requireEl("quit-btn").addEventListener("click", () => {
   clearSavedGame();
   clearDraft();
   goTo("home");
@@ -95,12 +107,23 @@ function computeResults(): Result[] {
 }
 
 function renderRanking(results: Result[]): void {
-  const headers = ["", "Joueur", ...game.variants.map(getVariantIcon), "Total"];
-  const rows = results.map((r, i) => [
+  // Colonne « Total » seulement à plusieurs variantes : à variante unique elle
+  // répète la seule colonne de score. Le classement se fait toujours sur le
+  // total (cf. computeResults).
+  const multi = game.variants.length > 1;
+  const headers = [
+    "",
+    "Joueur",
+    ...game.variants.map(getVariantIcon),
+    ...(multi ? ["Total"] : []),
+  ];
+  const rows = results.map((r, i): Cell[] => [
     MEDALS[i] ?? `${i + 1}`,
     r.name,
-    ...game.variants.map((v) => cellWithBadge(r.details[v], preview.impactFor(r.name, v))),
-    { strong: r.total },
+    ...game.variants.map((v) =>
+      cellWithBadge(r.details[v], preview.impactFor(r.name, v)),
+    ),
+    ...(multi ? [{ strong: r.total }] : []),
   ]);
   renderTable(rankingTable, headers, rows);
 }
@@ -108,9 +131,10 @@ function renderRanking(results: Result[]): void {
 function cellWithBadge(
   value: number,
   impact: ReturnType<HallOfFamePreview["impactFor"]>,
-): string {
-  const badge = impact.inBest ? BEST_BADGE : impact.inWorst ? WORST_BADGE : "";
-  return badge ? `${value} ${badge}` : `${value}`;
+): Cell {
+  if (impact.inBest) return { text: value, badge: BEST_BADGE };
+  if (impact.inWorst) return { text: value, badge: WORST_BADGE };
+  return String(value);
 }
 
 function renderRecordBanner(): void {
