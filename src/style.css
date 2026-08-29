@@ -713,9 +713,9 @@ button:hover {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  /* Explicite : déclarer overflow-y seul rend l'axe X défilable, et le
-     glissement d'un changement de joueur rouvrirait le défilement fantôme.
-     Ici on veut couper la feuille au bord, pas la faire défiler. */
+  /* Explicite : déclarer overflow-y seul rend l'axe X défilable par ricochet,
+     ce qui rouvrirait le défilement fantôme au moindre débordement. Ici on veut
+     couper la feuille au bord, jamais la faire défiler latéralement. */
   overflow-x: hidden;
   overscroll-behavior: contain;
   display: flex;
@@ -723,9 +723,10 @@ button:hover {
 }
 
 /* Toute la page de jeu prend la couleur du joueur (posée en inline par
-   game.ts) ; transition douce d'un joueur à l'autre. */
+   game.ts). Durée calée sur celle du nom qui entre (.name-enter) : les deux
+   mouvements se posent ensemble au lieu de finir l'un après l'autre. */
 #game-screen {
-  transition: background-color var(--transition);
+  transition: background-color 0.48s ease;
 }
 
 /* Barre de jeu resserrée (un seul bouton) : de la place rendue à la grille. */
@@ -768,10 +769,16 @@ button:hover {
 }
 
 /* Pastille ronde à la couleur de la variante (grille de jeu + Hall of Fame). */
+/* `line-height: 1` est indispensable : sans lui la boîte de ligne prend la
+   hauteur héritée, bien plus haute que le glyphe, et l'emoji se pose sur sa
+   ligne de base au lieu du centre. Invisible avec les polices emoji de bureau,
+   très visible avec Apple Color Emoji (même correctif que .roster-row .check). */
 .score-table .variant-icon,
 .variant-badge {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   width: 2em;
   height: 2em;
   border-radius: 50%;
@@ -1080,8 +1087,10 @@ button:hover {
 }
 
 .picker-variant {
-  display: inline-grid;
-  place-items: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
   flex: none;
   width: 2em;
   height: 2em;
@@ -2400,34 +2409,40 @@ button:hover {
    réintroduire de bloc @media (prefers-reduced-motion) sans le redemander. */
 
 /* ---------- Changement de joueur (écran de jeu) ---------- */
-/* La feuille du joueur qui arrive entre par le côté vers lequel on va ; le fond
-   de page, lui, se fond déjà vers sa couleur (cf. #game-screen plus haut).
-   Deux animations distinctes plutôt qu'une : le fondu se termine tôt, pendant
-   que le glissement continue de ralentir jusqu'à l'arrêt. C'est ce décalage qui
-   adoucit — avec une seule animation, la feuille finit d'apparaître et de
-   bouger au même instant, ce qui se perçoit comme un à-coup. La course est
-   courte (4,5 %) et la courbe très amortie : rien ne bloque la saisie, on peut
-   toucher une case pendant le mouvement. */
-.sheet-enter {
-  animation: sheet-slide 0.3s cubic-bezier(0.16, 1, 0.3, 1) both,
-    sheet-fade 0.18s ease-out both;
+/* Le nom du joueur qui arrive entre par le côté vers lequel on va, pendant que
+   le fond de page glisse vers sa couleur (cf. #game-screen plus haut).
+   On n'anime QUE le nom : animer la feuille de score était saccadé, parce que
+   renderPlayer() la reconstruit et que l'animation démarrait donc sur un
+   sous-arbre jamais peint, en même temps que le repaint plein écran du fond
+   (cf. animateName dans game.ts). Un seul élément de texte se déplace ici :
+   rien à réagencer, la carte est composée une fois pour toutes. */
+/* Deux animations plutôt qu'une : le fondu se termine bien avant le
+   déplacement, si bien que le nom est déjà pleinement lisible pendant qu'il
+   finit de se poser. Avec une seule animation, apparition et arrivée coïncident
+   et ça se perçoit comme un arrêt net.
+   Courbe volontairement cubique et non exponentielle : l'exponentielle démarre
+   très vite puis traîne, ce qui à cette durée donnerait l'impression que le nom
+   arrive puis rampe. */
+.name-enter {
+  animation: name-slide 0.48s cubic-bezier(0.33, 1, 0.68, 1) both,
+    name-fade 0.3s ease-out both;
 }
 
-.sheet-enter--next {
-  --from: 4.5%;
+.name-enter--next {
+  --from: 0.7em;
 }
 
-.sheet-enter--prev {
-  --from: -4.5%;
+.name-enter--prev {
+  --from: -0.7em;
 }
 
-@keyframes sheet-slide {
+@keyframes name-slide {
   from {
-    transform: translateX(var(--from, 4.5%));
+    transform: translateX(var(--from, 0.7em));
   }
 }
 
-@keyframes sheet-fade {
+@keyframes name-fade {
   from {
     opacity: 0;
   }

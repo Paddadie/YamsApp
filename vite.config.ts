@@ -77,6 +77,13 @@ export default defineConfig({
       workbox: {
         // Précache les six pages + le JS/CSS produit.
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
+        // Workbox compare l'URL complète, paramètres compris : sans ce réglage
+        // `game.html?review=1` ne correspond à aucune entrée du précache, la
+        // requête retombe sur la NavigationRoute (liée à index.html) et
+        // l'utilisateur atterrit sur l'accueil au lieu des feuilles de score.
+        // Invisible en développement, où il n'y a pas de service worker.
+        // Les deux premiers motifs sont les valeurs par défaut de Workbox.
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^review$/],
       },
       devOptions: {
         enabled: false,

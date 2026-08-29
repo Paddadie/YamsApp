@@ -140,24 +140,27 @@ function changePlayer(delta: number): void {
   game.currentPlayerIndex = (game.currentPlayerIndex + delta + n) % n;
   persist();
   renderPlayer();
-  slideSheet(delta);
+  animateName(delta);
 }
 
-// La feuille du joueur qui arrive entre par le côté vers lequel on va, pendant
-// que le fond de page se fond vers sa couleur.
-function slideSheet(delta: number): void {
-  const sheet = scoreTablesContainer.firstElementChild;
-  if (!(sheet instanceof HTMLElement)) return;
-  const cls = delta > 0 ? "sheet-enter--next" : "sheet-enter--prev";
-  sheet.classList.add("sheet-enter", cls);
-  // Deux animations tournent en parallèle (glissement + fondu) : on n'attend
-  // que la plus longue, sinon la fin du fondu couperait le glissement.
-  const done = (e: AnimationEvent): void => {
-    if (e.animationName !== "sheet-slide") return;
-    sheet.removeEventListener("animationend", done);
-    sheet.classList.remove("sheet-enter", cls);
-  };
-  sheet.addEventListener("animationend", done);
+// Seul le nom du joueur est animé, pas la feuille de score.
+//
+// Animer la feuille était saccadé, et pour une raison de fond : renderPlayer()
+// la reconstruit entièrement, donc l'animation démarrait sur un sous-arbre
+// jamais peint, au moment précis où le fond de l'écran repeint lui aussi (la
+// transition de couleur du joueur). Deux repaints plein écran superposés : les
+// premières frames sautaient. Ici on déplace un unique élément de texte pendant
+// que le fond glisse vers la couleur suivante — le changement reste lisible et
+// rien de lourd ne bouge.
+function animateName(delta: number): void {
+  const cls = delta > 0 ? "name-enter--next" : "name-enter--prev";
+  currentPlayerName.classList.remove(
+    "name-enter",
+    "name-enter--next",
+    "name-enter--prev",
+  );
+  void currentPlayerName.offsetWidth; // force la relance si on enchaîne vite
+  currentPlayerName.classList.add("name-enter", cls);
 }
 
 function onPick(variant: Variant, lineName: LineName, value: number | undefined): void {
