@@ -103,6 +103,41 @@ const BONUS_ANIM_MS = BONUS_FILL_MS + BONUS_REACT_MS;
 // Déclaré ici : renderPlayer() y accède dès le rendu initial.
 const bonusAnimated = new Set<string>();
 
+// Faces de dé des lignes "Chiffres" (dessinées par dieFace, plus bas). Déclarées
+// ici pour la même raison que `bonusAnimated` : un `const`, contrairement à une
+// fonction, ne remonte pas en haut du module. Laissées près de dieFace, elles
+// étaient encore dans leur zone morte au moment du rendu initial.
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Rayon commun à tous les points : une face 1 avec un gros point serait plus
+// fidèle à un vrai dé, mais côte à côte dans une colonne les six faces doivent
+// se lire comme un même dé qu'on retourne.
+const PIP_RADIUS = 10;
+
+// Points de chaque face, dans un carré de 100×100. Colonnes et rangées sont aux
+// mêmes coordonnées d'une face à l'autre — c'est ce qui fait qu'on lit un même
+// dé et non six dessins. Seule la face 6 écarte ses rangées : à trois points par
+// colonne, l'écart standard les laissait se frôler.
+const DIE_PIPS: Record<string, [number, number][]> = {
+  "1": [[50, 50]],
+  "2": [[30, 30], [70, 70]],
+  "3": [[30, 30], [50, 50], [70, 70]],
+  "4": [[30, 30], [70, 30], [30, 70], [70, 70]],
+  "5": [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
+  "6": [[30, 25], [70, 25], [30, 50], [70, 50], [30, 75], [70, 75]],
+};
+
+// État du swipe (cf. la section en bas du fichier). Déclaré ici aussi : les
+// écouteurs posés juste en dessous peuvent tirer dès le premier geste.
+let swipeId: number | undefined;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartAt = 0;
+// Geste reconnu comme horizontal : à partir de là il nous appartient.
+let swipeTaken = false;
+// Un geste horizontal vient de se terminer : le clic qu'il produit est à jeter.
+let swipeClickPending = false;
+
 // blur() : sinon la flèche garde le focus (et sa pastille) collé après un tap.
 prevPlayerBtn.addEventListener("click", () => {
   prevPlayerBtn.blur();
@@ -189,15 +224,6 @@ function animateName(delta: number): void {
 // le défilement vertical de la grille. On observe le geste, et c'est seulement
 // quand il part clairement à l'horizontale qu'on se l'approprie. Dans le cas
 // inverse le navigateur défile et nous envoie un pointercancel.
-
-let swipeId: number | undefined;
-let swipeStartX = 0;
-let swipeStartY = 0;
-let swipeStartAt = 0;
-// Geste reconnu comme horizontal : à partir de là il nous appartient.
-let swipeTaken = false;
-// Un geste horizontal vient de se terminer : le clic qu'il produit est à jeter.
-let swipeClickPending = false;
 
 function onSwipeStart(e: PointerEvent): void {
   // Un geste précédent peut ne pas avoir produit de clic (cellule reconstruite,
@@ -328,7 +354,12 @@ function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
       if (!computed && dataRow++ % 2 === 1) tr.classList.add("alt");
 
       const nameCell = document.createElement("td");
-      nameCell.textContent = lineName;
+      if (grid.upperScoringNames.includes(lineName)) {
+        nameCell.classList.add("line-die");
+        nameCell.appendChild(dieFace(lineName));
+      } else {
+        nameCell.textContent = lineName;
+      }
       tr.appendChild(nameCell);
 
       for (const variant of game.variants) {
@@ -386,6 +417,45 @@ function buildSectionHead(
     row.appendChild(td);
   }
   return row;
+}
+
+/* ---------- Faces de dé (section "Chiffres") ---------- */
+// Les six premières lignes portent un dé vu de dessus plutôt que le chiffre :
+// on lit la ligne d'un coup d'œil, sans lire.
+//
+// SVG inline et non un caractère Unicode (⚀⚁⚂…) : ces glyphes sont rendus par
+// la police emoji du système, donc minuscules sur iOS et différents d'un
+// appareil à l'autre. Ici la face est dessinée, elle suit la taille fluide du
+// tableau et reste nette à tout zoom.
+
+function dieFace(lineName: LineName): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", "die");
+  svg.setAttribute("viewBox", "0 0 100 100");
+  // Le dé remplace un texte : sans ça la ligne n'a plus de libellé annoncé.
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", lineName);
+
+  const face = document.createElementNS(SVG_NS, "rect");
+  face.setAttribute("class", "die-face");
+  // Le contour est centré sur le bord : on rentre la face d'une demi-épaisseur,
+  // sinon il est rogné par la boîte du SVG.
+  face.setAttribute("x", "3");
+  face.setAttribute("y", "3");
+  face.setAttribute("width", "94");
+  face.setAttribute("height", "94");
+  face.setAttribute("rx", "20");
+  svg.appendChild(face);
+
+  for (const [cx, cy] of DIE_PIPS[lineName] ?? []) {
+    const pip = document.createElementNS(SVG_NS, "circle");
+    pip.setAttribute("class", "die-pip");
+    pip.setAttribute("cx", String(cx));
+    pip.setAttribute("cy", String(cy));
+    pip.setAttribute("r", String(PIP_RADIUS));
+    svg.appendChild(pip);
+  }
+  return svg;
 }
 
 function buildControl(

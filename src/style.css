@@ -727,6 +727,14 @@ button:hover {
    mouvements se posent ensemble au lieu de finir l'un après l'autre. */
 #game-screen {
   transition: background-color 0.48s ease;
+  /* Le swipe de changement de joueur (game.ts) n'existe que grâce à cette
+     ligne. Sans elle, `touch-action: auto` laisse le navigateur propriétaire du
+     geste : dès qu'il le prend pour un défilement de la grille, il envoie un
+     pointercancel et coupe les pointermove — l'horizontale n'est jamais
+     reconnue. `pan-y` lui laisse le défilement vertical et nous réserve
+     l'horizontal ; `pinch-zoom` préserve le zoom à deux doigts, que `pan-y`
+     seul supprimerait. */
+  touch-action: pan-y pinch-zoom;
 }
 
 /* Barre de jeu resserrée (un seul bouton) : de la place rendue à la grille. */
@@ -844,6 +852,29 @@ button:hover {
   text-align: left;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.75);
+}
+
+/* Faces de dé de la section "Chiffres" (dessinées par dieFace, game.ts). */
+/* 1.8em : sous le `min-height` de .score-cell (1.95em), donc la rangée garde
+   exactement la hauteur qu'elle avait avec un chiffre. Cette grille doit tenir
+   sans défiler, un dé plus grand ferait pousser six lignes sur douze. */
+.die {
+  display: block;
+  width: 1.8em;
+  height: 1.8em;
+  /* Ombre portée et pas de fond : le dé se détache de la couleur du joueur
+     sans poser un rectangle opaque sur la ligne. */
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.3));
+}
+
+.die-face {
+  fill: #fcfcf9;
+  stroke: rgba(0, 0, 0, 0.28);
+  stroke-width: 3;
+}
+
+.die-pip {
+  fill: #2f3a40;
 }
 
 .score-table tbody tr.alt td {
