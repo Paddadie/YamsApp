@@ -1,5 +1,5 @@
-// Page Paramètres : bonus, règles des combinaisons, réinitialisation,
-// export / import et numéro de version.
+// Page Paramètres, en trois sections exclusives (tuiles en haut d'écran) :
+// règles du jeu, administration des joueurs et des scores, sauvegarde.
 
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
@@ -95,6 +95,14 @@ const messageText = requireEl("message-text");
 
 const resetBtn = requireEl<HTMLButtonElement>("reset-rules");
 
+// Déclarés avant la séquence d'initialisation : une fonction remonte en haut du
+// module, un `const` non. Laissés près de setupPanels() / limitList(), ils
+// étaient encore dans leur zone morte au moment de l'appel.
+const PANELS = ["rules", "data", "backup"] as const;
+const LIST_PREVIEW = 5;
+const expandedLists = new Set<string>();
+
+setupPanels();
 for (const key of MODE_KEYS) setupModeRow(key);
 setupBonus();
 setupChance();
@@ -104,6 +112,73 @@ setupBackup();
 setupScoreAdmin();
 setupPlayerAdmin();
 updateResetVisibility();
+
+/* ---------- Sections de la page ---------- */
+// Motif ARIA "onglets" : les trois tuiles sont un `tablist`, chaque section un
+// `tabpanel`. Rien n'est mémorisé d'une visite à l'autre — on revient toujours
+// sur les règles, la section la plus consultée.
+
+function setupPanels(): void {
+  const tabs = PANELS.map((name) => requireEl<HTMLButtonElement>(`tab-${name}`));
+  const body = document.querySelector<HTMLElement>(".screen-body");
+
+  const show = (index: number): void => {
+    tabs.forEach((tab, i) => {
+      const active = i === index;
+      tab.setAttribute("aria-selected", String(active));
+      // Seul l'onglet actif reste dans l'ordre de tabulation : d'un onglet à
+      // l'autre on se déplace aux flèches, comme l'attend le motif ARIA.
+      tab.tabIndex = active ? 0 : -1;
+      requireEl(`panel-${PANELS[i]}`).hidden = !active;
+    });
+    // Sans ça, changer de section depuis le bas d'une longue liste laisse la
+    // nouvelle section affichée dans le vide, hors de l'écran.
+    body?.scrollTo({ top: 0 });
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => show(index));
+    tab.addEventListener("keydown", (e) => {
+      const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (step === 0) return;
+      e.preventDefault();
+      const next = (index + step + tabs.length) % tabs.length;
+      show(next);
+      tabs[next].focus();
+    });
+  });
+
+  show(0);
+}
+
+/* ---------- Listes bornées ---------- */
+// Au-delà de cinq entrées on n'en montre que cinq : la page se déroulait sinon
+// sur plusieurs écrans dès qu'on avait quelques joueurs et un Hall of Fame
+// rempli. L'état déplié est retenu par liste — une suppression redessine la
+// liste, et sans ça elle se replierait sous les doigts.
+
+function limitList(list: HTMLElement, listId: string): void {
+  const rows = [...list.children] as HTMLElement[];
+  if (rows.length <= LIST_PREVIEW || expandedLists.has(listId)) return;
+
+  for (const row of rows.slice(LIST_PREVIEW)) row.hidden = true;
+
+  // Le bouton est dans un <li> : un <button> enfant direct d'un <ul> n'est pas
+  // du HTML valide, et replaceChildren() le retire au redessin suivant.
+  const li = document.createElement("li");
+  li.className = "list-more-row";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "list-more";
+  button.textContent = `Tout afficher (${rows.length})`;
+  button.addEventListener("click", () => {
+    expandedLists.add(listId);
+    for (const row of rows) row.hidden = false;
+    li.remove();
+  });
+  li.appendChild(button);
+  list.appendChild(li);
+}
 
 function persist(): void {
   saveRules(rules);
@@ -410,6 +485,7 @@ function renderScoreAdmin(listId: string, store: ScoreList): void {
   entries.forEach((entry, index) => {
     list.appendChild(scoreAdminRow(entry, index, store));
   });
+  limitList(list, listId);
 }
 
 function scoreAdminRow(
@@ -607,6 +683,7 @@ function renderPlayerAdmin(): void {
   for (const name of names) {
     list.appendChild(playerAdminRow(name, statFor(name, stats)?.games ?? 0));
   }
+  limitList(list, "players-admin");
 }
 
 function playerAdminRow(name: string, games: number): HTMLLIElement {

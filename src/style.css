@@ -2076,6 +2076,104 @@ button:hover {
 }
 
 /* Chaque groupe de réglages = une carte, comme les tableaux du Hall of Fame. */
+/* ========== PARAMÈTRES : SÉLECTEUR DE SECTION ========== */
+/* Trois tuiles, une seule section visible à la fois. Les règles, les listes de
+   joueurs / scores et la sauvegarde n'ont rien à voir entre elles ; elles se
+   suivaient en six cartes identiques, sur plusieurs écrans de défilement. */
+.panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  /* Filet de séparation : sans lui, les tuiles et les cartes du contenu se
+     suivent en blocs blancs de même facture et on ne voit plus que le haut
+     commande le bas. Le trait court sous les trois tuiles, d'un bord à
+     l'autre, pour se lire comme une barre d'onglets et non comme une carte
+     de plus. */
+  padding-bottom: clamp(0.7rem, 2.2vh, 1.15rem);
+  border-bottom: 2px solid #dfe4e8;
+}
+
+.panel-tab {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding: 0.7rem 0.35rem 0.6rem;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  color: #5a646d;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Le gabarit générique `button` repeindrait la tuile en bleu au survol. */
+.panel-tab:hover,
+.panel-tab:focus-visible {
+  background: #fff;
+}
+
+.panel-tab-icon {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.panel-tab[aria-selected="true"] {
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.panel-tab:focus-visible {
+  outline: 3px solid rgba(25, 118, 210, 0.35);
+  outline-offset: 2px;
+}
+
+/* Une section : ses cartes espacées comme elles l'étaient dans la page. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2.4vh, 1.5rem);
+}
+
+/* Doit l'emporter sur le `display: flex` ci-dessus. */
+.panel[hidden] {
+  display: none;
+}
+
+/* Bouton "Tout afficher" en pied de liste bornée. */
+.list-more-row {
+  padding-top: 0.6rem;
+}
+
+.list-more {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 0.5em 1em;
+  background: transparent;
+  border: 1.5px solid #d8d8d8;
+  border-radius: var(--border-radius);
+  color: var(--secondary-color);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.list-more:hover,
+.list-more:focus-visible {
+  background: #f2f6fa;
+}
+
 .settings-group {
   width: 100%;
   background: #fff;
@@ -2091,10 +2189,10 @@ button:hover {
 }
 
 .settings-hint {
-  margin: -0.25rem 0 0;
+  margin: 0 0 0.35rem;
   font-size: 0.82rem;
   color: #777;
-  text-align: center;
+  text-align: left;
 }
 
 .setting-row {
@@ -2150,26 +2248,29 @@ button:hover {
 /* Bouton d'aide d'un réglage : petit cercle sobre collé au libellé. Le gabarit
    générique `button` (fond bleu plein) est entièrement neutralisé, y compris au
    survol — sinon la pastille vire au bleu sous le doigt. */
+/* Bouton d'aide d'un réglage. Le cercle et le « i » sont un seul dessin SVG
+   (cf. settings.html) : aucune bordure CSS ici, sinon elle doublerait le
+   cercle. C'est ce qui garantit le centrage — un glyphe de texte se pose sur
+   sa ligne de base, jamais au centre de sa boîte. */
 .info-btn {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   flex: none;
-  width: 1.3em;
-  height: 1.3em;
-  margin-left: 0.35em;
+  width: 1.35em;
+  height: 1.35em;
+  margin-left: 0.4em;
   padding: 0;
-  border: 1.5px solid #9aa3a8;
+  border: none;
   border-radius: 50%;
   background: none;
-  color: #687177;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 0.92em;
-  font-style: italic;
-  font-weight: 700;
-  line-height: 1;
+  color: #7b858c;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+.info-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .info-btn:hover,
