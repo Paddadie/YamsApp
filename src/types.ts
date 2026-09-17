@@ -13,9 +13,13 @@ export interface VariantConfig {
 // Nom d'une ligne de la grille ("1".."6", "Bonus", "Total Haut", "Brelan (Σ)", …).
 export type LineName = string;
 
-// Scores d'un joueur : par variante, puis par ligne. Les valeurs stockées sont
-// toujours des nombres (les totaux dérivés sont mémorisés au fil de la saisie).
-export type PlayerScores = Record<Variant, Record<LineName, number>>;
+// Feuille d'un joueur sur une variante. Les valeurs stockées sont toujours des
+// nombres (les totaux dérivés sont mémorisés au fil de la saisie) ; une ligne
+// absente est une case vide.
+export type LineScores = Record<LineName, number>;
+
+// Scores d'un joueur : une feuille par variante.
+export type PlayerScores = Record<Variant, LineScores>;
 
 export interface Player {
   name: string;
@@ -67,6 +71,6 @@ export interface ScoreEntry {
   date: string;
   // Détail de la partie (optionnel : absent des entrées d'avant cette version).
   variant?: Variant;
-  sheet?: Record<LineName, number>;
+  sheet?: LineScores;
   lineOrder?: LineName[];
 }

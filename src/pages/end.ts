@@ -1,5 +1,11 @@
 // Page de fin de partie : podium et classement, indication de l'impact sur le
 // Hall of Fame, puis enregistrement quand l'utilisateur quitte.
+//
+// Ordre du module (commun aux six pages) : amorçage et gardes, puis les
+// constantes, puis les fonctions, et enfin la mise en route tout en bas. Rien
+// ne s'exécute avant que tout soit déclaré — une fonction remonte en haut du
+// module, un `const` non, et le piège ne se voit ni à la compilation ni aux
+// tests.
 
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
@@ -54,9 +60,6 @@ const impact: HallOfFameImpact = isHallOfFameImpact(saved.hofImpact)
   ? saved.hofImpact
   : previewHallOfFame(game.players, game.variants);
 
-// La partie sauvegardée n'est effacée qu'au clic sur « Quitter » : ainsi un
-// rafraîchissement de cette page réaffiche le podium au lieu de tout perdre.
-
 const podium = requireEl("podium");
 const rankingTable = requireEl<HTMLTableElement>("ranking-table");
 
@@ -69,30 +72,6 @@ interface Result {
 const results = computeResults();
 const hasClassique = game.variants.includes("Classique");
 
-// Enregistrement dès l'arrivée sur l'écran de fin, pas au clic sur « Quitter » :
-// si l'utilisateur ferme l'appli sans quitter, la partie n'est pas perdue.
-// `recorded` (posé sur la partie sauvegardée) empêche un double comptage si on
-// rafraîchit cette page ou qu'on y revient via « Reprendre ».
-if (!saved.recorded) {
-  saveBestAndWorstScores(game.players, game.variants, grid);
-  // Les statistiques ne comptent que les parties classiques : `classiqueScore`
-  // vaut null quand la partie n'incluait pas cette variante (la partie est
-  // alors comptée dans `games` mais pas dans la moyenne).
-  recordGameResult(
-    results.map((r) => ({
-      name: r.name,
-      classiqueScore: hasClassique ? r.details["Classique"] : null,
-    })),
-  );
-  saveSavedGame({ ...saved, recorded: true, hofImpact: impact });
-}
-
-requireEl("quit-btn").addEventListener("click", () => {
-  clearSavedGame();
-  clearDraft();
-  goTo("home");
-});
-
 /* ---------- Mise en scène du résultat ---------- */
 // Les marches sortent du sol de la dernière vers la première : on garde le
 // vainqueur pour la fin. Le classement complet suit, du dernier au premier.
@@ -103,12 +82,6 @@ const STEP_DELAYS: Record<number, number> = { 3: 0.08, 2: 0.26, 1: 0.44 };
 const STEP_MS = 450;
 const RANKING_DELAY = 0.72; // le classement démarre une fois le podium posé
 const ROW_STAGGER = 0.07;
-
-renderPodium(results);
-renderRanking(results);
-revealRanking();
-renderRecordBanner();
-renderLegend();
 
 function computeResults(): Result[] {
   return game.players
@@ -244,3 +217,39 @@ function buildStep(result: Result, rank: number): HTMLElement {
   step.append(medal, name, score, num);
   return step;
 }
+
+/* ---------- Mise en route ---------- */
+
+// Enregistrement dès l'arrivée sur l'écran de fin, pas au clic sur « Quitter » :
+// si l'utilisateur ferme l'appli sans quitter, la partie n'est pas perdue.
+// `recorded` (posé sur la partie sauvegardée) empêche un double comptage si on
+// rafraîchit cette page ou qu'on y revient via « Reprendre ».
+// L'impact sur le Hall of Fame, lui, a déjà été mesuré plus haut : il DOIT
+// l'être avant cette écriture.
+if (!saved.recorded) {
+  saveBestAndWorstScores(game.players, game.variants, grid);
+  // Les statistiques ne comptent que les parties classiques : `classiqueScore`
+  // vaut null quand la partie n'incluait pas cette variante (la partie est
+  // alors comptée dans `games` mais pas dans la moyenne).
+  recordGameResult(
+    results.map((r) => ({
+      name: r.name,
+      classiqueScore: hasClassique ? r.details["Classique"] : null,
+    })),
+  );
+  saveSavedGame({ ...saved, recorded: true, hofImpact: impact });
+}
+
+renderPodium(results);
+renderRanking(results);
+revealRanking();
+renderRecordBanner();
+renderLegend();
+
+// La partie sauvegardée n'est effacée qu'ici : ainsi un rafraîchissement de
+// cette page réaffiche le podium au lieu de tout perdre.
+requireEl("quit-btn").addEventListener("click", () => {
+  clearSavedGame();
+  clearDraft();
+  goTo("home");
+});

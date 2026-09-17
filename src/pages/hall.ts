@@ -1,10 +1,17 @@
 // Page Hall of Fame : meilleurs / pires scores (cliquables pour voir la feuille
 // de score détaillée) et statistiques par joueur.
+//
+// Ordre du module (commun aux six pages) : amorçage et gardes, puis les
+// constantes, puis les fonctions, et enfin la mise en route tout en bas. Rien
+// ne s'exécute avant que tout soit déclaré — une fonction remonte en haut du
+// module, un `const` non, et le piège ne se voit ni à la compilation ni aux
+// tests.
 
 import { bootstrap } from "../bootstrap";
 import {
   MEDALS,
   makeActivatable,
+  makeDismissible,
   plural,
   requireEl,
   strongText,
@@ -13,12 +20,7 @@ import {
 import { getBestScores, getWorstScores } from "../storage/hallOfFameRepo";
 import { getPlayerStats } from "../storage/playerStatsRepo";
 import { compareNames } from "../playerName";
-import {
-  BONUS_LINE,
-  FINAL_SCORE_LINE,
-  LOWER_TOTAL_LINE,
-  UPPER_TOTAL_LINE,
-} from "../scoring";
+import { scoreSheetBody } from "../scoreSheet";
 import { formatDate } from "../dates";
 import type { ScoreEntry } from "../types";
 
@@ -31,30 +33,13 @@ const sheetMeta = requireEl("sheet-meta");
 const sheetTotalValue = requireEl("sheet-total-value");
 const sheetTable = requireEl<HTMLTableElement>("sheet-table");
 
-// Lignes de la feuille qui sont des totaux calculés, pas des scores saisis
-// (le score final, lui, est affiché à part dans l'en-tête du dialogue).
-const SUBTOTAL_LINES = new Set([BONUS_LINE, UPPER_TOTAL_LINE, LOWER_TOTAL_LINE]);
-
 interface SheetRank {
   kind: "best" | "worst";
   position: number; // 1 = record / pire absolu
 }
 
-requireEl("sheet-close").addEventListener("click", () => sheetDialog.close());
-sheetDialog.addEventListener("click", (e) => {
-  if (e.target === sheetDialog) sheetDialog.close();
-});
-
 const bestScores = getBestScores();
 const worstScores = getWorstScores();
-
-renderRecordCard();
-// Le tableau des pires scores ne contient que des parties classiques : la
-// colonne « Variante » n'a d'intérêt que pour les meilleurs scores.
-renderScoreTable("best-scores-table", bestScores, "best", true);
-renderScoreTable("worst-scores-table", worstScores, "worst");
-renderStats();
-setupCreditsEasterEgg();
 
 /* ---------- Carte « Record du téléphone » ---------- */
 
@@ -190,23 +175,16 @@ function openSheet(entry: ScoreEntry, rank?: SheetRank): void {
   }
 
   sheetMeta.replaceChildren();
+  // La pastille porte déjà le nom de la variante dans son title : l'écrire à
+  // côté ferait doublon.
   if (entry.variant) sheetMeta.appendChild(variantBadge(entry.variant));
-  sheetMeta.append(
-    [entry.variant, formatDate(entry.date)].filter(Boolean).join(" · "),
-  );
+  sheetMeta.append(formatDate(entry.date));
 
   sheetTotalValue.textContent = String(entry.score);
 
-  const tbody = document.createElement("tbody");
-  for (const line of entry.lineOrder ?? []) {
-    if (line === FINAL_SCORE_LINE) continue; // déjà affiché en gros dans l'en-tête
-    const value = entry.sheet?.[line];
-    const tr = document.createElement("tr");
-    if (SUBTOTAL_LINES.has(line)) tr.className = "sheet-derived";
-    tr.append(cell(line), cell(value === undefined ? "–" : String(value), true));
-    tbody.appendChild(tr);
-  }
-  sheetTable.replaceChildren(tbody);
+  const body = scoreSheetBody(entry);
+  sheetTable.replaceChildren();
+  if (body) sheetTable.appendChild(body);
   sheetDialog.showModal();
 }
 
@@ -262,8 +240,7 @@ function renderStats(): void {
 /* ---------- Easter egg : 5 clics sur le trophée ---------- */
 
 function setupCreditsEasterEgg(): void {
-  const trophy = document.getElementById("hof-trophy");
-  if (!trophy) return;
+  const trophy = requireEl("hof-trophy");
 
   const MAX_GAP_MS = 1200; // délai max entre deux clics pour garder le compte
   let count = 0;
@@ -324,3 +301,14 @@ function spark(): HTMLElement {
   s.setAttribute("aria-hidden", "true");
   return s;
 }
+
+/* ---------- Mise en route ---------- */
+
+makeDismissible(sheetDialog, "sheet-close");
+renderRecordCard();
+// Le tableau des pires scores ne contient que des parties classiques : la
+// colonne « Variante » n'a d'intérêt que pour les meilleurs scores.
+renderScoreTable("best-scores-table", bestScores, "best", true);
+renderScoreTable("worst-scores-table", worstScores, "worst");
+renderStats();
+setupCreditsEasterEgg();

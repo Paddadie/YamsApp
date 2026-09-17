@@ -40,6 +40,22 @@
       </div>
     </div>
 
+    <dialog id="new-game-dialog">
+      <p class="sheet-title">Une partie est en cours</p>
+      <dl id="new-game-summary" class="delete-summary"></dl>
+      <p class="delete-warn">
+        Commencer une nouvelle partie effacera définitivement celle-ci.
+      </p>
+      <div class="delete-actions">
+        <button type="button" id="new-game-cancel" class="btn btn-secondary">
+          Annuler
+        </button>
+        <button type="button" id="new-game-confirm" class="btn btn-danger">
+          Oui, commencer
+        </button>
+      </div>
+    </dialog>
+
     <script type="module" src="/src/pages/players.ts"></script>
   </body>
 </html>

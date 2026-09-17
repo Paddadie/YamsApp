@@ -1127,32 +1127,14 @@ button:hover {
 }
 
 /* ---------- Fenêtre de choix de valeur (jetons) ---------- */
+/* Écarts au gabarit commun des dialogues (cf. « DIALOGUES ») : plus large, et
+   sans marge intérieure — l'en-tête coloré et la liste de jetons vont d'un
+   bord à l'autre. */
 #value-picker {
-  border: none;
   border-radius: 20px;
   padding: 0;
   width: min(27rem, 94vw);
   box-shadow: 0 20px 60px rgba(10, 20, 25, 0.4);
-  animation: dialog-in 0.16s ease-out;
-}
-
-/* Entrée commune à tous les <dialog> de l'appli (cf. le bloc « Dialogues »). */
-@keyframes dialog-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px) scale(0.96);
-  }
-}
-
-@keyframes backdrop-in {
-  from {
-    opacity: 0;
-  }
-}
-
-#value-picker::backdrop {
-  background: rgba(12, 22, 27, 0.55);
-  animation: backdrop-in 0.16s ease-out;
 }
 
 /* En-tête : pastille de la variante + nom de la ligne, filet de sa couleur. */
@@ -1862,47 +1844,44 @@ button:hover {
   }
 }
 
-/* Easter egg déclenché volontairement (5 clics) : le saut du trophée et le
-   scintillement des ✨ jouent même en "animations réduites". Seul le ressort
-   d'entrée de la carte est calmé. */
-/* Dialogues : feuille de score détaillée + confirmations (paramètres).
-   Tout <dialog> ajouté à l'appli doit figurer ici, sinon il retombe sur le
-   cadre par défaut du navigateur (bord carré, aucun fond assombri). */
-#sheet-dialog,
-#delete-dialog,
-#player-edit-dialog,
-#player-delete-dialog,
-#import-dialog,
-#message-dialog {
+/* ========== DIALOGUES ========== */
+/* Gabarit commun à TOUS les <dialog> de l'appli. Sans lui, un dialogue retombe
+   sur le cadre par défaut du navigateur : bord carré, fond non assombri.
+   Posé sur l'élément et non sur une liste d'id, qu'il fallait rallonger à la
+   main à chaque ajout — deux dialogues y avaient déjà été oubliés. Les écarts
+   (fenêtre de jetons, feuille de score) sont déclarés près de leur écran. */
+dialog {
   border: none;
   border-radius: 18px;
   width: min(23rem, 92vw);
   max-height: 90dvh;
   overflow-y: auto;
+  padding: 1.2em;
   box-shadow: 0 20px 55px rgba(10, 20, 25, 0.4);
   animation: dialog-in 0.16s ease-out;
 }
 
-#delete-dialog,
-#player-edit-dialog,
-#player-delete-dialog,
-#import-dialog,
-#message-dialog {
-  padding: 1.2em;
-}
-
-#sheet-dialog {
-  padding: 0;
-}
-
-#sheet-dialog::backdrop,
-#delete-dialog::backdrop,
-#player-edit-dialog::backdrop,
-#player-delete-dialog::backdrop,
-#import-dialog::backdrop,
-#message-dialog::backdrop {
+dialog::backdrop {
   background: rgba(12, 22, 27, 0.55);
   animation: backdrop-in 0.16s ease-out;
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* La feuille de score détaillée va d'un bord à l'autre du dialogue. */
+#sheet-dialog {
+  padding: 0;
 }
 
 /* Titre des dialogues de confirmation. */
@@ -1978,34 +1957,41 @@ button:hover {
 }
 
 /* --- Corps : lignes lisibles, valeurs alignées, totaux distingués --- */
-#sheet-table {
+/* Feuille de score détaillée, commune au Hall of Fame et à la pop-up de
+   suppression des Paramètres (cf. scoreSheet.ts). */
+.score-sheet {
   width: 100%;
   border-collapse: collapse;
 }
 
-#sheet-table td {
+.score-sheet td {
   padding: 0.32em 1.2em;
   border-bottom: 1px solid #eee;
 }
 
-#sheet-table td:first-child {
+.score-sheet td:first-child {
   color: #555;
 }
 
-#sheet-table td:last-child {
+.score-sheet td:last-child {
   text-align: center;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
-#sheet-table tr:last-child td {
+.score-sheet tr:last-child td {
   border-bottom: none;
 }
 
-#sheet-table tr.sheet-derived td {
+/* Totaux calculés : en retrait des scores saisis. */
+.score-sheet tr.sheet-derived td {
   background: #f5f6f8;
   font-weight: 700;
   color: #2f3a40;
+}
+
+.score-sheet[hidden] {
+  display: none; /* sinon `display: table` reprend le dessus */
 }
 
 .sheet-actions {
@@ -2019,32 +2005,10 @@ button:hover {
   font-size: 0.95rem;
 }
 
-/* Feuille détaillée du dialogue de suppression (paramètres). */
+/* La feuille de la pop-up de suppression respire un peu moins que celle du
+   Hall of Fame : elle vient sous un récapitulatif, pas seule dans sa fenêtre. */
 #delete-sheet {
-  width: 100%;
-  border-collapse: collapse;
   margin-bottom: 1em;
-}
-
-#delete-sheet td {
-  padding: 0.35em 0.6em;
-  border-bottom: 1px solid #eee;
-}
-
-#delete-sheet td:first-child {
-  color: #555;
-}
-
-#delete-sheet td:last-child {
-  text-align: right;
-  font-weight: 700;
-}
-
-#delete-sheet tr.sheet-final td {
-  border-top: 2px solid rgba(0, 0, 0, 0.4);
-  border-bottom: none;
-  font-size: 1.1em;
-  padding-top: 0.5em;
 }
 
 /* ========== BOUTON PARAMÈTRES (accueil) ========== */
@@ -2489,6 +2453,10 @@ button:hover {
   margin: 0 0 1em;
   display: grid;
   grid-template-columns: auto 1fr;
+  /* Terme et valeur centrés l'un sur l'autre : sans ça, le terme reste collé en
+     haut de sa case face à une pastille de variante, deux fois plus haute
+     qu'une ligne de texte. */
+  align-items: center;
   gap: 0.35em 0.9em;
   font-size: 0.95rem;
 }
@@ -2507,10 +2475,6 @@ button:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
-}
-
-#delete-sheet[hidden] {
-  display: none;
 }
 
 .delete-warn {
@@ -2638,11 +2602,8 @@ button:hover {
 /* ---------- Changement de joueur (écran de jeu) ---------- */
 /* Le nom du joueur qui arrive entre par le côté vers lequel on va, pendant que
    le fond de page glisse vers sa couleur (cf. #game-screen plus haut).
-   On n'anime QUE le nom : animer la feuille de score était saccadé, parce que
-   renderPlayer() la reconstruit et que l'animation démarrait donc sur un
-   sous-arbre jamais peint, en même temps que le repaint plein écran du fond
-   (cf. animateName dans game.ts). Un seul élément de texte se déplace ici :
-   rien à réagencer, la carte est composée une fois pour toutes. */
+   Seul le nom est animé, et pas la feuille de score : la raison est dans
+   animateName (game.ts). */
 /* Deux animations plutôt qu'une : le fondu se termine bien avant le
    déplacement, si bien que le nom est déjà pleinement lisible pendant qu'il
    finit de se poser. Avec une seule animation, apparition et arrivée coïncident

@@ -45,7 +45,42 @@ export function getPlayerStats(): PlayerStats {
   return stats;
 }
 
-// Appelé quand une partie se termine (écran de fin → « Quitter »).
+const EMPTY_STAT: PlayerStat = {
+  games: 0,
+  classiqueGames: 0,
+  classiquePoints: 0,
+  classiqueBest: 0,
+};
+
+// Un joueur = une entrée, quelle que soit la casse : les écritures cherchent la
+// clé existante au lieu d'en créer une seconde (« Jean » et « jean »).
+function keyFor(stats: PlayerStats, name: string): string | undefined {
+  return Object.keys(stats).find((k) => sameName(k, name));
+}
+
+function mergeStat(a: PlayerStat, b: PlayerStat): PlayerStat {
+  return {
+    games: a.games + b.games,
+    classiqueGames: a.classiqueGames + b.classiqueGames,
+    classiquePoints: a.classiquePoints + b.classiquePoints,
+    classiqueBest: Math.max(a.classiqueBest, b.classiqueBest),
+  };
+}
+
+// Fusionne les entrées qui ne diffèrent que par la casse ou les espaces,
+// héritées des versions qui écrivaient la clé telle qu'elle était saisie. La
+// première forme rencontrée fait foi. Appelée par la migration.
+export function dedupePlayerStats(stats: PlayerStats): PlayerStats {
+  const merged: PlayerStats = {};
+  for (const [name, stat] of Object.entries(stats)) {
+    const key = keyFor(merged, name) ?? name.trim();
+    merged[key] = merged[key] ? mergeStat(merged[key], stat) : stat;
+  }
+  return merged;
+}
+
+// Appelé à l'arrivée sur l'écran de fin (pas au clic sur « Quitter ») : une
+// partie terminée ne doit pas être perdue si l'appli est fermée là.
 // `classiqueScore` : le score final classique du joueur, ou null si la partie
 // ne comportait pas la variante Classique.
 export function recordGameResult(
@@ -53,13 +88,9 @@ export function recordGameResult(
 ): void {
   const stats = getPlayerStats();
   for (const { name, classiqueScore } of results) {
-    const s = stats[name] ?? {
-      games: 0,
-      classiqueGames: 0,
-      classiquePoints: 0,
-      classiqueBest: 0,
-    };
-    stats[name] = {
+    const key = keyFor(stats, name) ?? name;
+    const s = stats[key] ?? EMPTY_STAT;
+    stats[key] = {
       games: s.games + 1,
       classiqueGames: s.classiqueGames + (classiqueScore !== null ? 1 : 0),
       classiquePoints: s.classiquePoints + (classiqueScore ?? 0),
@@ -69,36 +100,35 @@ export function recordGameResult(
   writeJson(STORAGE_KEYS.playerStats, stats);
 }
 
-// Supprime toute entrée correspondant à ce nom (casse / espaces ignorés :
-// d'anciennes données peuvent contenir des clés dépareillées).
+// Retire du lot toutes les entrées portant ce nom (casse / espaces ignorés :
+// d'anciennes données peuvent contenir des clés dépareillées) et renvoie leur
+// fusion, ou `undefined` si le joueur n'y figure pas.
+function takeStat(stats: PlayerStats, name: string): PlayerStat | undefined {
+  let taken: PlayerStat | undefined;
+  for (const key of Object.keys(stats)) {
+    if (!sameName(key, name)) continue;
+    taken = taken ? mergeStat(taken, stats[key]) : stats[key];
+    delete stats[key];
+  }
+  return taken;
+}
+
 export function removePlayerStats(name: string): void {
   const stats = getPlayerStats();
-  let changed = false;
-  for (const existing of Object.keys(stats)) {
-    if (sameName(existing, name)) {
-      delete stats[existing];
-      changed = true;
-    }
-  }
-  if (changed) writeJson(STORAGE_KEYS.playerStats, stats);
+  if (!takeStat(stats, name)) return;
+  writeJson(STORAGE_KEYS.playerStats, stats);
 }
 
 // Déplace les stats sous un autre nom (renommage). Fusionne si le nom cible
-// existe déjà.
+// existe déjà. La source est retirée AVANT de chercher la cible : sans ça, une
+// simple correction de casse (« jean » → « Jean ») se fusionnerait avec
+// elle-même.
 export function renamePlayerStats(oldName: string, newName: string): void {
   if (newName === oldName) return;
   const stats = getPlayerStats();
-  const from = stats[oldName];
+  const from = takeStat(stats, oldName);
   if (!from) return;
-  const into = stats[newName];
-  stats[newName] = into
-    ? {
-        games: into.games + from.games,
-        classiqueGames: into.classiqueGames + from.classiqueGames,
-        classiquePoints: into.classiquePoints + from.classiquePoints,
-        classiqueBest: Math.max(into.classiqueBest, from.classiqueBest),
-      }
-    : from;
-  delete stats[oldName];
+  const into = takeStat(stats, newName);
+  stats[newName] = into ? mergeStat(into, from) : from;
   writeJson(STORAGE_KEYS.playerStats, stats);
 }

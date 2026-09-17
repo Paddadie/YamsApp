@@ -2,11 +2,25 @@
 // coche pour rejoindre la partie. Les joueurs sélectionnés portent un numéro
 // d'ordre de tour et se réordonnent par glisser-déposer (poignée). Le champ du
 // haut sert à créer un nom OU à filtrer la liste.
+//
+// Ordre du module (commun aux six pages) : amorçage et gardes, puis les
+// constantes, puis les fonctions, et enfin la mise en route tout en bas. Rien
+// ne s'exécute avant que tout soit déclaré — une fonction remonte en haut du
+// module, un `const` non, et le piège ne se voit ni à la compilation ni aux
+// tests.
 
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { createPlayers, PLAYER_COLORS } from "../state";
-import { makeActivatable, plural, requireEl } from "../ui";
+import {
+  makeActivatable,
+  makeDismissible,
+  plural,
+  requireEl,
+  summaryRow,
+  variantBadge,
+} from "../ui";
+import { compareNames, foldName } from "../playerName";
 import {
   addKnownName,
   getKnownNames,
@@ -20,8 +34,9 @@ import {
   getLastRoster,
   saveLastRoster,
 } from "../storage/draftRepo";
-import { saveSavedGame } from "../storage/savedGameRepo";
+import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
 import { getRules } from "../storage/rulesRepo";
+import type { SavedGame } from "../types";
 
 bootstrap();
 
@@ -39,6 +54,7 @@ const reuseBtn = requireEl<HTMLButtonElement>("reuse-btn");
 const shuffleBtn = requireEl<HTMLButtonElement>("shuffle-btn");
 const list = requireEl<HTMLUListElement>("roster");
 const startBtn = requireEl<HTMLButtonElement>("start-game-btn");
+const newGameDialog = requireEl<HTMLDialogElement>("new-game-dialog");
 
 const selected = new Set(roster.playerNames);
 
@@ -52,45 +68,7 @@ const SHUFFLE_MS = 420; // 0.38s d'animation + marge : pas de coupure sur la fin
 const BADGE_POP_MS = 240;
 let shuffling = false;
 
-for (const name of roster.playerNames) assignColor(name);
-
-playerForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const name = resolveName(nameInput.value);
-  nameInput.value = "";
-  nameInput.focus();
-  if (!name) return render();
-  addKnownName(name);
-  if (!selected.has(name)) select(name);
-  commit();
-});
-
-// Le champ sert aussi de filtre : re-rendu à chaque frappe.
-nameInput.addEventListener("input", render);
-
-reuseBtn.addEventListener("click", () => {
-  for (const raw of getLastRoster()) {
-    const name = resolveName(raw);
-    if (!name || selected.has(name)) continue;
-    addKnownName(name);
-    select(name);
-  }
-  nameInput.value = "";
-  commit();
-});
-
-shuffleBtn.addEventListener("click", () => {
-  if (shuffling || roster.playerNames.length < 2) return;
-  const before = capturePositions();
-  const scroll = list.scrollTop;
-  shuffleOrder();
-  commit(); // la liste est reconstruite directement dans le nouvel ordre
-  list.scrollTop = scroll;
-  playRiffle(before);
-});
-
-startBtn.addEventListener("click", () => {
-  if (roster.playerNames.length < 2) return;
+function startGame(): void {
   saveLastRoster(roster.playerNames.slice());
   saveSavedGame({
     players: createPlayers(
@@ -104,9 +82,22 @@ startBtn.addEventListener("click", () => {
   });
   clearDraft();
   goTo("game");
-});
+}
 
-render();
+function showReplaceWarning(current: SavedGame): void {
+  const summary = requireEl("new-game-summary");
+  summary.replaceChildren();
+  summaryRow(summary, "Joueurs", current.players.map((p) => p.name).join(", "));
+
+  const variants = document.createElement("span");
+  variants.className = "delete-variant";
+  for (const variant of current.selectedVariants) {
+    variants.appendChild(variantBadge(variant));
+  }
+  summaryRow(summary, "Variantes", variants);
+
+  newGameDialog.showModal();
+}
 
 function select(name: string): void {
   selected.add(name);
@@ -146,14 +137,14 @@ function commit(): void {
 function render(): void {
   const stats = getPlayerStats();
   const gamesOf = (name: string): number => stats[name]?.games ?? 0;
-  const query = nameInput.value.trim().toLowerCase();
+  const query = foldName(nameInput.value);
 
   const everyone = [...new Set([...getKnownNames(), ...roster.playerNames])];
   const inGame = roster.playerNames.slice(); // ordre de jeu conservé
   const available = everyone
     .filter((name) => !selected.has(name))
-    .filter((name) => !query || name.toLowerCase().includes(query))
-    .sort((a, b) => gamesOf(b) - gamesOf(a) || a.localeCompare(b));
+    .filter((name) => !query || foldName(name).includes(query))
+    .sort((a, b) => gamesOf(b) - gamesOf(a) || compareNames(a, b));
 
   // Court : peut cohabiter avec un bouton sur la même ligne même sur petit écran.
   const enough = inGame.length >= 2;
@@ -259,9 +250,7 @@ function startDrag(e: PointerEvent, row: HTMLLIElement, name: string): void {
   const handle = e.currentTarget as HTMLElement;
   handle.setPointerCapture(e.pointerId);
 
-  const selRows = [
-    ...list.querySelectorAll<HTMLLIElement>(".roster-row.selected"),
-  ];
+  const selRows = selectedRows();
   const from = selRows.indexOf(row);
   if (from < 0) return;
 
@@ -376,3 +365,59 @@ function playRiffle(before: Map<string, number>): void {
     }, BADGE_POP_MS);
   }, SHUFFLE_MS);
 }
+
+/* ---------- Mise en route ---------- */
+
+for (const name of roster.playerNames) assignColor(name);
+
+playerForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const name = resolveName(nameInput.value);
+  nameInput.value = "";
+  nameInput.focus();
+  if (!name) return render();
+  addKnownName(name);
+  if (!selected.has(name)) select(name);
+  commit();
+});
+
+// Le champ sert aussi de filtre : re-rendu à chaque frappe.
+nameInput.addEventListener("input", render);
+
+reuseBtn.addEventListener("click", () => {
+  for (const raw of getLastRoster()) {
+    const name = resolveName(raw);
+    if (!name || selected.has(name)) continue;
+    addKnownName(name);
+    select(name);
+  }
+  nameInput.value = "";
+  commit();
+});
+
+shuffleBtn.addEventListener("click", () => {
+  if (shuffling || roster.playerNames.length < 2) return;
+  const before = capturePositions();
+  const scroll = list.scrollTop;
+  shuffleOrder();
+  commit(); // la liste est reconstruite directement dans le nouvel ordre
+  list.scrollTop = scroll;
+  playRiffle(before);
+});
+
+// Lancer une partie écrase celle qui est en cours : on montre laquelle avant,
+// comme pour toute autre suppression définitive de l'appli.
+startBtn.addEventListener("click", () => {
+  if (roster.playerNames.length < 2) return;
+  const inProgress = getSavedGame();
+  if (!inProgress) return startGame();
+  showReplaceWarning(inProgress);
+});
+
+makeDismissible(newGameDialog, "new-game-cancel");
+requireEl("new-game-confirm").addEventListener("click", () => {
+  newGameDialog.close();
+  startGame();
+});
+
+render();

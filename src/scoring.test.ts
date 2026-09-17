@@ -102,7 +102,7 @@ describe("computeDerived", () => {
     // Trois lignes seulement : 30 + 25 + 5 = 60, soit 3 points sous le seuil.
     const d = computeDerived({ "6": 30, "5": 25, "1": 5 }, grid);
     expect(d.upperFilled).toBe(false);
-    expect(d.bonusHint).toBe("-3");
+    expect(d.bonusPending).toBe(true);
   });
 
   it("n'affiche plus de repère une fois le bonus joué", () => {
@@ -111,7 +111,7 @@ describe("computeDerived", () => {
     for (const name of grid.upperScoringNames) scores[name] = 0;
     const d = computeDerived(scores, grid);
     expect(d.upperFilled).toBe(true);
-    expect(d.bonusHint).toBeNull();
+    expect(d.bonusPending).toBe(false);
     expect(d.bonus).toBe(0);
   });
 
@@ -208,7 +208,7 @@ describe("bonusPlan", () => {
       Object.entries(filled).map(([face, dice]) => [face, dice * Number(face)]),
     );
 
-  // "2x1 2x3 4x4" : lecture compacte du plan renvoyé.
+  // "4x4 2x3 2x1" : lecture compacte du plan renvoyé.
   const plan = (filled: Record<number, number>): string | null => {
     const result = bonusPlan(scores(filled), grid);
     return result && result.steps.map((s) => `${s.dice}x${s.line}`).join(" ");
@@ -229,15 +229,15 @@ describe("bonusPlan", () => {
   // Le cas qui justifie la fonctionnalité : sur un reste épars, la combinaison
   // la plus probable n'est pas "3 de chaque".
   it("charge les gros chiffres quand le reste est épars", () => {
-    expect(plan({ 2: 3, 5: 3, 6: 3 })).toBe("2x1 2x3 4x4");
+    expect(plan({ 2: 3, 5: 3, 6: 3 })).toBe("4x4 2x3 2x1");
   });
 
   it("garde 3 de chaque quand c'est bien le plus probable", () => {
-    expect(plan({ 1: 3, 2: 3, 3: 3 })).toBe("3x4 3x5 3x6");
+    expect(plan({ 1: 3, 2: 3, 3: 3 })).toBe("3x6 3x5 3x4");
   });
 
   it("omet un chiffre dont le plan n'a pas besoin", () => {
-    expect(plan({ 2: 5, 3: 5, 5: 5 })).toBe("1x4 2x6");
+    expect(plan({ 2: 5, 3: 5, 5: 5 })).toBe("2x6 1x4");
   });
 
   it("porte l'indice sur le plus grand chiffre restant", () => {
@@ -248,7 +248,7 @@ describe("bonusPlan", () => {
     // 45 points acquis (0 sur les 2, 3 dés de 5, 5 dés de 6), il manque 18 sur
     // les 1, 3 et 4 : 2x3 + 3x4, soit 5 dés, plutôt qu'une répartition plus
     // coûteuse à probabilité identique.
-    expect(plan({ 2: 0, 5: 3, 6: 5 })).toBe("2x3 3x4");
+    expect(plan({ 2: 0, 5: 3, 6: 5 })).toBe("3x4 2x3");
   });
 
   it("annonce un besoin littéral quand le bonus est hors d'atteinte", () => {

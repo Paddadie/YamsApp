@@ -25,7 +25,3 @@ export function writeJson(key: string, value: unknown): void {
 export function removeKey(key: string): void {
   localStorage.removeItem(key);
 }
-
-export function hasKey(key: string): boolean {
-  return localStorage.getItem(key) !== null;
-}

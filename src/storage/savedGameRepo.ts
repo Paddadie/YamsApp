@@ -3,7 +3,7 @@
 
 import type { SavedGame } from "../types";
 import { STORAGE_KEYS } from "./keys";
-import { readJson, writeJson, removeKey, hasKey } from "./localStore";
+import { readJson, writeJson, removeKey } from "./localStore";
 
 export function isSavedGame(value: unknown): value is SavedGame {
   if (!value || typeof value !== "object") return false;
@@ -44,5 +44,5 @@ export function clearSavedGame(): void {
 }
 
 export function hasSavedGame(): boolean {
-  return hasKey(STORAGE_KEYS.savedGame) && getSavedGame() !== null;
+  return getSavedGame() !== null;
 }

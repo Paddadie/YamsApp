@@ -49,6 +49,21 @@ export function makeActivatable(
   });
 }
 
+// Ferme un <dialog> au clic sur le fond (le clic tombe sur le dialogue
+// lui-même, jamais sur son contenu) et, si un bouton est donné, au clic dessus.
+// Échap est déjà géré par le navigateur.
+export function makeDismissible(
+  dialog: HTMLDialogElement,
+  closeButtonId?: string,
+): void {
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+  if (closeButtonId) {
+    requireEl(closeButtonId).addEventListener("click", () => dialog.close());
+  }
+}
+
 // Pastille ronde colorée portant l'icône de la variante, comme les en-têtes de
 // colonnes pendant une partie.
 export function variantBadge(variant: Variant): HTMLElement {
@@ -58,6 +73,21 @@ export function variantBadge(variant: Variant): HTMLElement {
   badge.textContent = getVariantIcon(variant);
   badge.title = variant;
   return badge;
+}
+
+// Ligne d'un récapitulatif <dl> (pop-ups de confirmation : suppression d'un
+// score, d'un joueur, import, nouvelle partie).
+export function summaryRow(
+  target: HTMLElement,
+  term: string,
+  value: string | Node,
+): void {
+  const dt = document.createElement("dt");
+  dt.textContent = term;
+  const dd = document.createElement("dd");
+  if (typeof value === "string") dd.textContent = value;
+  else dd.appendChild(value);
+  target.append(dt, dd);
 }
 
 function appendRows(tbody: HTMLElement, rows: Cell[][]): void {

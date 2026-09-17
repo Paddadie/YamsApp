@@ -4,12 +4,18 @@
 // Le tableau n'est reconstruit qu'au changement de joueur ; une saisie ne
 // rafraîchit que la colonne concernée (valeur, verrous Montante/Descendante,
 // lignes calculées), sans perdre le focus.
+//
+// Ordre du module (commun aux six pages) : amorçage et gardes, puis les
+// constantes, puis les fonctions, et enfin la mise en route tout en bas. Rien
+// ne s'exécute avant que tout soit déclaré — une fonction remonte en haut du
+// module, un `const` non, et le piège ne se voit ni à la compilation ni aux
+// tests.
 
 import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { game, hydrateGame, toSavedGame } from "../state";
 import { getVariantIcon, getVariantColor } from "../variants";
-import { plural, requireEl } from "../ui";
+import { makeDismissible, plural, requireEl } from "../ui";
 import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
 import { getPrefs } from "../storage/prefsRepo";
 import {
@@ -29,10 +35,9 @@ import {
   type BonusPlanStep,
   type Derived,
 } from "../scoring";
-import type { LineName, PlayerScores, Variant } from "../types";
+import type { LineName, LineScores, PlayerScores, Variant } from "../types";
 
-type LineScores = Record<LineName, number>;
-type Pick = (value: number | undefined) => void;
+type OnPick = (value: number | undefined) => void;
 
 const AUTO_ADVANCE_MS = 800;
 
@@ -83,6 +88,7 @@ const pickerVariant = requireEl("picker-variant");
 const pickerLine = requireEl("picker-line");
 const pickerValues = requireEl("picker-values");
 const pickerClear = requireEl<HTMLButtonElement>("picker-clear");
+const pauseBtn = requireEl<HTMLButtonElement>("pause-btn");
 
 let autoAdvance: ReturnType<typeof setTimeout> | undefined;
 // Posé par l'animation de fin de bonus : on repousse l'auto-avance le temps
@@ -109,83 +115,6 @@ let derivedCells = new Map<Variant, Map<LineName, HTMLTableCellElement>>();
 const BONUS_FILL_MS = 550;
 const BONUS_REACT_MS = 750;
 const BONUS_ANIM_MS = BONUS_FILL_MS + BONUS_REACT_MS;
-
-// Joueurs dont l'animation de fin de bonus a déjà été jouée (une seule fois).
-// Déclaré ici : renderPlayer() y accède dès le rendu initial.
-const bonusAnimated = new Set<string>();
-
-// Faces de dé des lignes "Chiffres" (dessinées par dieFace, plus bas). Déclarées
-// ici pour la même raison que `bonusAnimated` : un `const`, contrairement à une
-// fonction, ne remonte pas en haut du module. Laissées près de dieFace, elles
-// étaient encore dans leur zone morte au moment du rendu initial.
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-// Rayon commun à tous les points : une face 1 avec un gros point serait plus
-// fidèle à un vrai dé, mais côte à côte dans une colonne les six faces doivent
-// se lire comme un même dé qu'on retourne.
-const PIP_RADIUS = 10;
-
-// Points de chaque face, dans un carré de 100×100. Colonnes et rangées sont aux
-// mêmes coordonnées d'une face à l'autre — c'est ce qui fait qu'on lit un même
-// dé et non six dessins. Seule la face 6 écarte ses rangées : à trois points par
-// colonne, l'écart standard les laissait se frôler.
-const DIE_PIPS: Record<string, [number, number][]> = {
-  "1": [[50, 50]],
-  "2": [[30, 30], [70, 70]],
-  "3": [[30, 30], [50, 50], [70, 70]],
-  "4": [[30, 30], [70, 30], [30, 70], [70, 70]],
-  "5": [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
-  "6": [[30, 25], [70, 25], [30, 50], [70, 50], [30, 75], [70, 75]],
-};
-
-// État du swipe (cf. la section en bas du fichier). Déclaré ici aussi : les
-// écouteurs posés juste en dessous peuvent tirer dès le premier geste.
-let swipeId: number | undefined;
-let swipeStartX = 0;
-let swipeStartY = 0;
-let swipeStartAt = 0;
-// Geste reconnu comme horizontal : à partir de là il nous appartient.
-let swipeTaken = false;
-// Un geste horizontal vient de se terminer : le clic qu'il produit est à jeter.
-let swipeClickPending = false;
-
-// blur() : sinon la flèche garde le focus (et sa pastille) collé après un tap.
-prevPlayerBtn.addEventListener("click", () => {
-  prevPlayerBtn.blur();
-  changePlayer(-1);
-});
-nextPlayerBtn.addEventListener("click", () => {
-  nextPlayerBtn.blur();
-  changePlayer(1);
-});
-
-gameScreen.addEventListener("pointerdown", onSwipeStart);
-gameScreen.addEventListener("pointermove", onSwipeMove);
-gameScreen.addEventListener("pointerup", onSwipeEnd);
-gameScreen.addEventListener("pointercancel", resetSwipe);
-// En capture : le clic de fin de geste doit être coupé avant d'atteindre la
-// cellule survolée, qui ouvrirait sa fenêtre de saisie.
-gameScreen.addEventListener("click", swallowSwipeClick, true);
-
-const pauseBtn = requireEl<HTMLButtonElement>("pause-btn");
-if (isReview) {
-  gameScreen.classList.add("review");
-  pauseBtn.textContent = "🥇 Classement final";
-  // Le bleu sert partout à revenir à l'accueil : ici on va au classement.
-  pauseBtn.classList.replace("btn-secondary", "btn-gold");
-  pauseBtn.addEventListener("click", () => goTo("end"));
-} else {
-  pauseBtn.addEventListener("click", () => {
-    persist();
-    goTo("home");
-  });
-}
-
-picker.addEventListener("click", (e) => {
-  if (e.target === picker) picker.close();
-});
-
-renderPlayer();
 
 /* ---------- État ---------- */
 
@@ -235,6 +164,15 @@ function animateName(delta: number): void {
 // le défilement vertical de la grille. On observe le geste, et c'est seulement
 // quand il part clairement à l'horizontale qu'on se l'approprie. Dans le cas
 // inverse le navigateur défile et nous envoie un pointercancel.
+
+let swipeId: number | undefined;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartAt = 0;
+// Geste reconnu comme horizontal : à partir de là il nous appartient.
+let swipeTaken = false;
+// Un geste horizontal vient de se terminer : le clic qu'il produit est à jeter.
+let swipeClickPending = false;
 
 function onSwipeStart(e: PointerEvent): void {
   // Un geste précédent peut ne pas avoir produit de clic (cellule reconstruite,
@@ -369,7 +307,6 @@ function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
 
       const nameCell = document.createElement("td");
       if (grid.upperScoringNames.includes(lineName)) {
-        nameCell.classList.add("line-die");
         nameCell.appendChild(dieFace(lineName));
       } else {
         nameCell.textContent = lineName;
@@ -442,6 +379,26 @@ function buildSectionHead(
 // appareil à l'autre. Ici la face est dessinée, elle suit la taille fluide du
 // tableau et reste nette à tout zoom.
 
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Rayon commun à tous les points : une face 1 avec un gros point serait plus
+// fidèle à un vrai dé, mais côte à côte dans une colonne les six faces doivent
+// se lire comme un même dé qu'on retourne.
+const PIP_RADIUS = 10;
+
+// Points de chaque face, dans un carré de 100×100. Colonnes et rangées sont aux
+// mêmes coordonnées d'une face à l'autre — c'est ce qui fait qu'on lit un même
+// dé et non six dessins. Seule la face 6 écarte ses rangées : à trois points par
+// colonne, l'écart standard les laissait se frôler.
+const DIE_PIPS: Record<string, [number, number][]> = {
+  "1": [[50, 50]],
+  "2": [[30, 30], [70, 70]],
+  "3": [[30, 30], [50, 50], [70, 70]],
+  "4": [[30, 30], [70, 30], [30, 70], [70, 70]],
+  "5": [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
+  "6": [[30, 25], [70, 25], [30, 50], [70, 50], [30, 75], [70, 75]],
+};
+
 function dieFace(lineName: LineName): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("class", "die");
@@ -479,8 +436,7 @@ function buildControl(
   values: number[],
   scores: LineScores,
 ): ScoreControl {
-  const lockable = variant === "Montante" || variant === "Descendante";
-  const pick: Pick = (value) => onPick(variant, lineName, value);
+  const pick: OnPick = (value) => onPick(variant, lineName, value);
 
   const widget = buildButton(values, lineName, variant, pick);
   const label = `${lineName}, ${variant}`;
@@ -492,9 +448,7 @@ function buildControl(
   // cellules en place.
   const refresh = (plan: BonusPlan | null): void => {
     widget.setValue(scores[lineName]);
-    widget.setLocked(
-      lockable && !isLineEnabled(lineName, variant, scores, grid),
-    );
+    widget.setLocked(!isLineEnabled(lineName, variant, scores, grid));
     const mine = plan?.host === lineName ? plan : null;
     widget.setHint(mine ? mine.steps : null);
     // L'indice est dessiné : sans ça il n'existe pas pour un lecteur d'écran.
@@ -556,7 +510,7 @@ function fillDerived(variant: Variant, live = false): void {
 // qu'il reste à faire.
 function bonusLabel(d: Derived): string {
   if (d.upperSum >= BONUS_THRESHOLD) return `+${grid.bonusPoints}`;
-  if (d.bonusHint === null) return "0";
+  if (!d.bonusPending) return "0";
   return `−${BONUS_THRESHOLD - d.upperSum}`;
 }
 
@@ -566,6 +520,9 @@ function bonusLabel(d: Derived): string {
 // atteint — même avec moins de 6 cases — ou que la section chiffres est
 // bouclée sans l'atteindre : animation (gonflement vert / tremblement rouge)
 // puis la jauge disparaît, il ne reste que le verdict ("+35" / "0").
+
+// Joueurs dont l'animation a déjà été jouée : une seule fois par partie.
+const bonusAnimated = new Set<string>();
 
 function renderBonusCell(
   cell: HTMLTableCellElement,
@@ -687,13 +644,18 @@ function buildButton(
   values: number[],
   lineName: LineName,
   variant: Variant,
-  onChange: Pick,
+  onChange: OnPick,
 ): Widget {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "score-cell";
 
-  if (!isReview) {
+  if (isReview) {
+    // La cellule n'ouvre rien : on la sort de l'ordre de tabulation. Pas
+    // `disabled`, qui la grise et lui donnerait l'aspect d'une ligne
+    // verrouillée de Montante / Descendante.
+    button.tabIndex = -1;
+  } else {
     button.addEventListener("click", () => {
       const current = button.dataset.value
         ? Number(button.dataset.value)
@@ -753,7 +715,7 @@ function openPicker(
   values: number[],
   current: number | undefined,
   variant: Variant,
-  onPickValue: Pick,
+  onPickValue: OnPick,
 ): void {
   picker.style.setProperty("--pv", getVariantColor(variant));
   pickerVariant.textContent = getVariantIcon(variant);
@@ -787,3 +749,40 @@ function openPicker(
   // aucun jeton n'est distingué, et la tabulation entre normalement dedans.
   picker.focus();
 }
+
+/* ---------- Mise en route ---------- */
+
+// blur() : sinon la flèche garde le focus (et sa pastille) collé après un tap.
+prevPlayerBtn.addEventListener("click", () => {
+  prevPlayerBtn.blur();
+  changePlayer(-1);
+});
+nextPlayerBtn.addEventListener("click", () => {
+  nextPlayerBtn.blur();
+  changePlayer(1);
+});
+
+gameScreen.addEventListener("pointerdown", onSwipeStart);
+gameScreen.addEventListener("pointermove", onSwipeMove);
+gameScreen.addEventListener("pointerup", onSwipeEnd);
+gameScreen.addEventListener("pointercancel", resetSwipe);
+// En capture : le clic de fin de geste doit être coupé avant d'atteindre la
+// cellule survolée, qui ouvrirait sa fenêtre de saisie.
+gameScreen.addEventListener("click", swallowSwipeClick, true);
+
+if (isReview) {
+  gameScreen.classList.add("review");
+  pauseBtn.textContent = "🥇 Classement final";
+  // Le bleu sert partout à revenir à l'accueil : ici on va au classement.
+  pauseBtn.classList.replace("btn-secondary", "btn-gold");
+  pauseBtn.addEventListener("click", () => goTo("end"));
+} else {
+  pauseBtn.addEventListener("click", () => {
+    persist();
+    goTo("home");
+  });
+}
+
+makeDismissible(picker);
+
+renderPlayer();

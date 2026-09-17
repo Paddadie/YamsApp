@@ -24,7 +24,7 @@ export interface BackupData {
   savedGame: SavedGame | null;
 }
 
-/** Rassemble toutes les données locales en un objet exportable en JSON. */
+// Rassemble toutes les données locales en un objet exportable en JSON.
 export function exportAllData(): BackupData {
   return {
     version: BACKUP_VERSION,
@@ -39,7 +39,7 @@ export function exportAllData(): BackupData {
   };
 }
 
-/** Vérifie qu'un objet quelconque a bien la forme d'une sauvegarde. */
+// Vérifie qu'un objet quelconque a bien la forme d'une sauvegarde.
 export function isValidBackupData(data: unknown): data is BackupData {
   if (typeof data !== "object" || data === null) return false;
   const d = data as Record<string, unknown>;
@@ -51,7 +51,7 @@ export function isValidBackupData(data: unknown): data is BackupData {
   );
 }
 
-/** Remplace entièrement les données locales par celles de la sauvegarde. */
+// Remplace entièrement les données locales par celles de la sauvegarde.
 export function importAllData(data: BackupData): void {
   // Une sauvegarde peut être ancienne : on force une re-migration au prochain
   // lancement.
@@ -83,8 +83,14 @@ export function downloadBackup(): void {
   const a = document.createElement("a");
   a.href = url;
   a.download = `yams-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  // Ancre posée dans le document et URL libérée au tour suivant : Safari iOS
+  // ignore un clic sur une ancre hors document, et annule le téléchargement si
+  // l'URL du blob est révoquée dans la foulée.
+  a.hidden = true;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url));
 }
 
 // Lecture SANS écriture : l'écran des paramètres valide d'abord le fichier,

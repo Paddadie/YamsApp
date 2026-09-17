@@ -12,7 +12,7 @@ bandeau de mise à jour.
 ```bash
 npm install
 npm run dev      # http://localhost:5173/YamsApp/
-npm test         # vitest : logique de score, Hall of Fame, dates, noms
+npm test         # vitest : score, Hall of Fame, stockage, dates, noms
 npm run build    # tsc -b + vite build -> dist/
 npm run preview  # sert le dist/ compilé
 ```
@@ -40,8 +40,37 @@ npm run preview  # sert le dist/ compilé
   glyphes ⚀⚁⚂ sont rendus par la police emoji du système.
 - **Indice de bonus** : quand il ne reste que quatre chiffres à remplir, la case
   du plus grand chiffre encore libre affiche en gris la combinaison de dés la
-  plus probable pour atteindre 63 (voir `bonusPlan` plus bas). Désactivable dans
-  les Paramètres.
+  plus probable pour atteindre 63, du plus gros dé au plus faible (voir
+  `bonusPlan` plus bas). Désactivable dans les Paramètres.
+
+### Revoir les feuilles de score
+
+Depuis l'écran de fin, « 📋 Revoir les feuilles de score » rouvre l'écran de jeu
+en **mode consultation** (`game.html?review=1`) : la grille complète de chaque
+joueur, sans pouvoir la modifier (les cellules n'ouvrent rien et sortent de
+l'ordre de tabulation), et le bouton du bas ramène au classement au lieu de
+l'accueil. C'est le seul écran qui lit un paramètre d'URL ; `vite.config.ts` le
+déclare dans `ignoreURLParametersMatching`, sans quoi le service worker ne
+reconnaîtrait pas l'adresse et renverrait à l'accueil.
+
+### Conventions de page
+
+- Chaque page a **exactement un `<h1>`**, puis des `h2`/`h3` sans saut de
+  niveau. Seul l'accueil l'affiche en grand : ailleurs le `h1` a
+  volontairement la taille d'un `h2`.
+- Le `<head>` commun (viewport, icône, réglages PWA iOS) n'est écrit nulle
+  part : chaque page pose le marqueur `<!--@head-->` et le plugin `sharedHead`
+  de `vite.config.ts` l'y injecte au build. **Une nouvelle page doit donc
+  contenir ce marqueur**, et être déclarée dans `build.rollupOptions.input`.
+- Un module de page s'écrit dans cet ordre : amorçage et gardes, constantes,
+  fonctions, puis un bloc **« Mise en route »** tout en bas qui pose les
+  écouteurs et déclenche le premier rendu. Une fonction remonte en haut du
+  module, une constante non : tout appel d'initialisation placé plus haut
+  risquerait de lire une constante encore en zone morte — page blanche, que ni
+  `tsc` ni les tests ne détectent.
+- Un `<dialog>` n'a rien à déclarer en CSS : le gabarit commun est posé sur
+  l'élément. `makeDismissible(dialog, boutonId?)` (`ui.ts`) lui ajoute la
+  fermeture au clic sur le fond et sur son bouton d'abandon.
 
 ### Navigation
 
@@ -55,14 +84,29 @@ npm run preview  # sert le dist/ compilé
 - **avant‑partie** (variantes + noms) → `draftRepo`
 - **partie en cours** → `savedGameRepo`, ré‑enregistrée après chaque saisie ;
   `game.html` s'y réhydrate. Effacée seulement au clic sur « Quitter » (un
-  rafraîchissement de `end.html` réaffiche donc le podium).
+  rafraîchissement de `end.html` réaffiche donc le podium). Lancer une nouvelle
+  partie l'écrase : l'écran des joueurs demande confirmation avant.
+  L'écran de fin y pose deux champs à son arrivée : `recorded`, qui évite de
+  compter deux fois la partie si on rafraîchit ou qu'on y revient, et
+  `hofImpact`, l'effet mesuré sur le Hall of Fame (badges 🏆/💩, bannière de
+  record). **`hofImpact` se mesure avant d'écrire les scores** : après
+  l'écriture, un recalcul comparerait la partie à elle-même et ne verrait plus
+  aucun changement. Un test verrouille cet ordre.
 - **règles** → `rulesRepo` ; **copiées dans chaque partie au lancement**
   (`SavedGame.rules`), l'écran de jeu construit sa grille à partir de cette
   copie. Modifier les paramètres n'affecte que les parties suivantes.
-- **Hall of Fame** (5 meilleurs / 5 pires par joueur×variante, avec la feuille
-  de score détaillée) → `hallOfFameRepo`
-- **stats par joueur** (parties jouées + cumul des scores → moyenne) →
-  `playerStatsRepo`
+- **Hall of Fame** → `hallOfFameRepo` : deux classements de 5 entrées, avec la
+  feuille de score détaillée de chaque partie.
+  - **meilleurs** : top 5 **global**, toutes variantes confondues (la variante
+    est affichée à côté du score). Ce n'est pas un top par joueur : un même
+    joueur peut occuper plusieurs places.
+  - **pires** : même principe, mais **limité à la variante Classique** — les
+    autres variantes produisent trop souvent des scores catastrophiques.
+- **stats par joueur** → `playerStatsRepo` : `games` compte toutes les parties
+  (il sert à trier les joueurs connus), mais la **moyenne et le record affichés
+  ne portent que sur les parties classiques** (`classiqueGames`,
+  `classiquePoints`, `classiqueBest`). Une entrée par joueur, casse et espaces
+  ignorés.
 - **préférences d'affichage** → `prefsRepo`. Délibérément **hors de
   `GameRules`** : les règles sont figées au lancement d'une partie, alors qu'un
   réglage d'affichage doit s'appliquer tout de suite. Lecture champ par champ,
@@ -75,11 +119,23 @@ planter une page.
 `storage/migrate.ts` met les données d'anciennes versions au format courant :
 champ `rules` ajouté aux parties sauvegardées, `playerStats`
 `{ [nom]: nombre }` → `{ games, classiqueGames, classiquePoints, classiqueBest }`,
-dédoublonnage des noms connus (casse/espaces), entrées de Hall of Fame réparées. Les clés n'ont jamais
+dédoublonnage des noms connus **et des clés de statistiques** (casse/espaces),
+entrées de Hall of Fame réparées. Les clés n'ont jamais
 changé : **non destructif**, rien n'est perdu (on ne supprime que du JSON
 illisible). Exécuté **une fois par version** (marqueur `yams-schema-version`) :
 les lancements suivants ne font qu'une lecture. Un import de sauvegarde efface
 le marqueur pour re-normaliser au lancement d'après.
+
+## Sauvegarde et restauration
+
+Les Paramètres exportent toutes les données locales dans un fichier JSON
+(`exportAllData`) et savent le relire. L'import **remplace tout** : il est donc
+en deux temps. `readBackupFile(file)` lit et valide le fichier **sans rien
+écrire**, la pop-up récapitule ce qu'il contient (date d'export, nombre de
+joueurs, entrées de Hall of Fame, partie en cours), et `importAllData(data)`
+n'est appelée qu'après confirmation. Un fichier illisible ou étranger est
+refusé avec un message distinct. L'import efface le marqueur de version de
+schéma : les données du fichier sont re-normalisées au lancement suivant.
 
 ## Règles configurables (`scoring.ts`)
 
@@ -98,7 +154,10 @@ leurs valeurs possibles. Toutes les fonctions de calcul prennent cette grille :
 `bonusPlan(scores, grid)` renvoie, quand il reste au plus quatre chiffres à
 remplir, la combinaison de dés **la plus probable** pour atteindre les 63 points
 du bonus — ou, si le bonus est hors d'atteinte, le besoin littéral sur le plus
-grand chiffre restant. Le classement des plans repose sur `DICE_ODDS`,
+grand chiffre restant. Les étapes sont rendues **du plus gros chiffre au plus
+petit** : c'est là que se joue l'essentiel du bonus. Ce tri ne porte que sur
+l'affichage — l'ordre de calcul, lui, départage les plans strictement
+équivalents et ne doit pas bouger. Le classement des plans repose sur `DICE_ODDS`,
 la probabilité d'obtenir au moins *k* dés d'un chiffre en un tour (trois
 lancers, on garde les bons dés : `B(5, 1 − (5/6)³)`). Elle ne dépend pas du
 chiffre visé, ce qui rend les plans comparables. À probabilité égale, le plan
@@ -137,8 +196,10 @@ vient de `package.json` (`__APP_VERSION__` injecté au build).
 | `scoring.ts` | Grille + calculs + `normalizeRules`. Aucun DOM. |
 | `hallOfFame.ts` | Intégration d'une partie terminée + prévisualisation. Aucun DOM. |
 | `variants.ts` | Source unique des variantes (libellé, icône, couleur). |
-| `ui.ts` | Helpers DOM (`requireEl`, `renderTable`, `makeActivatable`, `variantBadge`). |
+| `ui.ts` | Helpers DOM (`requireEl`, `renderTable`, `makeActivatable`, `makeDismissible`, `variantBadge`, `summaryRow`). |
+| `scoreSheet.ts` | Feuille de score détaillée d'une entrée du Hall of Fame, partagée par la pop-up du Hall of Fame et celle des Paramètres. |
 | `pages/*.ts` | Un module par page : câblage DOM. |
+| `pages/settings/` | Les trois panneaux des Paramètres (`rulesPanel`, `dataPanel`, `backupPanel`) + la pop-up de message. `pages/settings.ts` ne fait que les onglets et la mise en route. |
 | `pwa/updatePrompt.ts` | Enregistrement du SW + bandeau « Mettre à jour ». |
 | `storage/` | `keys.ts`, `localStore.ts` (avec guards), et un repo typé par usage : `draftRepo`, `savedGameRepo`, `rulesRepo`, `knownPlayersRepo`, `playerStatsRepo`, `hallOfFameRepo`, `prefsRepo`, `backup`. |
 
@@ -147,12 +208,19 @@ Règle de dépendances : les modules `pages/*` s'appuient sur `state`, `scoring`
 
 ## Tests
 
-`npm test` (Vitest) couvre la logique pure, celle qui n'a pas de DOM et qui
-casserait silencieusement : barème et bornes des règles (`scoring.ts`),
-verrous Montante/Descendante, classements du Hall of Fame — dont l'invariant
-« la prévisualisation de l'écran de fin annonce exactement ce qui sera
-enregistré » —, plans de bonus (`bonusPlan` : seuil de déclenchement, reste
-épars, ligne inutile omise, cas hors d'atteinte), formatage des dates et
-comparaison des noms.
+`npm test` (Vitest) couvre ce qui casserait silencieusement — la logique sans
+DOM, et la couche de stockage où une régression abîmerait des données :
+
+- **règles et grille** (`scoring.ts`) : barème, bornes, verrous
+  Montante/Descendante, plans de bonus (`bonusPlan` : seuil de déclenchement,
+  reste épars, ligne inutile omise, cas hors d'atteinte) ;
+- **Hall of Fame** : classements, et l'invariant « la prévisualisation de
+  l'écran de fin annonce exactement ce qui sera enregistré » ;
+- **stockage** : migration (non destructive, formats anciens, entrées
+  corrompues), export/import de sauvegarde, statistiques et noms de joueurs ;
+- **dates** et **comparaison des noms**.
+
+⚠️ `npm test` ne fait pas de vérification de types : une erreur de typage ne
+sort qu'au `npm run build` (`tsc -b`). Lancer les deux.
 `src/test/setup.ts` fournit un `localStorage` en mémoire : pas besoin de jsdom.
 Les tests tournent aussi en CI avant le déploiement.

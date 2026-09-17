@@ -5,11 +5,12 @@
 import type {
   HallOfFameImpact,
   LineName,
+  LineScores,
   Player,
   ScoreEntry,
   Variant,
 } from "./types";
-import type { Grid } from "./scoring";
+import { FINAL_SCORE_LINE, type Grid } from "./scoring";
 import {
   getBestScores,
   getWorstScores,
@@ -27,7 +28,7 @@ interface FinalScore {
   name: string;
   variant: Variant;
   score: number;
-  sheet?: Record<LineName, number>;
+  sheet?: LineScores;
   lineOrder?: LineName[];
 }
 
@@ -45,7 +46,7 @@ function collectFinalScores(
   for (const player of players) {
     for (const variant of variants) {
       const sheet = player.scores?.[variant];
-      const score = sheet?.["Score Final"];
+      const score = sheet?.[FINAL_SCORE_LINE];
       if (typeof score === "number") {
         scores.push({
           name: player.name,

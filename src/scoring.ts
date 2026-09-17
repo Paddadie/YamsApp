@@ -2,11 +2,17 @@
 // Aucun accès au DOM ici — uniquement des données et des fonctions
 // (à l'exception des totaux, mémorisés dans l'objet `scores`).
 
-import type { GameRules, LineName, LineMode, Player, Variant } from "./types";
+import type {
+  GameRules,
+  LineName,
+  LineMode,
+  LineScores,
+  Player,
+  Variant,
+} from "./types";
 
 type LineValues = number[];
 type Section = Record<LineName, LineValues>;
-type LineScores = Record<LineName, number>;
 
 // Lignes calculées, jamais saisies : leur libellé sert de clé dans `scores`,
 // et plusieurs écrans les reconnaissent par ce nom. Une seule définition ici
@@ -199,9 +205,9 @@ export interface Derived {
   upperSum: number; // total de la section chiffres, hors bonus (course au seuil)
   upperFilled: boolean; // les six cases de la section chiffres sont saisies
   bonus: number; // points de bonus acquis (0 tant que le seuil n'est pas atteint)
-  // Repère "-N" tant que la section chiffres n'est pas bouclée sous le seuil,
-  // sinon null (on affiche alors `bonus`).
-  bonusHint: string | null;
+  // La course au bonus est encore ouverte : seuil pas atteint et section pas
+  // bouclée. L'écran de jeu affiche alors le reste à faire plutôt qu'un verdict.
+  bonusPending: boolean;
   totalHaut: number;
   totalBas: number;
   scoreFinal: number;
@@ -214,7 +220,7 @@ export function computeDerived(scores: LineScores, grid: Grid): Derived {
   const reached = upperSum >= BONUS_THRESHOLD;
 
   const bonus = reached ? grid.bonusPoints : 0;
-  const bonusHint = reached || upperFilled ? null : `-${BONUS_THRESHOLD - upperSum}`;
+  const bonusPending = !reached && !upperFilled;
   const totalHaut = upperSum + bonus;
   const totalBas = sumLines(scores, grid.lowerScoringNames);
 
@@ -222,7 +228,7 @@ export function computeDerived(scores: LineScores, grid: Grid): Derived {
     upperSum,
     upperFilled,
     bonus,
-    bonusHint,
+    bonusPending,
     totalHaut,
     totalBas,
     scoreFinal: totalHaut + totalBas,
@@ -277,9 +283,10 @@ const DICE_ODDS = [1, 0.9351, 0.6989, 0.3548, 0.1044, 0.0133];
 
 // Les probabilités sont comparées en entiers : (a×a)×b et (a×b)×a diffèrent au
 // dernier bit près, ce qui suffirait à départager au hasard deux plans en tout
-// point équivalents. Vérifié sur les 64 152 états où le bonus est encore en
-// jeu (jusqu'à quatre lignes restantes) : à cette précision, la table arrondie
-// ci-dessus classe exactement comme la table exacte.
+// point équivalents. Vérifié exhaustivement sur les 64 692 états où le bonus
+// est encore en jeu (jusqu'à quatre lignes restantes), dont 34 008 admettent un
+// plan : sur ces 34 008, la table arrondie ci-dessus choisit exactement le même
+// plan que la table exacte.
 const ODDS_SCALE = 1e9;
 
 export function bonusPlan(scores: LineScores, grid: Grid): BonusPlan | null {
@@ -308,7 +315,12 @@ export function bonusPlan(scores: LineScores, grid: Grid): BonusPlan | null {
     .map((face, i) => ({ line: String(face), dice: counts[i] }))
     // Un chiffre absent du plan n'a rien à dire au joueur : le calcul répond
     // parfois "0 dé de 1" parce que cette ligne ne peut plus aider.
-    .filter((step) => step.dice > 0);
+    .filter((step) => step.dice > 0)
+    // Du plus gros chiffre au plus petit : c'est là que se joue l'essentiel du
+    // bonus, l'œil doit tomber dessus en premier. Tri sur l'affichage
+    // seulement — l'ordre de calcul, lui, ne bouge pas (il départage les plans
+    // strictement équivalents).
+    .sort((a, b) => Number(b.line) - Number(a.line));
 
   return { host, steps, hopeless: false };
 }
