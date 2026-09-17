@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   knownNames: "yams-player-names",
   playerStats: "yams-player-stats",
   rules: "yams-rules",
+  prefs: "yams-prefs",
   bestScores: "bestScores",
   worstScores: "worstScores",
 } as const;

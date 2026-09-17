@@ -854,6 +854,47 @@ button:hover {
   color: rgba(0, 0, 0, 0.75);
 }
 
+/* Indice de bonus : le plan le plus probable pour atteindre 63, posé dans la
+   case du plus grand chiffre encore libre (cf. bonusPlan dans scoring.ts).
+   Tout est fait pour que la case continue à se lire comme VIDE : fond blanc et
+   bordure pointillée inchangés, gris clair et graisse normale, là où une valeur
+   saisie est en gras foncé. */
+.cell-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  color: #a7b0b5;
+  font-size: 0.72em;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.hint-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1em;
+  white-space: nowrap;
+}
+
+/* Même dé que les libellés de ligne, mais en trait et sans relief : il désigne
+   une ligne, il ne prétend pas être un objet posé sur la table. */
+.cell-hint .die {
+  width: 1.35em;
+  height: 1.35em;
+  filter: none;
+}
+
+.cell-hint .die-face {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+}
+
+.cell-hint .die-pip {
+  fill: currentColor;
+}
+
 /* Faces de dé de la section "Chiffres" (dessinées par dieFace, game.ts). */
 /* 1.8em : sous le `min-height` de .score-cell (1.95em), donc la rangée garde
    exactement la hauteur qu'elle avait avec un chiffre. Cette grille doit tenir
@@ -1061,6 +1102,13 @@ button:hover {
   border-radius: 1px;
   background: #a7b0b4;
   transform: translate(-50%, -50%);
+}
+
+/* Le tiret occuperait exactement la place de l'indice de bonus. Cette règle
+   DOIT rester après celle du dessus : même spécificité, c'est l'ordre qui
+   tranche. */
+.score-cell.has-hint::before {
+  content: none;
 }
 
 /* Case remplie : fond = la couleur de la page, un peu assombrie (variable
@@ -2088,8 +2136,55 @@ button:hover {
   display: none;
 }
 
+/* Flex plutôt qu'un simple span : un libellé peut porter un bouton d'aide, et
+   l'aligner sur la ligne de base demandait de deviner les métriques de la
+   police (hauteur d'x, jambage). Ici le centrage est géométrique, donc juste.
+   Aucun effet sur les autres libellés : en tant qu'élément d'une .setting-row
+   déjà en flex, celui-ci était de toute façon traité comme un bloc. */
 .setting-label {
+  display: flex;
+  align-items: center;
   font-weight: 600;
+}
+
+/* Bouton d'aide d'un réglage : petit cercle sobre collé au libellé. Le gabarit
+   générique `button` (fond bleu plein) est entièrement neutralisé, y compris au
+   survol — sinon la pastille vire au bleu sous le doigt. */
+.info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.3em;
+  height: 1.3em;
+  margin-left: 0.35em;
+  padding: 0;
+  border: 1.5px solid #9aa3a8;
+  border-radius: 50%;
+  background: none;
+  color: #687177;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.92em;
+  font-style: italic;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-btn:hover,
+.info-btn:focus-visible {
+  background: none;
+}
+
+.info-btn:active {
+  background: #e6ebed;
+}
+
+@media (hover: hover) {
+  .info-btn:hover {
+    background: #e6ebed;
+  }
 }
 
 .setting-control {

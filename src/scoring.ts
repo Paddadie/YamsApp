@@ -240,6 +240,122 @@ export function writeDerived(scores: LineScores, grid: Grid): Derived {
   return d;
 }
 
+/* ---------- Plan pour le bonus de la section haute ---------- */
+// Quand il ne reste que quelques chiffres à remplir, l'écran de jeu indique la
+// combinaison de dés la plus probable pour atteindre les 63 points. Tant que le
+// reste est contigu (1-2-3 ou 4-5-6) le joueur sait déjà quoi viser ; c'est
+// quand il est épars que l'intuition "3 partout" devient fausse et que l'indice
+// sert : avec 24 points à trouver sur les 1, 3 et 4, le plan n'est pas 3 de
+// chaque mais 2 dés de 1, 2 de 3 et 4 de 4.
+
+export interface BonusPlanStep {
+  line: LineName; // "1" à "6"
+  dice: number; // nombre de dés de ce chiffre à obtenir
+}
+
+export interface BonusPlan {
+  // Ligne qui porte l'indice : le plus grand chiffre encore libre. Une seule
+  // case pour tout le plan, choisie une fois pour toutes pour que le joueur
+  // sache toujours où regarder.
+  host: LineName;
+  steps: BonusPlanStep[];
+  // Bonus hors d'atteinte : `steps` ne contient alors qu'un besoin littéral,
+  // volontairement irréalisable (plus de 5 dés). Son absurdité est le message.
+  hopeless: boolean;
+}
+
+// Au-delà, l'indice serait du bruit : la section est encore trop ouverte pour
+// qu'un plan veuille dire quoi que ce soit.
+const PLAN_MAX_LINES = 4;
+
+// Probabilité d'obtenir AU MOINS k dés d'un chiffre donné en un tour, en lui
+// consacrant les trois lancers et en gardant les bons dés. Chaque dé a donc
+// trois occasions : p = 1 − (5/6)³ = 0,4213, et le compte suit B(5, p).
+// Elle ne dépend pas du chiffre visé — 3 dés de 1 est exactement aussi dur que
+// 3 dés de 6 —, ce qui rend les plans comparables entre eux.
+const DICE_ODDS = [1, 0.9351, 0.6989, 0.3548, 0.1044, 0.0133];
+
+// Les probabilités sont comparées en entiers : (a×a)×b et (a×b)×a diffèrent au
+// dernier bit près, ce qui suffirait à départager au hasard deux plans en tout
+// point équivalents. Vérifié sur les 64 152 états où le bonus est encore en
+// jeu (jusqu'à quatre lignes restantes) : à cette précision, la table arrondie
+// ci-dessus classe exactement comme la table exacte.
+const ODDS_SCALE = 1e9;
+
+export function bonusPlan(scores: LineScores, grid: Grid): BonusPlan | null {
+  const remaining = grid.upperScoringNames.filter((k) => scores[k] === undefined);
+  if (remaining.length === 0 || remaining.length > PLAN_MAX_LINES) return null;
+
+  const need = BONUS_THRESHOLD - sumLines(scores, grid.upperScoringNames);
+  if (need <= 0) return null; // bonus déjà acquis, l'indice n'a plus d'objet
+
+  const faces = remaining.map(Number);
+  const host = String(Math.max(...faces));
+
+  const counts = mostLikelyCounts(faces, need);
+  if (!counts) {
+    // Plus assez de dés dans la partie : on affiche ce qu'il "faudrait" sur le
+    // plus grand chiffre restant. 8 dés de 1 alors qu'on en a cinq se comprend
+    // sans explication.
+    return {
+      host,
+      steps: [{ line: host, dice: Math.ceil(need / Number(host)) }],
+      hopeless: true,
+    };
+  }
+
+  const steps = faces
+    .map((face, i) => ({ line: String(face), dice: counts[i] }))
+    // Un chiffre absent du plan n'a rien à dire au joueur : le calcul répond
+    // parfois "0 dé de 1" parce que cette ligne ne peut plus aider.
+    .filter((step) => step.dice > 0);
+
+  return { host, steps, hopeless: false };
+}
+
+// Parcourt les 6^n répartitions possibles (n ≤ 4, donc 1296 au plus) et retient
+// la plus probable. À probabilité égale, celle qui demande le moins de dés ;
+// à effort égal, celle qui rapporte le plus de points — sans ce dernier
+// départage, deux plans identiques à l'effort près (3-3-4 et 3-4-3) étaient
+// choisis au hasard d'un arrondi.
+function mostLikelyCounts(faces: number[], need: number): number[] | null {
+  let best: number[] | null = null;
+  let bestOdds = 0;
+  let bestDice = 0;
+  let bestPoints = 0;
+
+  const combinations = 6 ** faces.length;
+  for (let n = 0; n < combinations; n++) {
+    const counts: number[] = [];
+    let rest = n;
+    let points = 0;
+    let dice = 0;
+    let odds = 1;
+    for (const face of faces) {
+      const count = rest % 6;
+      rest = (rest - count) / 6;
+      counts.push(count);
+      points += count * face;
+      dice += count;
+      odds *= DICE_ODDS[count];
+    }
+    if (points < need) continue;
+
+    const scaled = Math.round(odds * ODDS_SCALE);
+    const better =
+      scaled > bestOdds ||
+      (scaled === bestOdds &&
+        (dice < bestDice || (dice === bestDice && points > bestPoints)));
+    if (!best || better) {
+      best = counts;
+      bestOdds = scaled;
+      bestDice = dice;
+      bestPoints = points;
+    }
+  }
+  return best;
+}
+
 /* ---------- Fin de partie ---------- */
 
 export function isGameFinished(

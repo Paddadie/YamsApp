@@ -9,9 +9,11 @@ import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { game, hydrateGame, toSavedGame } from "../state";
 import { getVariantIcon, getVariantColor } from "../variants";
-import { requireEl } from "../ui";
+import { plural, requireEl } from "../ui";
 import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
+import { getPrefs } from "../storage/prefsRepo";
 import {
+  bonusPlan,
   buildGrid,
   isLineEnabled,
   isGameFinished,
@@ -23,6 +25,8 @@ import {
   FINAL_SCORE_LINE,
   LOWER_TOTAL_LINE,
   UPPER_TOTAL_LINE,
+  type BonusPlan,
+  type BonusPlanStep,
   type Derived,
 } from "../scoring";
 import type { LineName, PlayerScores, Variant } from "../types";
@@ -54,6 +58,11 @@ hydrateGame(saved);
 // Grille figée pour toute la partie (règles copiées au lancement).
 const grid = buildGrid(game.rules);
 
+// Lu une fois au chargement, comme tout le reste de l'état : chaque navigation
+// recharge la page, un changement dans les Paramètres est donc pris en compte
+// dès le retour sur l'écran de jeu.
+const showBonusHint = getPrefs().bonusHint;
+
 // `?review` : consultation depuis l'écran de fin — grille en lecture seule,
 // on ne redirige donc pas une partie terminée vers l'écran de fin.
 const isReview = new URLSearchParams(location.search).has("review");
@@ -84,9 +93,11 @@ interface Widget {
   el: HTMLElement;
   setValue(value: number | undefined): void;
   setLocked(locked: boolean): void;
+  // À appeler APRÈS setValue, qui vide la cellule de son contenu.
+  setHint(steps: BonusPlanStep[] | null): void;
 }
 interface ScoreControl {
-  refresh(): void;
+  refresh(plan: BonusPlan | null): void;
 }
 
 let controls = new Map<Variant, ScoreControl[]>();
@@ -328,7 +339,10 @@ function renderPlayer(): void {
   wrapper.appendChild(table);
   scoreTablesContainer.replaceChildren(wrapper);
 
-  for (const variant of game.variants) fillDerived(variant);
+  for (const variant of game.variants) {
+    fillDerived(variant);
+    refreshControls(variant);
+  }
 }
 
 function buildBody(playerScores: PlayerScores): HTMLTableSectionElement {
@@ -469,22 +483,50 @@ function buildControl(
   const pick: Pick = (value) => onPick(variant, lineName, value);
 
   const widget = buildButton(values, lineName, variant, pick);
-  widget.el.setAttribute("aria-label", `${lineName}, ${variant}`);
+  const label = `${lineName}, ${variant}`;
+  widget.el.setAttribute("aria-label", label);
   td.appendChild(widget.el);
 
-  const refresh = (): void => {
+  // Le premier rendu est laissé à refreshControls(), appelé juste après la
+  // construction du tableau : le plan n'est connu qu'une fois toutes les
+  // cellules en place.
+  const refresh = (plan: BonusPlan | null): void => {
     widget.setValue(scores[lineName]);
     widget.setLocked(
       lockable && !isLineEnabled(lineName, variant, scores, grid),
     );
+    const mine = plan?.host === lineName ? plan : null;
+    widget.setHint(mine ? mine.steps : null);
+    // L'indice est dessiné : sans ça il n'existe pas pour un lecteur d'écran.
+    widget.el.setAttribute(
+      "aria-label",
+      mine ? `${label}. Pour le bonus : ${planLabel(mine)}` : label,
+    );
   };
-  refresh();
   return { refresh };
 }
 
 function refreshColumn(variant: Variant): void {
   fillDerived(variant, true);
-  for (const control of controls.get(variant) ?? []) control.refresh();
+  refreshControls(variant);
+}
+
+function refreshControls(variant: Variant): void {
+  const plan = planFor(variant);
+  for (const control of controls.get(variant) ?? []) control.refresh(plan);
+}
+
+// Comme la jauge de bonus : à plusieurs variantes les colonnes tombent sous les
+// 60 px, l'indice n'y tiendrait pas.
+function planFor(variant: Variant): BonusPlan | null {
+  if (!showBonusHint || game.variants.length > 1) return null;
+  return bonusPlan(currentPlayer().scores[variant], grid);
+}
+
+function planLabel(plan: BonusPlan): string {
+  return plan.steps
+    .map((step) => `${plural(step.dice, "dé")} de ${step.line}`)
+    .join(", ");
 }
 
 // `live` : true quand l'appel suit une saisie (pas le rendu initial). Sert à
@@ -673,7 +715,37 @@ function buildButton(
     setLocked(locked) {
       button.disabled = locked;
     },
+    setHint(steps) {
+      button.querySelector(".cell-hint")?.remove();
+      button.classList.toggle("has-hint", steps !== null);
+      if (steps) button.appendChild(buildHint(steps));
+    },
   };
+}
+
+/* ---------- Indice de bonus ---------- */
+// Le plan le plus probable pour décrocher le bonus (cf. bonusPlan), posé en
+// filigrane dans la case du plus grand chiffre encore libre — une seule case,
+// toujours la même, pour que le joueur sache où regarder.
+//
+// Les faces sont dessinées plutôt qu'écrites en chiffres : l'indice vit dans la
+// case d'une ligne mais parle des autres, et ce sont les dés de la première
+// colonne que l'œil retrouve. Un "2×⚂" renvoie à sa ligne sans qu'on ait à
+// lire quoi que ce soit.
+
+function buildHint(steps: BonusPlanStep[]): HTMLElement {
+  const hint = document.createElement("span");
+  hint.className = "cell-hint";
+  // Le texte équivalent est porté par l'aria-label du bouton : annoncer en plus
+  // six dés dessinés ne ferait que bavarder.
+  hint.setAttribute("aria-hidden", "true");
+  for (const { line, dice } of steps) {
+    const step = document.createElement("span");
+    step.className = "hint-step";
+    step.append(`${dice}×`, dieFace(line));
+    hint.appendChild(step);
+  }
+  return hint;
 }
 
 function openPicker(

@@ -3,11 +3,14 @@
 
 import type { GameRules, SavedGame, ScoreEntry } from "../types";
 import type { PlayerStats } from "./playerStatsRepo";
+import type { Prefs } from "./prefsRepo";
 import { isSavedGame } from "./savedGameRepo";
 import { STORAGE_KEYS } from "./keys";
 import { readJson, writeJson, removeKey } from "./localStore";
 
-const BACKUP_VERSION = 3;
+// 4 : ajout des préférences d'affichage. Un fichier plus ancien reste
+// lisible, ses préférences retombent simplement sur les valeurs par défaut.
+const BACKUP_VERSION = 4;
 
 export interface BackupData {
   version: number;
@@ -15,6 +18,7 @@ export interface BackupData {
   knownNames: string[];
   playerStats: PlayerStats;
   rules: GameRules | null;
+  prefs: Prefs | null;
   bestScores: ScoreEntry[];
   worstScores: ScoreEntry[];
   savedGame: SavedGame | null;
@@ -28,6 +32,7 @@ export function exportAllData(): BackupData {
     knownNames: readJson<string[]>(STORAGE_KEYS.knownNames) ?? [],
     playerStats: readJson<PlayerStats>(STORAGE_KEYS.playerStats) ?? {},
     rules: readJson<GameRules>(STORAGE_KEYS.rules),
+    prefs: readJson<Prefs>(STORAGE_KEYS.prefs),
     bestScores: readJson<ScoreEntry[]>(STORAGE_KEYS.bestScores) ?? [],
     worstScores: readJson<ScoreEntry[]>(STORAGE_KEYS.worstScores) ?? [],
     savedGame: readJson<SavedGame>(STORAGE_KEYS.savedGame),
@@ -55,6 +60,10 @@ export function importAllData(data: BackupData): void {
   writeJson(STORAGE_KEYS.playerStats, data.playerStats ?? {});
   if (data.rules) writeJson(STORAGE_KEYS.rules, data.rules);
   else removeKey(STORAGE_KEYS.rules);
+  // Absentes d'une sauvegarde d'avant la version 4 : on efface plutôt que de
+  // garder celles de l'appareil, comme pour tout le reste de l'import.
+  if (data.prefs) writeJson(STORAGE_KEYS.prefs, data.prefs);
+  else removeKey(STORAGE_KEYS.prefs);
   writeJson(STORAGE_KEYS.bestScores, data.bestScores);
   writeJson(STORAGE_KEYS.worstScores, data.worstScores);
   if (data.savedGame && isSavedGame(data.savedGame)) {

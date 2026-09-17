@@ -5,6 +5,7 @@ import { bootstrap } from "../bootstrap";
 import { goTo } from "../nav";
 import { plural, requireEl, variantBadge } from "../ui";
 import { getRules, saveRules } from "../storage/rulesRepo";
+import { getPrefs, savePrefs } from "../storage/prefsRepo";
 import {
   DEFAULT_RULES,
   BONUS_MIN,
@@ -97,6 +98,7 @@ const resetBtn = requireEl<HTMLButtonElement>("reset-rules");
 for (const key of MODE_KEYS) setupModeRow(key);
 setupBonus();
 setupChance();
+setupDisplay();
 setupReset();
 setupBackup();
 setupScoreAdmin();
@@ -227,6 +229,26 @@ function setupChance(): void {
     persist();
   });
   sync();
+}
+
+function setupDisplay(): void {
+  // Pas dans `syncers` ni dans persist() : ce n'est pas une règle de jeu, et
+  // "Valeurs par défaut" ne doit donc pas y toucher.
+  const prefs = getPrefs();
+  const toggle = requireEl<HTMLInputElement>("bonus-hint-toggle");
+  toggle.checked = prefs.bonusHint;
+  toggle.addEventListener("change", () => {
+    prefs.bonusHint = toggle.checked;
+    savePrefs(prefs);
+  });
+
+  requireEl("bonus-hint-info").addEventListener("click", () =>
+    showMessage(
+      "Indice de bonus",
+      "Affiche la combinaison de dés la plus probable pour débloquer le bonus " +
+        "de la section chiffres.",
+    ),
+  );
 }
 
 function setupReset(): void {
