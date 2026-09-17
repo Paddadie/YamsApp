@@ -32,6 +32,16 @@ type Pick = (value: number | undefined) => void;
 
 const AUTO_ADVANCE_MS = 800;
 
+// Changement de joueur au doigt (même effet que les flèches).
+// Deux façons d'aboutir : un glissement franc, ou un petit coup de doigt rapide
+// — sinon un swipe vif mais court, très naturel au pouce, ne déclencherait rien.
+const SWIPE_MIN_PX = 60;
+const SWIPE_FLICK_MS = 250;
+const SWIPE_FLICK_PX = 25;
+// En deçà, le geste reste indécis : on ne le confisque pas à la grille, qui
+// doit pouvoir défiler verticalement.
+const SWIPE_LOCK_PX = 12;
+
 bootstrap();
 
 const saved = getSavedGame();
@@ -103,6 +113,14 @@ nextPlayerBtn.addEventListener("click", () => {
   changePlayer(1);
 });
 
+gameScreen.addEventListener("pointerdown", onSwipeStart);
+gameScreen.addEventListener("pointermove", onSwipeMove);
+gameScreen.addEventListener("pointerup", onSwipeEnd);
+gameScreen.addEventListener("pointercancel", resetSwipe);
+// En capture : le clic de fin de geste doit être coupé avant d'atteindre la
+// cellule survolée, qui ouvrirait sa fenêtre de saisie.
+gameScreen.addEventListener("click", swallowSwipeClick, true);
+
 const pauseBtn = requireEl<HTMLButtonElement>("pause-btn");
 if (isReview) {
   gameScreen.classList.add("review");
@@ -161,6 +179,77 @@ function animateName(delta: number): void {
   );
   void currentPlayerName.offsetWidth; // force la relance si on enchaîne vite
   currentPlayerName.classList.add("name-enter", cls);
+}
+
+/* ---------- Swipe : changer de joueur au doigt ---------- */
+// Souris exclue volontairement : sur un vrai pointeur, un glissement horizontal
+// sert à sélectionner du texte dans la grille, pas à tourner la page.
+//
+// Pas de setPointerCapture : capturer dès le pointerdown volerait au navigateur
+// le défilement vertical de la grille. On observe le geste, et c'est seulement
+// quand il part clairement à l'horizontale qu'on se l'approprie. Dans le cas
+// inverse le navigateur défile et nous envoie un pointercancel.
+
+let swipeId: number | undefined;
+let swipeStartX = 0;
+let swipeStartY = 0;
+let swipeStartAt = 0;
+// Geste reconnu comme horizontal : à partir de là il nous appartient.
+let swipeTaken = false;
+// Un geste horizontal vient de se terminer : le clic qu'il produit est à jeter.
+let swipeClickPending = false;
+
+function onSwipeStart(e: PointerEvent): void {
+  // Un geste précédent peut ne pas avoir produit de clic (cellule reconstruite,
+  // doigt relâché hors d'un bouton) : le drapeau se purge ici, jamais plus tard.
+  swipeClickPending = false;
+  if (e.pointerType === "mouse" || !e.isPrimary) return;
+  swipeId = e.pointerId;
+  swipeStartX = e.clientX;
+  swipeStartY = e.clientY;
+  swipeStartAt = e.timeStamp;
+  swipeTaken = false;
+}
+
+function onSwipeMove(e: PointerEvent): void {
+  if (e.pointerId !== swipeId || swipeTaken) return;
+  const dx = e.clientX - swipeStartX;
+  const dy = e.clientY - swipeStartY;
+  // L'axe dominant décide, une fois pour toutes : un swipe qui dérive ensuite
+  // vers le bas reste un swipe, et un défilement amorcé ne devient jamais un
+  // changement de joueur.
+  if (Math.abs(dx) < SWIPE_LOCK_PX || Math.abs(dx) <= Math.abs(dy)) return;
+  swipeTaken = true;
+}
+
+function onSwipeEnd(e: PointerEvent): void {
+  if (e.pointerId !== swipeId) return;
+  const dx = e.clientX - swipeStartX;
+  const elapsed = e.timeStamp - swipeStartAt;
+  const taken = swipeTaken;
+  resetSwipe();
+  if (!taken) return;
+
+  // Même en deçà du seuil (glissement hésitant, ou aller-retour) : le doigt a
+  // balayé la grille, il n'a pas visé une case.
+  swipeClickPending = true;
+
+  const far = Math.abs(dx) >= SWIPE_MIN_PX;
+  const flick = elapsed <= SWIPE_FLICK_MS && Math.abs(dx) >= SWIPE_FLICK_PX;
+  // Vers la gauche = la page part à gauche = joueur suivant, comme la flèche.
+  if (far || flick) changePlayer(dx < 0 ? 1 : -1);
+}
+
+function resetSwipe(): void {
+  swipeId = undefined;
+  swipeTaken = false;
+}
+
+function swallowSwipeClick(e: MouseEvent): void {
+  if (!swipeClickPending) return;
+  swipeClickPending = false;
+  e.stopPropagation();
+  e.preventDefault();
 }
 
 function onPick(variant: Variant, lineName: LineName, value: number | undefined): void {
