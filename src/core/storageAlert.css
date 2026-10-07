@@ -1,0 +1,37 @@
+/* Bandeau « Impossible d'enregistrer » (storageAlert.ts) : même gabarit que le
+   bandeau de mise à jour, mais en haut et en rouge — il ne doit ni se
+   confondre avec lui ni masquer la barre d'actions du bas. */
+.storage-alert {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 210;
+  background: var(--danger-hover);
+  color: #fff;
+  padding: 0.8em 1.2em;
+  padding-top: calc(0.8em + env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+.storage-alert-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  font-size: 0.9em;
+}
+
+.storage-alert-close {
+  flex-shrink: 0;
+  border: none;
+  border-radius: var(--border-radius);
+  background: #fff;
+  color: var(--danger-hover);
+  font-size: 0.9em;
+  font-weight: 700;
+  padding: 0.5em 1em;
+}

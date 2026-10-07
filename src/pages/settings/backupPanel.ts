@@ -1,15 +1,17 @@
 // Panneau « Sauvegarde » : export de toutes les données locales dans un
 // fichier, et import qui les remplace — d'où la confirmation détaillée.
 
-import { makeDismissible, requireEl, summaryRow } from "../../ui";
-import { goTo } from "../../nav";
+import { makeDismissible, requireEl, summaryRow } from "../../core/ui";
+import { goTo } from "../../core/nav";
 import {
   downloadBackup,
   importAllData,
   readBackupFile,
+  summarize,
   type BackupData,
-} from "../../storage/backup";
-import { formatDate } from "../../dates";
+} from "../../core/storage/backup";
+import { formatDate } from "../../core/dates";
+import { isStorageError } from "../../core/storageAlert";
 import { showMessage } from "./dialogs";
 
 const importDialog = requireEl<HTMLDialogElement>("import-dialog");
@@ -38,7 +40,7 @@ async function restore(file: File): Promise<void> {
     showMessage(
       "Import impossible",
       read.reason === "invalid"
-        ? "Ce fichier n'est pas une sauvegarde Yams."
+        ? "Ce fichier n'est pas une sauvegarde de Cornet."
         : "Ce fichier n'a pas pu être lu.",
     );
     return;
@@ -46,7 +48,18 @@ async function restore(file: File): Promise<void> {
 
   if (!(await confirmImport(file, read.data))) return;
 
-  importAllData(read.data);
+  try {
+    importAllData(read.data);
+  } catch (error) {
+    // L'import est tout ou rien : en cas d'échec, les données d'avant sont
+    // déjà remises en place.
+    if (!isStorageError(error)) throw error;
+    showMessage(
+      "Import impossible",
+      "Il n'y a pas assez de place sur l'appareil pour ces données. Rien n'a été modifié.",
+    );
+    return;
+  }
   showMessage("Sauvegarde restaurée", "Les données du fichier ont été rétablies.", () =>
     goTo("home"),
   );
@@ -84,11 +97,12 @@ function renderImportSummary(file: File, data: BackupData): void {
   if (data.exportedAt) {
     summaryRow(summary, "Exportée le", formatDate(data.exportedAt));
   }
-  summaryRow(summary, "Joueurs", String(data.knownNames.length));
+  const { players, scores, savedGames } = summarize(data);
+  summaryRow(summary, "Joueurs", String(players));
+  summaryRow(summary, "Scores enregistrés", String(scores));
   summaryRow(
     summary,
-    "Entrées Hall of Fame",
-    String(data.bestScores.length + data.worstScores.length),
+    "Parties en cours",
+    savedGames === 0 ? "aucune" : String(savedGames),
   );
-  summaryRow(summary, "Partie en cours", data.savedGame ? "oui" : "non");
 }

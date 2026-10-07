@@ -1,0 +1,627 @@
+/* ========== NAVIGATION JOUEUR ========== */
+/* Compact : chaque pixel gagné ici laisse la grille de score respirer et sa
+   police grandir sans provoquer de défilement. */
+.player-header {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem 0.25rem;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.22);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.12);
+}
+
+.player-header h1 {
+  margin: 0;
+  font-size: 1.5em;
+}
+
+.nav-arrow {
+  font-size: 1.35em;
+  border: none;
+  cursor: pointer;
+  padding: 0.15em 0.4em;
+  border-radius: 50%;
+  transition: background-color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Neutralise le style générique `button` (fond bleu, anneau de focus) qui,
+   sur tactile, restait « collé » après un tap via le :hover figé. */
+.nav-arrow,
+.nav-arrow:hover,
+.nav-arrow:focus,
+.nav-arrow:focus-visible {
+  outline: none;
+  background: none;
+}
+
+/* Retour visuel seulement pendant l'appui, et au survol des vrais pointeurs. */
+.nav-arrow:active {
+  background: #ddd;
+}
+
+@media (hover: hover) {
+  .nav-arrow:hover {
+    background: #ddd;
+  }
+}
+
+#current-player-name {
+  flex-grow: 1;
+  text-align: center;
+  margin: 0;
+  font-size: 1.15em;
+  line-height: 1.2;
+  font-weight: bold;
+  user-select: none;
+}
+
+/* ========== SCORES ========== */
+.player-header,
+#score-tables {
+  width: 100%;
+  max-width: var(--grid-max);
+  margin-inline: auto;
+}
+
+/* Zone de la grille : prend toute la hauteur restante de #game-screen.
+   Ne défile que si la grille, déjà réduite au minimum lisible, déborde encore.
+   `overscroll-behavior: contain` coupe le rebond iOS quand la grille tient
+   pile à l'écran (faux défilement d'un ou deux pixels). */
+#score-tables {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Explicite : déclarer overflow-y seul rend l'axe X défilable par ricochet,
+     ce qui rouvrirait le défilement fantôme au moindre débordement. Ici on veut
+     couper la feuille au bord, jamais la faire défiler latéralement. */
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Toute la page de jeu prend la couleur du joueur (posée en inline par
+   game.ts). Durée calée sur celle du nom qui entre (.name-enter) : les deux
+   mouvements se posent ensemble au lieu de finir l'un après l'autre. */
+#game-screen {
+  transition: background-color 0.48s ease;
+  /* Le swipe de changement de joueur (game.ts) n'existe que grâce à cette
+     ligne. Sans elle, `touch-action: auto` laisse le navigateur propriétaire du
+     geste : dès qu'il le prend pour un défilement de la grille, il envoie un
+     pointercancel et coupe les pointermove — l'horizontale n'est jamais
+     reconnue. `pan-y` lui laisse le défilement vertical et nous réserve
+     l'horizontal ; `pinch-zoom` préserve le zoom à deux doigts, que `pan-y`
+     seul supprimerait. */
+  touch-action: pan-y pinch-zoom;
+}
+
+/* La pause est dans la barre du haut : plus de barre en bas pendant la partie.
+   La grille garde alors pour elle la marge de sécurité du bas (barre d'accueil
+   des iPhone), que la barre du bas portait. */
+#game-screen:not(.review) #score-tables {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Barre du bas, en consultation seulement (retour au classement) : resserrée,
+   de la place rendue à la grille. */
+#game-screen .action-bar {
+  background: transparent;
+  padding-top: 0.4em;
+  padding-bottom: calc(0.45em + env(safe-area-inset-bottom));
+}
+
+#game-screen .action-bar .btn {
+  padding: 0.6em 1em;
+}
+
+/* Consultation depuis l'écran de fin : cellules en lecture seule. */
+#game-screen.review .score-cell {
+  pointer-events: none;
+}
+
+/* La grille est posée à plat, sans carte : la couleur du joueur transparaît. */
+.score-wrapper {
+  flex: 1;
+  min-height: min-content;
+  display: flex;
+  flex-direction: column;
+  padding: 0.15em 0.15em;
+}
+
+.score-table {
+  flex: 1;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  /* Taille d'écriture fluide : lisible même sur iPhone, généreuse sur tablette.
+     `svh` (et non `dvh`) : hauteur stable, alignée sur la coque en height:100%,
+     sinon la grille se dimensionne pour un écran plus grand que le sien et
+     déborde de quelques pixels quand la barre Safari est masquée. Le plancher
+     `0.82rem` peut demander un léger défilement sur un très petit écran. */
+  font-size: 0.88rem;
+  font-size: clamp(0.76rem, 1.75svh, 1.35rem);
+}
+
+/* Pastille ronde colorée (core/ui.ts, badge) : variantes du Yams dans la grille,
+   le Hall of Fame et les récapitulatifs. */
+/* `line-height: 1` est indispensable : sans lui la boîte de ligne prend la
+   hauteur héritée, bien plus haute que le glyphe, et l'emoji se pose sur sa
+   ligne de base au lieu du centre. Invisible avec les polices emoji de bureau,
+   très visible avec Apple Color Emoji (même correctif que .roster-row .check). */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: var(--vc, #5b6b73);
+  font-size: 1.1em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+
+/* Séparateur de section : bande translucide + filet net. */
+.score-table .section-head td {
+  padding: 0.45em 0.9em 0.22em;
+  background: rgba(255, 255, 255, 0.42);
+  border-top: 2px solid rgba(0, 0, 0, 0.16);
+  vertical-align: middle;
+}
+
+.score-table .section-label {
+  font-size: 0.76em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.62);
+}
+
+/* 1re ligne de section ("Chiffres") : porte les pastilles de variante
+   (ex-<thead>), en plus petit et sur une seule ligne → une rangée gagnée. */
+.score-table .section-head--vars td {
+  padding-top: 0.22em;
+  padding-bottom: 0.22em;
+}
+
+.score-table .section-head--vars .variant-icon {
+  width: 1.55em;
+  height: 1.55em;
+  font-size: 1em;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 1.5px rgba(255, 255, 255, 0.5);
+}
+
+.score-table tbody tr:first-child.section-head td {
+  border-top: none;
+}
+
+/* Passage Chiffres -> Combinaisons : le filet de 3px suffit à marquer la
+   rupture — pas de sur-padding qui creuse un vide au milieu du tableau. */
+.score-table .section-head--major td {
+  border-top-width: 3px;
+}
+
+/* Lignes de données : voiles blancs translucides -> la couleur du joueur
+   transparaît quelle que soit sa teinte. */
+.score-table tbody td {
+  padding: 0.3em 0.4em;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  vertical-align: middle;
+  text-align: center;
+}
+
+.score-table tbody td:first-child {
+  width: 46%;
+  padding-left: 0.9em;
+  text-align: left;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+/* Indice de bonus : le plan le plus probable pour atteindre 63, posé dans la
+   case du plus grand chiffre encore libre (cf. bonusPlan dans scoring.ts).
+   Tout est fait pour que la case continue à se lire comme VIDE : fond blanc et
+   bordure pointillée inchangés, gris clair et graisse normale, là où une valeur
+   saisie est en gras foncé. */
+.cell-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45em;
+  color: #a7b0b5;
+  font-size: 0.72em;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.hint-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1em;
+  white-space: nowrap;
+}
+
+/* Même dé que les libellés de ligne, mais en trait et sans relief : il désigne
+   une ligne, il ne prétend pas être un objet posé sur la table. */
+.cell-hint .die {
+  width: 1.35em;
+  height: 1.35em;
+  filter: none;
+}
+
+.cell-hint .die-face {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 5;
+}
+
+.cell-hint .die-pip {
+  fill: currentColor;
+}
+
+/* Faces de dé de la section "Chiffres" (dessinées par dieFace, game.ts). */
+/* 1.8em : sous le `min-height` de .score-cell (1.95em), donc la rangée garde
+   exactement la hauteur qu'elle avait avec un chiffre. Cette grille doit tenir
+   sans défiler, un dé plus grand ferait pousser six lignes sur douze. */
+.die {
+  display: block;
+  width: 1.8em;
+  height: 1.8em;
+  /* Ombre portée et pas de fond : le dé se détache de la couleur du joueur
+     sans poser un rectangle opaque sur la ligne. */
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.3));
+}
+
+.die-face {
+  fill: #fcfcf9;
+  stroke: rgba(0, 0, 0, 0.28);
+  stroke-width: 3;
+}
+
+.die-pip {
+  fill: #2f3a40;
+}
+
+.score-table tbody tr.alt td {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Lignes calculées (Bonus, Totaux). */
+.score-table tbody tr.computed td {
+  background: rgba(255, 255, 255, 0.5);
+  font-weight: 700;
+  color: #2f3a40;
+}
+
+/* Ligne "Bonus" : jauge de progression vers le seuil (63). Le remplissage
+   prend la couleur de la page assombrie (posée en JS) + un liseré noir. */
+.bonus-gauge {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+.bonus-gauge-track {
+  position: relative;
+  flex: 1;
+  height: 0.55em;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+  overflow: hidden;
+}
+
+.bonus-gauge-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 0.5s ease, background-color 0.3s ease;
+}
+
+.bonus-gauge-label {
+  flex: none;
+  min-width: 2.1em;
+  text-align: right;
+  font-size: 0.85em;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Section chiffres bouclée, bonus obtenu : la barre se remplit, passe au vert
+   et "gonfle" (recette classique de barre remplie dans les jeux). */
+.bonus-gauge--won .bonus-gauge-fill {
+  background: #2e7d32;
+}
+
+.bonus-gauge--won .bonus-gauge-track {
+  border-color: #2e7d32;
+  animation: bonus-swell 0.6s ease both;
+}
+
+@keyframes bonus-swell {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.1, 1.75);
+  }
+  70% {
+    transform: scale(1.03, 1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Bonus manqué : la barre devient rouge et vibre. */
+.bonus-gauge--lost .bonus-gauge-fill {
+  background: #d32f2f;
+}
+
+.bonus-gauge--lost .bonus-gauge-track {
+  border-color: #d32f2f;
+  animation: bonus-shake 0.5s ease both;
+}
+
+@keyframes bonus-shake {
+  10%,
+  90% {
+    transform: translateX(-1.5px);
+  }
+  20%,
+  80% {
+    transform: translateX(2.5px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-3.5px);
+  }
+  40%,
+  60% {
+    transform: translateX(3.5px);
+  }
+}
+
+/* Verdict final (jauge masquée) : il ne reste que "+35" ou "0". */
+.score-table tbody tr.computed td.bonus-result {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-table tbody tr.computed td.bonus-result--won {
+  color: #2e7d32;
+}
+
+.score-table tbody tr.computed td.bonus-result--lost {
+  color: #c62828;
+}
+
+
+/* Score final : la couleur de la page, assombrie (voile noir translucide),
+   à l'inverse des autres lignes qui sont éclaircies. */
+.score-table tbody tr.final td {
+  background: rgba(0, 0, 0, 0.16);
+  color: #16232a;
+  font-weight: 800;
+  font-size: 1.18em;
+  letter-spacing: 0.01em;
+  padding-top: 0.55em;
+  padding-bottom: 0.55em;
+  border-top: 3px solid rgba(0, 0, 0, 0.4);
+  border-bottom: none;
+}
+
+.score-table tbody tr.final td:first-child {
+  color: #1d2b31;
+}
+
+/* Saisie d'un score : pilule blanche identique pour toutes les lignes, qui
+   ouvre la fenêtre de jetons. */
+.score-cell {
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  min-height: 1.95em;
+  padding: 0.25em 0.5em;
+  border: 1.5px solid rgba(0, 0, 0, 0.16);
+  border-radius: 8px;
+  background-color: #fff;
+  font: inherit;
+  font-weight: 700;
+  line-height: 1.15;
+  color: #1d2b31;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+.score-cell:hover {
+  border-color: rgba(0, 0, 0, 0.32);
+}
+
+.score-cell:active {
+  transform: scale(0.97);
+}
+
+.score-cell:focus-visible {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.22);
+}
+
+.score-cell.is-empty {
+  border-style: dashed;
+}
+
+/* Repère de cellule vide : petit trait tracé et centré au pixel près. */
+.score-cell.is-empty::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0.75em;
+  height: 2px;
+  border-radius: 1px;
+  background: #a7b0b4;
+  transform: translate(-50%, -50%);
+}
+
+/* Le tiret occuperait exactement la place de l'indice de bonus. Cette règle
+   DOIT rester après celle du dessus : même spécificité, c'est l'ordre qui
+   tranche. */
+.score-cell.has-hint::before {
+  content: none;
+}
+
+/* Case remplie : fond = la couleur de la page, un peu assombrie (variable
+   posée par game.ts). Contour à peine marqué ; contraste avec le pointillé
+   blanc des cases vides. */
+.score-cell.is-filled {
+  border-color: rgba(0, 0, 0, 0.12);
+  border-style: solid;
+  background-color: var(--filled-bg, #fff);
+}
+
+.score-cell:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+/* ---------- Fenêtre de choix de valeur (jetons) ---------- */
+/* Écarts au gabarit commun des dialogues (cf. « DIALOGUES ») : plus large, et
+   sans marge intérieure — l'en-tête coloré et la liste de jetons vont d'un
+   bord à l'autre. */
+#value-picker {
+  border-radius: 20px;
+  padding: 0;
+  width: min(27rem, 94vw);
+  box-shadow: 0 20px 60px rgba(10, 20, 25, 0.4);
+}
+
+/* En-tête : pastille de la variante + nom de la ligne, filet de sa couleur. */
+.picker-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6em;
+  padding: 0.85em 1.1em;
+  border-bottom: 2px solid var(--pv, var(--secondary-color));
+}
+
+.picker-variant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex: none;
+  width: 2em;
+  height: 2em;
+  border-radius: 50%;
+  background: var(--pv, #5b6b73);
+  font-size: 1.05em;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+
+.picker-line {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1d2b31;
+}
+
+/* Flex (et non grid) pour que la dernière ligne, si incomplète, reste
+   centrée plutôt que plaquée à gauche. */
+.picker-values {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4em;
+  padding: 0.9em 1em;
+  max-height: 68vh;
+  overflow-y: auto;
+}
+
+/* Jetons ronds, dans le même langage visuel que les pastilles de l'appli.
+   Assez compacts pour afficher les 31 valeurs d'une somme de dés sans
+   défilement sur un téléphone tenu en portrait. */
+.picker-value {
+  appearance: none;
+  flex: none;
+  width: 2.9em;
+  height: 2.9em;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: #fff;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #1d2b31;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1.5px rgba(0, 0, 0, 0.12);
+  transition: transform 0.1s, box-shadow 0.12s, background-color 0.12s,
+    color 0.12s;
+}
+
+.picker-value:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22),
+    inset 0 0 0 2px var(--pv, var(--secondary-color));
+}
+
+.picker-value:active {
+  transform: scale(0.92);
+}
+
+/* Au clavier seulement : contour posé à l'extérieur du jeton, pour ne pas se
+   confondre avec le cerclage gris que portent tous les jetons. */
+.picker-value:focus-visible {
+  outline: 2px solid var(--pv, var(--secondary-color));
+  outline-offset: 2px;
+}
+
+/* Cible du focus à l'ouverture (cf. openPicker) : jamais visible. */
+#value-picker:focus,
+#value-picker:focus-visible {
+  outline: none;
+}
+
+/* Valeur déjà saisie : jeton plein dans la couleur de la variante. */
+.picker-value.current {
+  background: var(--pv, var(--secondary-color));
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.6);
+}
+
+/* "Effacer" : action discrète en pied, séparée par un filet. */
+.picker-clear {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 0.8em 1.1em calc(0.8em + env(safe-area-inset-bottom));
+  border: none;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  color: var(--danger-color);
+  cursor: pointer;
+}
+
+.picker-clear:hover {
+  background: rgba(0, 0, 0, 0.03);
+}

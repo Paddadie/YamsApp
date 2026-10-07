@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Yams</title>
+    <!--@head-->
+  </head>
+  <body>
+    <div id="home-screen" class="screen">
+      <header class="screen-bar">
+        <!-- Le titre de l'écran EST le sélecteur de jeu : son contenu est posé
+             par src/pages/gameSwitcher.ts d'après src/games/registry.ts. La
+             liste est À CÔTÉ du <h1>, pas dedans : un titre ne contient pas de
+             liste, et un lecteur d'écran lirait tout le menu comme titre. -->
+        <div class="screen-bar-start">
+          <h1 class="screen-bar-title">
+            <button
+              type="button"
+              id="game-switch"
+              class="game-switch"
+              aria-haspopup="true"
+              aria-controls="game-switcher"
+            ></button>
+          </h1>
+          <ul id="game-switcher" class="switcher-menu" hidden></ul>
+        </div>
+        <div class="screen-bar-actions">
+          <!-- Pictogramme dessiné et non le caractère « ⓘ » (voir
+               htmlFragments.ts). -->
+          <a
+            class="screen-bar-action"
+            href="rules.html?game=yams"
+            aria-label="Règles du Yams"
+            title="Règles du Yams"
+          >
+            <!--@icon:info-->
+          </a>
+          <a
+            class="screen-bar-action"
+            href="settings.html?game=yams"
+            aria-label="Barème du Yams"
+            title="Barème du Yams"
+            >⚙️</a
+          >
+        </div>
+      </header>
+
+      <div class="screen-body">
+        <section class="variants">
+          <h2>Choisissez les variantes :</h2>
+          <!-- Cases à cocher générées par src/pages/yams/home.ts d'après src/games/yams/variants.ts -->
+          <div class="variant-options"></div>
+        </section>
+      </div>
+
+      <div class="action-bar">
+        <button id="resume-btn" type="button" class="btn btn-primary btn-outline" disabled>
+          ▶ Reprendre la partie
+        </button>
+        <button id="start-btn" type="button" class="btn btn-primary" disabled>🎲 Commencer</button>
+        <a href="yams-hall.html" class="btn btn-gold">🏆 Palmarès</a>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/yams/home.ts"></script>
+  </body>
+</html>

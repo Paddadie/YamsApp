@@ -1,0 +1,1022 @@
+/* ========== 5000 — ÉCRAN DE PARTIE ========== */
+/* Trois bandes fixes : qui joue, la feuille de progression, les deux façons de
+   saisir. Seule la feuille défile. */
+
+.game-label {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+/* Bandeau du joueur : la couleur pleine largeur est la signature de
+   l'application, reprise telle quelle de l'écran de jeu du Yams. */
+.turn-banner {
+  flex: none;
+  padding: 0.7em clamp(1rem, 4vw, 2rem) 0.85em;
+  transition: background 0.3s ease;
+}
+
+.turn-eyebrow {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.turn-name {
+  margin: 0.05em 0 0.45em;
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* Jauge vers l'objectif : même langage visuel que la jauge de bonus du Yams,
+   pour que les deux jeux se répondent. */
+.gauge {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+}
+
+.gauge-track {
+  flex: 1;
+  height: 0.7em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+
+.gauge-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #2f4750;
+  transition: width 0.45s ease;
+}
+
+.gauge-num {
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.gauge-num--target {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Compteur de tours sans marquer : trois pastilles, lisibles sans compter. */
+.blank-turns {
+  display: flex;
+  align-items: center;
+  gap: 0.3em;
+  margin: 0.55em 0 0;
+  font-size: 0.76rem;
+}
+
+.pip {
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.pip--on {
+  background: #2f4750;
+}
+
+.pip--danger {
+  background: var(--danger-color);
+}
+
+.blank-label {
+  margin-left: 0.3em;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.blank-label.is-danger {
+  color: var(--danger-hover);
+  font-weight: 700;
+}
+
+/* ---------- La feuille de progression ---------- */
+
+/* Même raison qu'au Yams (#game-screen) : sans `pan-y pinch-zoom`, le
+   navigateur garde le geste horizontal pour lui et le glissement qui change de
+   joueur (core/swipe.ts) ne se déclenche jamais. */
+#g5000-screen {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* La feuille défile seule, et non tout le corps de l'écran : les noms restent
+   collés en haut (sticky) — un ancêtre qui défile à sa place les emporterait. */
+#g5000-screen .screen-body {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--content-max);
+  overflow: auto;
+  /* Un peu d'air au-dessus, pour que la feuille ne colle pas au bandeau ;
+     marges latérales courtes (demande de Paul) : juste de quoi voir l'ombre. */
+  padding: 0.6rem 0.5rem 0.75rem;
+}
+
+/* Une feuille de cahier posée sur la table : carte blanche sur le fond gris de
+   l'écran (le même que la barre des boutons, sans coupure), qui s'allonge
+   ligne après ligne. Lignes fines translucides ; chaque colonne est teintée de la
+   couleur de son joueur, séparée de la suivante par un filet neutre — dix
+   filets de couleur faisaient « cage ». Chiffres centrés, comme écrits à la
+   main au milieu de la colonne, dans la police de l'application, lisible de
+   loin autour d'une table (choix de Paul, 07/10/2026). */
+.g5000-sheet {
+  /* Un seul trait pour toutes les lignes, sombre et translucide : il assombrit
+     d'autant la teinte de la colonne, quelle qu'elle soit. Opaque (gris-bleu),
+     il ressortait sur le rose et se fondait dans le vert : les lignes
+     semblaient inégales (vu par Paul). */
+  --rule: rgba(29, 43, 49, 0.13);
+  --sep: var(--rule);
+  background: var(--white);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  width: 100%;
+  /* Colonnes égales, jamais trop étroites pour « 10 000 » entouré (5,5 rem), ni
+     pour le plus long prénom (`--tab-width` + la marge de la cellule ; mesuré
+     et plafonné par game.ts). Au-delà de quatre joueurs sur un téléphone, la
+     feuille défile à l'horizontale. `--players` est posé par game.ts. */
+  --col-min: max(5.5rem, calc(var(--tab-width, 0px) + 0.8rem));
+  min-width: calc(var(--players, 2) * var(--col-min));
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.g5000-sheet th,
+.g5000-sheet td {
+  padding: 0 0.3em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Les traits sont des ombres internes, pas des bordures : une bordure de
+   tableau fusionnée se peint sur le fond de la feuille (blanc), une ombre
+   interne sur la teinte de SA case — le même trait translucide l'assombrit
+   alors d'autant dans toutes les colonnes. */
+.g5000-sheet tbody td {
+  box-shadow: inset 0 -1px 0 var(--rule);
+}
+
+.g5000-sheet tbody td + td {
+  box-shadow:
+    inset 1px 0 0 var(--sep),
+    inset 0 -1px 0 var(--rule);
+}
+
+.g5000-sheet thead th + th {
+  box-shadow:
+    inset 1px 0 0 var(--sep),
+    inset 0 -1px 0 var(--sep);
+}
+
+/* Les noms restent en haut quand la feuille défile. */
+.g5000-sheet thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  background: var(--white);
+  box-shadow: inset 0 -1px 0 var(--sep);
+}
+
+/* Le nom du joueur, sur un onglet de sa couleur : plus gros que les scores,
+   c'est lui qu'on cherche des yeux. */
+.name-tab {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.25em 0.65em;
+  border-radius: 999px;
+  background: var(--col);
+  color: #1d2b31;
+  font-size: 1rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+/* Celui qui a la main : un onglet plus haut, cerné de foncé. */
+.g5000-sheet thead th.is-current .name-tab {
+  padding-block: 0.4em;
+  box-shadow: 0 0 0 2px #2f4750;
+}
+
+.g5000-sheet tbody td {
+  position: relative; /* pour la marque d'une rature, contre le bord droit */
+  height: 2.2rem;
+  background: color-mix(in srgb, var(--col) 16%, var(--white));
+  font-size: 1.1rem;
+}
+
+/* La colonne de celui qui joue, un ton plus soutenu : le bandeau coloré du
+   haut ne suffit pas quand l'oeil est dans le tableau. */
+.g5000-sheet tbody td.is-current {
+  background: color-mix(in srgb, var(--col) 26%, var(--white));
+}
+
+/* Les noms en tête de colonne sont des onglets : toucher un joueur lui donne
+   la main. */
+.g5000-sheet thead th.is-choosable {
+  cursor: pointer;
+}
+
+.g5000-sheet thead th.is-choosable:active .name-tab {
+  filter: brightness(0.92);
+}
+
+/* En fin de partie : le vainqueur et ceux qui ont déjà riposté ne rejouent pas. */
+.g5000-sheet thead th.is-out .name-tab {
+  opacity: 0.45;
+}
+
+.g5000-sheet .entry {
+  position: relative;
+  display: inline-block;
+}
+
+/* Le score en vigueur, surligné au feutre de la couleur du joueur : avec les
+   ratures, ce n'est pas forcément le dernier de sa colonne. */
+.g5000-sheet .is-live .entry {
+  padding: 0 0.15em;
+  font-weight: 800;
+  background: linear-gradient(transparent 45%, var(--col) 45%, var(--col) 88%, transparent 88%);
+}
+
+/* Objectif atteint : entouré, comme on le ferait sur la feuille. */
+.g5000-sheet .is-goal .entry {
+  padding: 0 0.35em;
+  border: 2px solid #2f4750;
+  border-radius: 999px;
+}
+
+/* Score barré : il reste lisible, mais passe au second plan. Le trait est un
+   pseudo-élément et non un text-decoration, pour pouvoir se tracer. */
+.g5000-sheet s.entry {
+  color: #7d878d;
+  text-decoration: none;
+}
+
+.g5000-sheet s.entry::after {
+  content: "";
+  position: absolute;
+  left: -0.15em;
+  right: -0.15em;
+  top: 52%;
+  height: 2px;
+  background: #55616a;
+  transform-origin: left center;
+}
+
+/* Contre le bord droit de la case, à l'écart du score centré (demande de
+   Paul) : elle explique la rature sans se confondre avec elle. */
+.strike-mark {
+  position: absolute;
+  right: 0.3rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #3d4a52;
+}
+
+/* Rattrapé : un point à la couleur de celui qui a égalisé, cerné de foncé
+   pour se détacher du fond teinté de la colonne. */
+.strike-mark--tie {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px #3d4a52;
+}
+
+/* Trop de tours sans marquer : « 3× » sur une petite pastille blanche. */
+.strike-mark--penalty {
+  padding: 0.12em 0.3em;
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: 0 0 0 1px #c9d0d4;
+}
+
+/* Sous le nom : les tours sans marquer, mêmes pastilles que le bandeau, en
+   plus petit. */
+.sheet-pips {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
+}
+
+.sheet-pips .pip {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.g5000-sheet thead th.is-out .sheet-pips {
+  opacity: 0.45;
+}
+
+/* Pas (ou plus) entré en jeu. */
+.g5000-sheet .sheet-out {
+  color: #c3cbcf;
+}
+
+.g5000-sheet .sheet-empty {
+  padding: 1.4em 0.5em;
+  text-align: center;
+  color: #6b767d;
+  font-size: 0.9rem;
+  white-space: normal;
+}
+
+/* Ce que le dernier tour a changé : le score s'écrit de gauche à droite, puis
+   le trait barre ce qui est tombé. */
+.g5000-sheet .is-written {
+  animation: sheet-write 0.45s ease-out both;
+}
+
+.g5000-sheet .is-striking::after {
+  animation: sheet-strike 0.35s ease-in 0.45s both;
+}
+
+/* Pendant la cascade, les animations attendent : sous le dialogue, personne ne
+   les verrait. Elles partent quand il se referme. */
+body:has(#cascade-dialog[open]) .g5000-sheet .is-written,
+body:has(#cascade-dialog[open]) .g5000-sheet .is-striking::after {
+  animation-play-state: paused;
+}
+
+@keyframes sheet-write {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes sheet-strike {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* ---------- Saisie d'un tour ---------- */
+
+.pot {
+  text-align: center;
+  padding-bottom: 0.6em;
+}
+
+.pot-value {
+  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pot-label {
+  margin: 0.1em 0 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: #6b767d;
+}
+
+.pot-after {
+  margin: 0.45em 0 0;
+  font-size: 0.86rem;
+  color: #55616a;
+  min-height: 1.2em;
+}
+
+.pot-after.is-warning {
+  color: var(--danger-hover);
+  font-weight: 700;
+}
+
+/* L'objectif à portée : or, la couleur des résultats. */
+.pot-after.is-win {
+  color: var(--gold-hover);
+  font-weight: 800;
+}
+
+/* Écart vers le score de chaque adversaire : c'est ce qui rend la règle
+   d'égalité jouable, viser un score exact étant hors de portée de tête.
+   Un tableau à hauteur bornée : au-delà de quatre adversaires devant, il
+   défile, et la fenêtre ne grandit pas (lignes de hauteur fixe pour que le
+   compte tombe juste). */
+.targets {
+  --target-row: 2.5rem;
+  --target-head: 1.6rem;
+  max-height: calc(var(--target-head) + 4 * var(--target-row));
+  overflow-y: auto;
+  margin-bottom: 0.9em;
+  border-radius: var(--border-radius);
+}
+
+.targets:empty {
+  display: none;
+}
+
+/* Une zone qui défile peut recevoir le focus : c'est elle que la fenêtre
+   choisissait à l'ouverture, cernée de noir. Elle n'a rien à activer. */
+.targets:focus {
+  outline: none;
+}
+
+.targets-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.targets-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: var(--target-head);
+  padding: 0 0.5em;
+  background: var(--white);
+  border-bottom: 1px solid #dfe3e5;
+  color: #6b767d;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.targets-table th:first-child {
+  text-align: left;
+}
+
+.target-row td {
+  height: var(--target-row);
+  padding: 0 0.5em;
+  background: #f1f4f5;
+  border-bottom: 2px solid var(--white);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.target-row td:first-child {
+  text-align: left;
+}
+
+/* Le nom, et son score actuel en petit dessous. */
+.target-name {
+  display: block;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.target-score {
+  display: block;
+  color: #6b767d;
+  font-size: 0.74rem;
+  line-height: 1.15;
+}
+
+.target-gap {
+  font-weight: 800;
+}
+
+.target-falls,
+.target-drop {
+  color: #55616a;
+}
+
+.target-row.is-near td {
+  background: #fff4e0;
+}
+
+.target-row.is-near .target-gap {
+  color: var(--gold-hover);
+}
+
+.target-row.is-hit td {
+  background: var(--danger-color);
+  color: var(--white);
+}
+
+.target-row.is-hit .target-score,
+.target-row.is-hit .target-falls,
+.target-row.is-hit .target-drop {
+  color: var(--white);
+}
+
+/* Le pot l'a déjà dépassé : on ne peut plus tomber pile dessus. */
+.target-row.is-passed td {
+  color: #9aa3a8;
+}
+
+.target-row.is-passed .target-score,
+.target-row.is-passed .target-falls,
+.target-row.is-passed .target-drop {
+  color: #9aa3a8;
+}
+
+/* Jetons ronds, même langage que la fenêtre de saisie du Yams. Tous les scores
+   étant des multiples de 50, une rangée de centaines plus un +50 suffit. */
+/* Trois gros jetons (+100, +500, +1 000), puis +50 et « effacer » en dessous,
+   tous du même diamètre : des cibles larges, faciles à toucher. Sur un écran
+   étroit, les ronds rétrécissent au lieu de passer à la ligne. */
+.chips {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 4.4rem));
+  justify-content: center;
+  gap: 0.7em;
+}
+
+/* Taille en rem, pas en em : tous les jetons ont le même diamètre quelle que
+   soit la taille de leur contenu (le ⌫ était plus gros que les autres).
+   `padding: 0` neutralise la règle globale `button` (1em de chaque côté) : il
+   ne restait qu'une vingtaine de pixels pour le texte, qui se décentrait et
+   passait à la ligne (« +1 / 000 »). */
+.chip {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 100%;
+  max-width: 4.4rem;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--white);
+  box-shadow: inset 0 0 0 2px #dfe3e5;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  color: var(--black);
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.08s ease;
+}
+
+.chip:active {
+  transform: scale(0.92);
+}
+
+.chip--fifty {
+  box-shadow: inset 0 0 0 2px #b9d7f2;
+  color: var(--secondary-hover);
+}
+
+.chip--back {
+  box-shadow: inset 0 0 0 2px #f0c6c6;
+  color: var(--danger-color);
+}
+
+/* Pictogramme « effacer » dessiné : un caractère ⌫ dépend de la police de
+   l'appareil, de sa taille comme de son centrage. */
+.chip svg {
+  display: block;
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+/* +50 et « effacer », centrés sous la grille, à la taille des autres jetons. */
+.chips-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.7em;
+  justify-content: center;
+}
+
+.chips-row .chip {
+  width: 4.4rem;
+}
+
+.tape {
+  margin: 0.5em 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  color: #6b767d;
+  font-variant-numeric: tabular-nums;
+  min-height: 1.2em;
+}
+
+/* ---------- Dialogues de partie ---------- */
+
+.dlg {
+  display: flex;
+  flex-direction: column;
+  max-height: 88dvh;
+}
+
+.dlg-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding-bottom: 0.7em;
+  margin-bottom: 0.9em;
+  border-bottom: 2px solid var(--player-color, #dfe3e5);
+}
+
+.dlg-title {
+  font-weight: 800;
+  font-size: 1.02rem;
+}
+
+.dlg-sub {
+  font-size: 0.78rem;
+  color: #6b767d;
+}
+
+.dlg-body {
+  overflow-y: auto;
+}
+
+.dlg-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  padding-top: 0.9em;
+  margin-top: 0.9em;
+  border-top: 1px solid #eef1f2;
+}
+
+.dlg-foot .btn-row {
+  display: flex;
+  gap: 0.5em;
+  width: 100%;
+  max-width: 22rem;
+}
+
+.dlg-foot .btn-row .btn {
+  flex: 1;
+}
+
+/* ---------- Cascade des redescentes ---------- */
+/* Déroulée étape par étape : un score qui change tout seul, sans explication,
+   est incompréhensible à la table — et la règle peut en toucher plusieurs. */
+
+.cascade {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.cascade-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.6em 0.7em;
+  border-radius: var(--border-radius);
+  background: #f1f4f5;
+  font-size: 0.9rem;
+  opacity: 0;
+  animation: cascade-in 0.35s ease forwards;
+  animation-delay: var(--d, 0s);
+}
+
+.cascade-step--bank {
+  background: #e8f5e9;
+}
+
+.cascade-step--tie,
+.cascade-step--penalty {
+  background: #fdecea;
+}
+
+.cascade-name {
+  font-weight: 800;
+}
+
+.cascade-why {
+  flex: 1;
+  color: #6b767d;
+  font-size: 0.78rem;
+}
+
+.cascade-move {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cascade-move s {
+  color: #8b959b;
+  text-decoration-thickness: 1px;
+}
+
+.cascade-drop {
+  color: var(--danger-hover);
+  font-weight: 700;
+}
+
+.cascade-arrow {
+  text-align: center;
+  color: #8b959b;
+  opacity: 0;
+  animation: cascade-in 0.3s ease forwards;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes cascade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- Calculette du 5000 ---------- */
+/* On saisit les faces obtenues, puis on touche ce qu'on garde. Deux temps
+   volontairement séparés : mélangés, on ne sait plus si l'on décrit son lancer
+   ou si l'on décide. */
+
+.roll-hint {
+  margin: 0 0 0.7em;
+  text-align: center;
+  font-size: 0.86rem;
+  color: #55616a;
+}
+
+.face-pad {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.35em;
+}
+
+.face-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+  padding: 0.3em 0.15em 0.35em;
+  border: none;
+  border-radius: 10px;
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px #dfe3e5;
+  transition: transform 0.08s ease;
+}
+
+.face-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.face-btn:disabled {
+  opacity: 0.4;
+}
+
+.face-btn .die {
+  width: 100%;
+  max-width: 2.1em;
+}
+
+/* Hauteur fixe, vide ou non : sinon le premier « ×1 » faisait grandir le pavé
+   et la fenêtre, recentrée, sautait (vu par Paul). */
+.face-count {
+  height: 1.3em;
+  line-height: 1.3em;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #8b959b;
+}
+
+.face-btn.has .face-count {
+  color: var(--secondary-color);
+}
+
+/* Hauteur fixe : « tout effacer » apparaît au premier dé, et ne doit pas
+   pousser la fenêtre. */
+.roll-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+  min-height: 1.6rem;
+  margin-top: 0.8em;
+}
+
+/* Les dés saisis, au-dessus du pavé : toucher un dé le retire. La croix dit
+   le geste sans qu'il faille lire la consigne. */
+.roll-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 2.5em;
+  margin-bottom: 0.7em;
+}
+
+.roll-tray-empty {
+  font-size: 0.82rem;
+  color: #8a959c;
+}
+
+.tray-die {
+  position: relative;
+  width: 2.2em;
+  padding: 0;
+  border: none;
+  background: transparent;
+  transition: transform 0.08s ease;
+}
+
+.tray-die:active {
+  transform: scale(0.9);
+}
+
+.tray-die .die {
+  display: block;
+  width: 100%;
+}
+
+.tray-die::after {
+  content: "×";
+  position: absolute;
+  top: -0.35em;
+  right: -0.35em;
+  width: 1.05em;
+  height: 1.05em;
+  border-radius: 50%;
+  background: var(--danger-color, #d0553f);
+  color: var(--white);
+  font-size: 0.8em;
+  font-weight: 700;
+  line-height: 1.05em;
+  text-align: center;
+}
+
+/* Écran des combinaisons : la consigne, et de quoi revenir corriger les dés. */
+.pick-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin-bottom: 0.7em;
+}
+
+.pick-head .roll-hint {
+  margin: 0;
+  text-align: left;
+}
+
+.roll-count {
+  font-size: 0.8rem;
+  color: #6b767d;
+}
+
+.link-btn {
+  padding: 0.2em;
+  border: none;
+  background: transparent;
+  color: var(--secondary-color);
+  font-size: 0.82rem;
+  text-decoration: underline;
+}
+
+/* Combinaisons proposées : les dés sont dessinés à gauche pour qu'on reconnaisse
+   sa main sans lire le libellé. */
+.combos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+
+.combo {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: 100%;
+  padding: 0.5em 0.65em;
+  border: none;
+  border-radius: var(--border-radius);
+  background: var(--white);
+  box-shadow: inset 0 0 0 1px #dfe3e5;
+  /* Explicite : la règle globale `button` écrit en blanc, ce qui rendait le
+     libellé invisible (blanc sur blanc, puis sur le vert pâle de la sélection). */
+  color: #1d2b31;
+  text-align: left;
+}
+
+.combo-dice {
+  display: flex;
+  gap: 0.12em;
+  flex: none;
+}
+
+.combo-dice .die {
+  width: 1.35em;
+}
+
+.combo-label {
+  flex: 1;
+  font-size: 0.88rem;
+}
+
+.combo-points {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.combo.picked {
+  background: #e8f5e9;
+  box-shadow: inset 0 0 0 2px var(--primary-color);
+}
+
+.combo.picked .combo-label {
+  font-weight: 700;
+}
+
+.combo.picked .combo-points {
+  color: var(--primary-hover);
+}
+
+/* Variante Combo : les chiffres activés ressortent, dans l'orange de la
+   variante, partout où on les touche — rappel en tête, pavé, plateau,
+   combinaisons. Leurs dés valent 100 de plus : c'est ce qu'on oublie de tête. */
+.combo-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  margin: 0 0 0.7em;
+  padding: 0.35em 0.6em;
+  border-radius: var(--border-radius);
+  background: #fff1e3;
+  color: #8a4300;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.combo-strip-dice {
+  display: inline-flex;
+  gap: 0.15em;
+}
+
+.combo-strip-dice .die {
+  width: 1.3em;
+}
+
+.face-btn.is-boosted {
+  background: #fff1e3;
+  box-shadow: inset 0 0 0 2px #c25e00;
+}
+
+.tray-die.is-boosted .die {
+  border-radius: 0.3em;
+  box-shadow: 0 0 0 2px #c25e00;
+}
+
+.combo.is-boosted:not(.picked) {
+  background: #fff8f0;
+  box-shadow: inset 0 0 0 2px #e9a35f;
+}
+
+/* Bust : l'écran doit dire ce qu'on perd, pas seulement qu'on a perdu. */
+.bust-msg {
+  padding: 1.4em 0.8em;
+  border-radius: var(--border-radius);
+  background: #fdecea;
+  color: var(--danger-hover);
+  text-align: center;
+  font-weight: 700;
+}
+
+.bust-icon {
+  display: block;
+  font-size: 2rem;
+  margin-bottom: 0.15em;
+}
+
+.bust-msg p {
+  margin: 0;
+}
+
+.bust-msg .link-btn {
+  margin-top: 0.6em;
+  font-weight: 400;
+}
+
+/* Dans la calculette, les dés sont sur fond blanc : le tracé sombre du Yams
+   convient tel quel, on ne redéfinit rien. */

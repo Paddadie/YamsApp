@@ -20,5 +20,8 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests de pages : ils lisent les .html sur le disque (types Node), vérifiés
+  // par tsconfig.pages.json.
+  "exclude": ["src/test/pages"]
 }

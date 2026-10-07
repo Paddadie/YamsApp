@@ -1,0 +1,581 @@
+/* ========== PAGE PARAMÈTRES ========== */
+#settings-screen .screen-body {
+  position: relative; /* ancre #app-version dans la zone qui défile */
+  gap: 1.25rem;
+}
+
+/* Chaque groupe de réglages = une carte, comme les tableaux du Hall of Fame. */
+/* ========== PARAMÈTRES : SÉLECTEUR DE SECTION ========== */
+/* Trois tuiles, une seule section visible à la fois. Les règles, les listes de
+   joueurs / scores et la sauvegarde n'ont rien à voir entre elles ; elles se
+   suivaient en six cartes identiques, sur plusieurs écrans de défilement. */
+.panel-tabs {
+  display: grid;
+  /* Autant de colonnes égales que d'onglets affichés : depuis le menu des jeux
+     il n'y en a que deux, une troisième colonne vide décalerait tout. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0.5rem;
+  /* Filet de séparation : sans lui, les tuiles et les cartes du contenu se
+     suivent en blocs blancs de même facture et on ne voit plus que le haut
+     commande le bas. Le trait court sous les trois tuiles, d'un bord à
+     l'autre, pour se lire comme une barre d'onglets et non comme une carte
+     de plus. */
+  padding-bottom: clamp(0.7rem, 2.2vh, 1.15rem);
+  border-bottom: 2px solid #dfe4e8;
+}
+
+.panel-tab {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.35rem;
+  padding: 0.7rem 0.35rem 0.6rem;
+  border: 1.5px solid transparent;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  color: #5a646d;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition), color var(--transition);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Le gabarit générique `button` repeindrait la tuile en bleu au survol. */
+.panel-tab:hover,
+.panel-tab:focus-visible {
+  background: #fff;
+}
+
+.panel-tab-icon {
+  font-size: 1.45rem;
+  line-height: 1;
+}
+
+.panel-tab[aria-selected="true"] {
+  border-color: var(--secondary-color);
+  color: var(--secondary-color);
+}
+
+.panel-tab:focus-visible {
+  outline: 3px solid rgba(25, 118, 210, 0.35);
+  outline-offset: 2px;
+}
+
+/* Une section : ses cartes espacées comme elles l'étaient dans la page. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.75rem, 2.4vh, 1.5rem);
+}
+
+/* Doit l'emporter sur le `display: flex` ci-dessus. */
+/* Bouton "Tout afficher" en pied de liste bornée. */
+.list-more-row {
+  padding-top: 0.6rem;
+}
+
+.list-more {
+  appearance: none;
+  display: block;
+  width: 100%;
+  padding: 0.5em 1em;
+  background: transparent;
+  border: 1.5px solid #d8d8d8;
+  border-radius: var(--border-radius);
+  color: var(--secondary-color);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.list-more:hover,
+.list-more:focus-visible {
+  background: #f2f6fa;
+}
+
+.settings-group {
+  width: 100%;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+  padding: 0.4rem 1.1rem 0.9rem;
+}
+
+.settings-group h2 {
+  margin: 0.6rem 0 0.2rem;
+  font-size: 1.05rem;
+  text-align: left; /* la règle globale h1,h2 centre : pas ici */
+}
+
+.settings-hint {
+  margin: 0 0 0.35rem;
+  font-size: 0.82rem;
+  color: #777;
+  text-align: left;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #ececec;
+}
+
+.setting-row:last-of-type {
+  border-bottom: none;
+}
+
+/* Bouton "valeurs par défaut" : discret, à l'intérieur de la carte. */
+/* Posé sur une classe : partagé par le barème du Yams et les règles du 5000. */
+.reset-rules {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0.6rem 0 0;
+  padding: 0.6em 1em;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--secondary-color);
+  background: transparent;
+  border: 1.5px solid #d8d8d8;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+}
+
+.reset-rules:hover {
+  background: #f4f4f4;
+}
+
+/* Hors des cartes (règles du 5000) : il vaut pour tout le panneau. Posé sur
+   le gris de la page, il lui faut un fond blanc pour se lire comme un bouton. */
+.reset-rules--panel {
+  margin: 0;
+  background: var(--white);
+}
+
+.reset-rules--panel:hover {
+  background: #f4f4f4;
+}
+
+/* Règles du 5000 : le libellé et sa phrase se replient pour laisser
+   l'interrupteur à droite, sur la même ligne — sinon une phrase un peu longue
+   le renvoyait seul sous le libellé, et deux interrupteurs sur trois
+   n'étaient plus alignés. Un groupe de boutons trop large passe, lui, à la
+   ligne. */
+#panel-rules-g5000 .setting-label {
+  flex: 1 1 0;
+  min-width: 9rem;
+}
+
+/* Ce qui s'ouvre sous un réglage (valeur d'un interrupteur, valeurs « Perso ») :
+   toute la largeur de la ligne, sous le libellé et le contrôle. */
+.setting-sub {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setting-sub .num {
+  width: 3.4em;
+  padding: 0.4em 0.5em;
+  border: 1.5px solid #d3d3d3;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
+.setting-sub .num--wide {
+  width: 5.2em;
+}
+
+/* Valeurs « Perso » d'une figure : une case par chiffre, la face du dé
+   dessinée à côté du champ, trois par ligne. */
+.face-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem 0.6rem;
+}
+
+.face-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.face-field .die {
+  flex: none;
+  width: 1.5rem;
+}
+
+.face-field .num {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 0.2em;
+}
+
+/* Flex plutôt qu'un simple span : un libellé peut porter un bouton d'aide, et
+   l'aligner sur la ligne de base demandait de deviner les métriques de la
+   police (hauteur d'x, jambage). Ici le centrage est géométrique, donc juste.
+   Aucun effet sur les autres libellés : en tant qu'élément d'une .setting-row
+   déjà en flex, celui-ci était de toute façon traité comme un bloc. */
+.setting-label {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* Bouton d'aide d'un réglage : petit cercle sobre collé au libellé. Le gabarit
+   générique `button` (fond bleu plein) est entièrement neutralisé, y compris au
+   survol — sinon la pastille vire au bleu sous le doigt. */
+/* Bouton d'aide d'un réglage. Le cercle et le « i » sont un seul dessin SVG
+   (cf. settings.html) : aucune bordure CSS ici, sinon elle doublerait le
+   cercle. C'est ce qui garantit le centrage — un glyphe de texte se pose sur
+   sa ligne de base, jamais au centre de sa boîte. */
+.info-btn {
+  display: inline-flex;
+  flex: none;
+  width: 1.35em;
+  height: 1.35em;
+  margin-left: 0.4em;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: #7b858c;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.info-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.info-btn:hover,
+.info-btn:focus-visible {
+  background: none;
+}
+
+.info-btn:active {
+  background: #e6ebed;
+}
+
+@media (hover: hover) {
+  .info-btn:hover {
+    background: #e6ebed;
+  }
+}
+
+.setting-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: none;
+}
+
+/* Segmenté somme / fixe */
+.seg {
+  display: inline-flex;
+  border: 1.5px solid #d3d3d3;
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.seg button {
+  appearance: none;
+  border: none;
+  background: #fff;
+  color: #555;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4em 0.7em;
+  cursor: pointer;
+}
+
+.seg button + button {
+  border-left: 1.5px solid #d3d3d3;
+}
+
+.seg button.on {
+  background: var(--secondary-color);
+  color: #fff;
+}
+
+/* Champ de points */
+.setting-control .num {
+  width: 3.4em;
+  padding: 0.4em 0.5em;
+  border: 1.5px solid #d3d3d3;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* L'objectif du 5000 compte jusqu'à cinq chiffres. */
+.setting-control .num--wide {
+  width: 5.2em;
+}
+
+/* Listes déroulantes des réglages : même cadre que les champs numériques, pour
+   que les deux types de contrôle se lisent comme une seule famille. */
+.setting-control select {
+  padding: 0.4em 0.5em;
+  border: 1.5px solid #d3d3d3;
+  border-radius: 8px;
+  background: var(--white);
+  font: inherit;
+  font-weight: 600;
+  max-width: 13em;
+}
+
+/* Précision sous un libellé de réglage : ce que fait l'option, en une ligne.
+   Le libellé passe en colonne pour que la note tombe dessous et non à côté. */
+.setting-label:has(.setting-note) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1em;
+}
+
+.setting-note {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #7b858c;
+}
+
+.num-unit {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+/* Interrupteur (Chance) */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 3em;
+  height: 1.7em;
+  flex: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #ccc;
+  transition: background-color var(--transition);
+}
+
+.switch-track::before {
+  content: "";
+  position: absolute;
+  top: 0.2em;
+  left: 0.2em;
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--transition);
+}
+
+.switch input:checked + .switch-track {
+  background: var(--primary-color);
+}
+
+.switch input:checked + .switch-track::before {
+  transform: translateX(1.3em);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+/* Nettoyage des classements du Hall of Fame */
+.score-admin-block {
+  margin-top: 0.9rem;
+}
+
+/* Séparation nette entre le bloc "Meilleurs" et le bloc "Pires". */
+.score-admin-block + .score-admin-block {
+  margin-top: 1.6rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid #e2e2e2;
+}
+
+/* Titre collé à sa liste (petit espace en dessous, plus grand au-dessus). */
+.score-admin-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #555;
+}
+
+.score-admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Colonnes alignées d'une ligne à l'autre : nom | score | date | corbeille. */
+.score-admin-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  column-gap: 0.9rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ececec;
+  font-size: 0.9rem;
+}
+
+.score-admin-row:last-child {
+  border-bottom: none;
+}
+
+.score-admin-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.score-admin-score {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.score-admin-date,
+.score-admin-games {
+  color: #888;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Boutons crayon / corbeille : encadrés pour rester visibles même si le
+   glyphe emoji est monochrome. */
+.score-admin-edit,
+.score-admin-del {
+  appearance: none;
+  justify-self: end;
+  border: 1.5px solid #d3d3d3;
+  background: #fff;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0.35em 0.6em;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.score-admin-del {
+  border-color: #e2b6b6;
+  color: var(--danger-color);
+}
+
+.score-admin-edit:hover {
+  background: #f1f1f1;
+}
+
+.score-admin-del:hover {
+  background: #fbeaea;
+}
+
+.score-admin-empty {
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: #999;
+}
+
+/* Contenu des pop-ups de confirmation (suppression de score, de joueur). */
+.delete-summary {
+  margin: 0 0 1em;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  /* Terme et valeur centrés l'un sur l'autre : sans ça, le terme reste collé en
+     haut de sa case face à une pastille de variante, deux fois plus haute
+     qu'une ligne de texte. */
+  align-items: center;
+  gap: 0.35em 0.9em;
+  font-size: 0.95rem;
+}
+
+.delete-summary dt {
+  color: #777;
+  font-weight: 600;
+}
+
+.delete-summary dd {
+  margin: 0;
+  font-weight: 700;
+}
+
+.badge-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.delete-warn {
+  margin: 0 0 1em;
+  font-size: 0.88rem;
+  color: var(--danger-color);
+  text-align: center;
+}
+
+.delete-actions {
+  display: flex;
+  gap: 0.6em;
+}
+
+.delete-actions .btn {
+  margin: 0;
+  flex: 1;
+  max-width: none;
+}
+
+.player-edit-input {
+  width: 100%;
+  margin: 0 0 0.8em;
+  padding: 0.65em 0.85em;
+  border: 1.5px solid #d3d3d3;
+  border-radius: var(--border-radius);
+  font: inherit;
+}
+
+.player-edit-error {
+  margin: -0.4em 0 0.8em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger-color);
+}
+
+.message-text {
+  margin: 0 0 1.2em;
+  text-align: center;
+  font-size: 0.95rem;
+  color: #444;
+}

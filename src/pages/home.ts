@@ -1,89 +1,63 @@
-// Page d'accueil : choix des variantes, reprise d'une partie, accès au Hall of Fame.
+// Menu des jeux : une tuile par entrée du registre, avec sa partie en cours
+// quand il y en a une. C'est le seul écran qui connaisse la liste des jeux —
+// ajouter un troisième jeu ne demande pas d'y toucher.
 //
-// Ordre du module (commun aux six pages) : amorçage et gardes, puis les
-// constantes, puis les fonctions, et enfin la mise en route tout en bas. Rien
-// ne s'exécute avant que tout soit déclaré — une fonction remonte en haut du
-// module, un `const` non, et le piège ne se voit ni à la compilation ni aux
-// tests.
+// Ordre du module : gardes, constantes, fonctions, puis la mise en route tout
+// en bas (README, « Conventions »).
 
-import { bootstrap } from "../bootstrap";
-import { goTo } from "../nav";
-import { VARIANTS } from "../variants";
-import { requireEl } from "../ui";
-import { hasSavedGame } from "../storage/savedGameRepo";
-import { getDraft, saveDraft } from "../storage/draftRepo";
-import type { Variant } from "../types";
+import { bootstrap } from "../core/bootstrap";
+import { requireEl } from "../core/ui";
+import { GAMES } from "../games/registry";
+import type { GameDef } from "../games/types";
 
 bootstrap();
 
-const container = document.querySelector<HTMLElement>(".variant-options");
-if (!container) throw new Error("Conteneur .variant-options introuvable");
-const optionsContainer = container; // alias non-null pour les fonctions
+const list = requireEl<HTMLUListElement>("game-list");
 
-const startBtn = requireEl<HTMLButtonElement>("start-btn");
-const resumeBtn = requireEl<HTMLButtonElement>("resume-btn");
+function buildTile(game: GameDef): HTMLLIElement {
+  const resume = game.resume();
 
-// Variantes cochées au dernier passage ; à la toute première visite, la
-// sélection par défaut de variants.ts.
-const previouslyChosen = new Set(getDraft()?.variants ?? []);
-const hasDraft = previouslyChosen.size > 0;
+  const tile = document.createElement("li");
+  tile.className = "game-tile";
+  tile.style.setProperty("--accent", game.accent);
 
-const selectedVariants = (): Variant[] =>
-  [
-    ...optionsContainer.querySelectorAll<HTMLInputElement>(
-      "input[name='variant']:checked",
-    ),
-  ].map((cb) => cb.value as Variant);
+  const link = document.createElement("a");
+  link.className = "game-link";
+  link.href = game.pages.home;
 
-const syncStartButton = (): void => {
-  startBtn.disabled = selectedVariants().length === 0;
-};
+  const icon = document.createElement("span");
+  icon.className = "game-icon";
+  icon.textContent = game.icon;
+  icon.setAttribute("aria-hidden", "true");
 
-function renderVariantChips(): void {
-  for (const variant of VARIANTS) {
-    const chip = document.createElement("label");
-    chip.className = "variant-chip";
-    chip.style.setProperty("--chip-color", variant.color);
+  const title = document.createElement("span");
+  title.className = "game-title";
+  title.textContent = game.title;
 
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.name = "variant";
-    checkbox.value = variant.value;
-    checkbox.checked = hasDraft
-      ? previouslyChosen.has(variant.value)
-      : Boolean(variant.default);
+  const tagline = document.createElement("span");
+  tagline.className = "game-tagline";
+  tagline.textContent = game.tagline;
 
-    const icon = document.createElement("span");
-    icon.className = "chip-icon";
-    icon.textContent = variant.icon;
-    icon.setAttribute("aria-hidden", "true");
+  const text = document.createElement("span");
+  text.className = "game-text";
+  text.append(title, tagline);
 
-    const label = document.createElement("span");
-    label.className = "chip-label";
-    label.textContent = variant.label;
+  link.append(icon, text);
+  tile.appendChild(link);
 
-    chip.append(checkbox, icon, label);
-    optionsContainer.appendChild(chip);
+  // La reprise est une seconde entrée, sous la tuile : elle mène directement à
+  // l'écran de partie, sans repasser par l'accueil du jeu.
+  if (resume) {
+    const resumeLink = document.createElement("a");
+    resumeLink.className = "game-resume";
+    resumeLink.href = game.pages.play;
+    resumeLink.append("▶ Reprendre · ", resume.playerNames.join(", "));
+    tile.appendChild(resumeLink);
   }
+
+  return tile;
 }
 
 /* ---------- Mise en route ---------- */
 
-renderVariantChips();
-syncStartButton();
-optionsContainer.addEventListener("change", syncStartButton);
-
-if (hasSavedGame()) {
-  resumeBtn.disabled = false;
-  resumeBtn.addEventListener("click", () => goTo("game"));
-} else {
-  resumeBtn.hidden = true;
-}
-
-startBtn.addEventListener("click", () => {
-  const selected = selectedVariants();
-  if (selected.length === 0) return; // le bouton est déjà désactivé dans ce cas
-
-  saveDraft({ variants: selected, playerNames: getDraft()?.playerNames ?? [] });
-  goTo("players");
-});
+list.replaceChildren(...GAMES.map(buildTile));

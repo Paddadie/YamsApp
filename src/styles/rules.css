@@ -1,0 +1,91 @@
+/* ========== PAGE DES RÈGLES ========== */
+/* Une colonne de lecture, pas une grille de réglages : le texte prime, les
+   tableaux ne servent qu'au barème. */
+#rules-screen .screen-body {
+  justify-content: flex-start;
+  gap: 0;
+}
+
+#rules-screen h1 {
+  margin: 0 0 0.4em;
+}
+
+.rules-section {
+  width: 100%;
+  margin-bottom: 1.6rem;
+}
+
+.rules-section h2 {
+  margin: 0 0 0.5em;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b767d;
+}
+
+.rules-section p {
+  margin: 0 0 0.7em;
+  line-height: 1.5;
+}
+
+/* Les variantes ne sont pas les règles de base : elles sont encadrées pour
+   qu'on ne les confonde pas avec ce qui se joue à chaque partie. */
+.rules-section--variants {
+  padding: 1rem 1.1rem 0.5rem;
+  border-radius: 14px;
+  background: #fff4e0;
+  box-shadow: inset 0 0 0 1px #e8c48a;
+}
+
+.rules-section--variants h2 {
+  color: var(--gold-hover);
+}
+
+.rules-table-wrap {
+  width: 100%;
+}
+
+.rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--white);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.rules-table th {
+  padding: 0.6em 0.9em;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b767d;
+  background: #f3f6f7;
+}
+
+.rules-table th:last-child,
+.rules-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.rules-table td {
+  padding: 0.6em 0.9em;
+  border-top: 1px solid #eef1f2;
+  font-size: 0.95rem;
+}
+
+.rules-table td:last-child {
+  font-weight: 700;
+}
+
+.rules-note {
+  margin: 0.5em 0 0;
+  font-size: 0.8rem;
+  color: #6b767d;
+  font-style: italic;
+}

@@ -1,0 +1,84 @@
+/* ========== ANIMATIONS ========== */
+/* Règle du projet : aucune animation n'est désactivée par
+   `prefers-reduced-motion`. Elles sont toutes délibérées et attendues (jauge de
+   bonus, trophée, battage des joueurs, changement de joueur, fin de partie), et
+   l'appareil de référence a « Réduire les animations » activé en permanence :
+   les masquer reviendrait à ne jamais les montrer à personne. Ne pas
+   réintroduire de bloc @media (prefers-reduced-motion) sans le redemander. */
+
+/* ---------- Changement de joueur (écran de jeu) ---------- */
+/* Le nom du joueur qui arrive entre par le côté vers lequel on va, pendant que
+   le fond de page glisse vers sa couleur (cf. #game-screen plus haut).
+   Seul le nom est animé, et pas la feuille de score : la raison est dans
+   animateName (game.ts). */
+/* Deux animations plutôt qu'une : le fondu se termine bien avant le
+   déplacement, si bien que le nom est déjà pleinement lisible pendant qu'il
+   finit de se poser. Avec une seule animation, apparition et arrivée coïncident
+   et ça se perçoit comme un arrêt net.
+   Courbe volontairement cubique et non exponentielle : l'exponentielle démarre
+   très vite puis traîne, ce qui à cette durée donnerait l'impression que le nom
+   arrive puis rampe. */
+.name-enter {
+  animation: name-slide 0.48s cubic-bezier(0.33, 1, 0.68, 1) both,
+    name-fade 0.3s ease-out both;
+}
+
+.name-enter--next {
+  --from: 0.7em;
+}
+
+.name-enter--prev {
+  --from: -0.7em;
+}
+
+@keyframes name-slide {
+  from {
+    transform: translateX(var(--from, 0.7em));
+  }
+}
+
+@keyframes name-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/* ========== MISE EN SCÈNE DE LA FIN DE PARTIE ========== */
+/* Jouée une seule fois par partie : les marches du podium sortent du sol de la
+   dernière vers la première, la médaille arrive une fois la marche posée, puis
+   le classement se remplit du dernier au premier. Le délai de chaque élément
+   est posé en JS dans --d (cf. src/pages/end.ts). */
+.reveal {
+  animation: reveal-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) backwards;
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.9em);
+  }
+}
+
+/* Les marches montent de plus loin : elles ont une hauteur à révéler. */
+.podium-step {
+  animation: podium-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) backwards;
+}
+
+@keyframes podium-rise {
+  from {
+    opacity: 0;
+    transform: translateY(2.2em);
+  }
+}
+
+.podium-medal {
+  animation: medal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+    calc(var(--d, 0s) + 0.22s) backwards;
+}
+
+@keyframes medal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(-18deg);
+  }
+}

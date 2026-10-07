@@ -1,51 +1,56 @@
-// Page "Joueurs de la partie" : une liste unique où chaque joueur connu se
-// coche pour rejoindre la partie. Les joueurs sélectionnés portent un numéro
-// d'ordre de tour et se réordonnent par glisser-déposer (poignée). Le champ du
-// haut sert à créer un nom OU à filtrer la liste.
+// Page "Joueurs de la partie", COMMUNE À TOUS LES JEUX : une liste unique où
+// chaque joueur connu se coche pour rejoindre la partie. Les joueurs
+// sélectionnés portent un numéro d'ordre de tour et se réordonnent par
+// glisser-déposer (poignée). Le champ du haut sert à créer un nom OU à filtrer
+// la liste.
 //
-// Ordre du module (commun aux six pages) : amorçage et gardes, puis les
-// constantes, puis les fonctions, et enfin la mise en route tout en bas. Rien
-// ne s'exécute avant que tout soit déclaré — une fonction remonte en haut du
-// module, un `const` non, et le piège ne se voit ni à la compilation ni aux
-// tests.
+// Rien ici ne connaît un jeu en particulier : le brouillon dit lequel est visé,
+// et c'est ce jeu qui convertit le brouillon en partie au clic sur « Commencer »
+// (cf. GameDef.startGame). Ajouter un jeu ne demande donc pas de toucher à cet
+// écran.
+//
+// Ordre du module : gardes, constantes, fonctions, puis la mise en route tout
+// en bas (README, « Conventions »).
 
-import { bootstrap } from "../bootstrap";
-import { goTo } from "../nav";
-import { createPlayers, PLAYER_COLORS } from "../state";
+import { bootstrap } from "../core/bootstrap";
+import { goTo } from "../core/nav";
+import { PLAYER_COLORS } from "../core/playerColors";
 import {
   makeActivatable,
   makeDismissible,
   plural,
   requireEl,
   summaryRow,
-  variantBadge,
-} from "../ui";
-import { compareNames, foldName } from "../playerName";
+} from "../core/ui";
+import { compareNames, foldName } from "../core/playerName";
 import {
   addKnownName,
   getKnownNames,
   resolveName,
-} from "../storage/knownPlayersRepo";
-import { getPlayerStats } from "../storage/playerStatsRepo";
+} from "../core/storage/knownPlayersRepo";
+import {
+  getPlayerGames,
+  gamesPlayed,
+} from "../core/storage/playerGamesRepo";
 import {
   getDraft,
   saveDraft,
   clearDraft,
   getLastRoster,
-  saveLastRoster,
-} from "../storage/draftRepo";
-import { getSavedGame, saveSavedGame } from "../storage/savedGameRepo";
-import { getRules } from "../storage/rulesRepo";
-import type { SavedGame } from "../types";
+} from "../core/storage/draftRepo";
+import { gameById } from "../games/registry";
+import type { ResumeInfo } from "../games/types";
 
 bootstrap();
 
 const draft = getDraft();
-if (!draft) {
+const game = gameById(draft?.gameId);
+if (!draft || !game) {
   goTo("home");
-  throw new Error("Aucun brouillon de partie : retour à l'accueil.");
+  throw new Error("Aucun brouillon de partie exploitable : retour à l'accueil.");
 }
 const roster = draft; // alias non-null pour les closures
+const target = game; // idem
 
 const playerForm = requireEl<HTMLFormElement>("player-form");
 const nameInput = requireEl<HTMLInputElement>("player-name");
@@ -54,6 +59,7 @@ const reuseBtn = requireEl<HTMLButtonElement>("reuse-btn");
 const shuffleBtn = requireEl<HTMLButtonElement>("shuffle-btn");
 const list = requireEl<HTMLUListElement>("roster");
 const startBtn = requireEl<HTMLButtonElement>("start-game-btn");
+const backBtn = requireEl<HTMLAnchorElement>("back-btn");
 const newGameDialog = requireEl<HTMLDialogElement>("new-game-dialog");
 
 const selected = new Set(roster.playerNames);
@@ -68,34 +74,29 @@ const SHUFFLE_MS = 420; // 0.38s d'animation + marge : pas de coupure sur la fin
 const BADGE_POP_MS = 240;
 let shuffling = false;
 
+// Glisser-déposer depuis n'importe où sur la ligne d'un joueur sélectionné : il
+// part dès que le doigt glisse au-delà de ce seuil. En deçà, c'est un simple
+// toucher (sélection / désélection). Pas d'appui long à attendre : Paul le
+// trouvait trop lent (06/10).
+const DRAG_START_PX = 6;
+// Un déplacement vient de se terminer : le « toucher » qu'il produit en
+// relâchant ne doit pas désélectionner le joueur qu'on vient de poser.
+let dragJustEnded = false;
+
+// Le brouillon est effacé AVANT de passer la main au jeu : celui-ci navigue
+// vers son écran de partie, et un brouillon resté en place ferait revenir sur
+// cette page à la prochaine visite.
 function startGame(): void {
-  saveLastRoster(roster.playerNames.slice());
-  saveSavedGame({
-    players: createPlayers(
-      roster.playerNames,
-      roster.variants,
-      roster.playerNames.map((name) => colorOf.get(name) ?? PLAYER_COLORS[0]),
-    ),
-    selectedVariants: roster.variants,
-    currentPlayerIndex: 0,
-    rules: getRules(), // règles figées pour toute la partie
-  });
+  const names = roster.playerNames.slice();
+  const colors = new Map(colorOf);
   clearDraft();
-  goTo("game");
+  target.startGame({ ...roster, playerNames: names }, colors);
 }
 
-function showReplaceWarning(current: SavedGame): void {
+function showReplaceWarning(current: ResumeInfo): void {
   const summary = requireEl("new-game-summary");
   summary.replaceChildren();
-  summaryRow(summary, "Joueurs", current.players.map((p) => p.name).join(", "));
-
-  const variants = document.createElement("span");
-  variants.className = "delete-variant";
-  for (const variant of current.selectedVariants) {
-    variants.appendChild(variantBadge(variant));
-  }
-  summaryRow(summary, "Variantes", variants);
-
+  for (const { term, value } of current.rows) summaryRow(summary, term, value);
   newGameDialog.showModal();
 }
 
@@ -135,8 +136,10 @@ function commit(): void {
 }
 
 function render(): void {
-  const stats = getPlayerStats();
-  const gamesOf = (name: string): number => stats[name]?.games ?? 0;
+  // Parties jouées tous jeux confondus : quelqu'un qui n'a fait que du 5000
+  // doit remonter dans la liste quand on lance un Yams.
+  const games = getPlayerGames();
+  const gamesOf = (name: string): number => gamesPlayed(games, name);
   const query = foldName(nameInput.value);
 
   const everyone = [...new Set([...getKnownNames(), ...roster.playerNames])];
@@ -193,17 +196,20 @@ function line(cls: string, text: string): HTMLLIElement {
 // `order` : index de tour (0-based) si sélectionné, -1 sinon.
 function buildRow(
   name: string,
-  gamesPlayed: number,
+  gamesCount: number,
   order: number,
 ): HTMLLIElement {
   const isSelected = order >= 0;
   const gamesText =
-    gamesPlayed === 0 ? "jamais joué" : plural(gamesPlayed, "partie");
+    gamesCount === 0 ? "jamais joué" : plural(gamesCount, "partie");
 
   const row = document.createElement("li");
   row.className = isSelected ? "roster-row selected" : "roster-row";
   row.dataset.name = name;
-  makeActivatable(row, `${name}, ${gamesText}`, () => toggle(name));
+  makeActivatable(row, `${name}, ${gamesText}`, () => {
+    if (dragJustEnded) return;
+    toggle(name);
+  });
   row.setAttribute("aria-pressed", String(isSelected));
 
   const check = document.createElement("span");
@@ -229,13 +235,38 @@ function buildRow(
     const handle = document.createElement("span");
     handle.className = "drag-handle";
     handle.setAttribute("aria-hidden", "true");
-    handle.textContent = "⠿";
+    handle.appendChild(gripIcon());
     handle.addEventListener("click", (e) => e.stopPropagation());
-    handle.addEventListener("pointerdown", (e) => startDrag(e, row, name));
+    handle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startDrag(row, name, e.pointerId, e.clientY, handle);
+    });
     row.appendChild(handle);
+    armDrag(row, name);
   }
 
   return row;
+}
+
+// Poignée dessinée (six points) et non le caractère « ⠿ » : un caractère
+// braille, que la police de certains appareils ne dessine pas — le même piège
+// que ⌫ et ⏸.
+function gripIcon(): SVGSVGElement {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", "0 0 10 16");
+  for (const cx of [2.5, 7.5]) {
+    for (const cy of [3, 8, 13]) {
+      const dot = document.createElementNS(ns, "circle");
+      dot.setAttribute("cx", String(cx));
+      dot.setAttribute("cy", String(cy));
+      dot.setAttribute("r", "1.6");
+      dot.setAttribute("fill", "currentColor");
+      svg.appendChild(dot);
+    }
+  }
+  return svg;
 }
 
 /* ---------- Réordonner par glisser-déposer (joueurs sélectionnés) ---------- */
@@ -244,30 +275,78 @@ function buildRow(
 // pour montrer où elle va. Le déplacement est direct (doigt = cible), pas de
 // « rattrapage » qui bloquait à un cran d'écart.
 
-function startDrag(e: PointerEvent, row: HTMLLIElement, name: string): void {
-  e.preventDefault();
-  e.stopPropagation();
-  const handle = e.currentTarget as HTMLElement;
-  handle.setPointerCapture(e.pointerId);
+// Glisser sur la ligne d'un joueur sélectionné le déplace aussitôt. La ligne
+// porte `touch-action: none` (CSS) : sans ça le navigateur prendrait le geste
+// pour un défilement de la liste et l'interromprait. En contrepartie, on fait
+// défiler la liste en glissant sur les joueurs NON sélectionnés.
+function armDrag(row: HTMLLIElement, name: string): void {
+  row.addEventListener("pointerdown", (e) => {
+    if (!e.isPrimary || shuffling) return;
+    if ((e.target as Element | null)?.closest(".drag-handle")) return;
+    const id = e.pointerId;
+    const startX = e.clientX;
+    const startY = e.clientY;
 
+    const disarm = (): void => {
+      row.removeEventListener("pointermove", onMove);
+      row.removeEventListener("pointerup", disarm);
+      row.removeEventListener("pointercancel", disarm);
+    };
+    const onMove = (ev: PointerEvent): void => {
+      if (ev.pointerId !== id) return;
+      const moved = Math.hypot(ev.clientX - startX, ev.clientY - startY);
+      if (moved <= DRAG_START_PX) return;
+      disarm();
+      navigator.vibrate?.(10); // le doigt sent que la ligne est « prise »
+      startDrag(row, name, id, startY, row);
+    };
+
+    row.addEventListener("pointermove", onMove);
+    row.addEventListener("pointerup", disarm);
+    row.addEventListener("pointercancel", disarm);
+  });
+
+  // Un appui prolongé ouvrirait sinon le menu contextuel (ou la loupe).
+  row.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+
+// `captureEl` reçoit le pointeur pour toute la durée du geste : la poignée, ou
+// la ligne entière après un appui long.
+function startDrag(
+  row: HTMLLIElement,
+  name: string,
+  pointerId: number,
+  startY: number,
+  captureEl: HTMLElement,
+): void {
   const selRows = selectedRows();
   const from = selRows.indexOf(row);
   if (from < 0) return;
 
+  try {
+    captureEl.setPointerCapture(pointerId);
+  } catch {
+    // Pointeur déjà relâché : il n'y a rien à suivre.
+  }
+
   const rowH = row.getBoundingClientRect().height;
-  const startY = e.clientY;
   let to = from;
 
   row.classList.add("dragging");
 
+  // Une fois la ligne prise, le doigt la déplace : il ne doit plus faire
+  // défiler la liste. `passive: false`, sinon preventDefault est ignoré.
+  const blockScroll = (ev: TouchEvent): void => ev.preventDefault();
+  document.addEventListener("touchmove", blockScroll, { passive: false });
+
   const onMove = (ev: PointerEvent): void => {
+    if (ev.pointerId !== pointerId) return;
     const dy = ev.clientY - startY;
     row.style.transform = `translateY(${dy}px)`;
 
-    const next = Math.max(
-      0,
-      Math.min(selRows.length - 1, from + Math.round(dy / rowH)),
-    );
+    const next = rowH
+      ? Math.max(0, Math.min(selRows.length - 1, from + Math.round(dy / rowH)))
+      : from;
     if (next === to) return;
     to = next;
 
@@ -280,23 +359,30 @@ function startDrag(e: PointerEvent, row: HTMLLIElement, name: string): void {
     });
   };
 
-  const onEnd = (): void => {
-    handle.releasePointerCapture(e.pointerId);
-    handle.removeEventListener("pointermove", onMove);
-    handle.removeEventListener("pointerup", onEnd);
-    handle.removeEventListener("pointercancel", onEnd);
+  const onEnd = (ev: PointerEvent): void => {
+    if (ev.pointerId !== pointerId) return;
+    try {
+      captureEl.releasePointerCapture(pointerId);
+    } catch {
+      // Déjà relâché.
+    }
+    captureEl.removeEventListener("pointermove", onMove);
+    captureEl.removeEventListener("pointerup", onEnd);
+    captureEl.removeEventListener("pointercancel", onEnd);
+    document.removeEventListener("touchmove", blockScroll);
     selRows.forEach((r) => (r.style.transform = ""));
     row.classList.remove("dragging");
     if (to !== from) {
       roster.playerNames.splice(from, 1);
       roster.playerNames.splice(to, 0, name);
     }
+    dragJustEnded = true;
     commit();
   };
 
-  handle.addEventListener("pointermove", onMove);
-  handle.addEventListener("pointerup", onEnd);
-  handle.addEventListener("pointercancel", onEnd);
+  captureEl.addEventListener("pointermove", onMove);
+  captureEl.addEventListener("pointerup", onEnd);
+  captureEl.addEventListener("pointercancel", onEnd);
 }
 
 /* ---------- Mélange animé : « battage de cartes » ---------- */
@@ -368,6 +454,17 @@ function playRiffle(before: Map<string, number>): void {
 
 /* ---------- Mise en route ---------- */
 
+// Le « toucher » parasite d'un déplacement arrive juste après lui ; tout
+// nouvel appui sur la liste rend aux lignes leur comportement normal.
+list.addEventListener("pointerdown", () => (dragJustEnded = false), true);
+
+// Page commune : son titre prend le nom du jeu qu'on prépare.
+document.title = `${target.title} — Joueurs`;
+
+// « Retour » ramène à l'accueil du jeu qu'on était en train de préparer, pas au
+// menu des jeux : on vient d'en sortir, on y revient.
+backBtn.href = target.pages.home;
+
 for (const name of roster.playerNames) assignColor(name);
 
 playerForm.addEventListener("submit", (e) => {
@@ -409,7 +506,7 @@ shuffleBtn.addEventListener("click", () => {
 // comme pour toute autre suppression définitive de l'appli.
 startBtn.addEventListener("click", () => {
   if (roster.playerNames.length < 2) return;
-  const inProgress = getSavedGame();
+  const inProgress = target.resume();
   if (!inProgress) return startGame();
   showReplaceWarning(inProgress);
 });

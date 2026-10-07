@@ -1,0 +1,573 @@
+/* ========== PODIUM (écran de fin) ========== */
+#podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(0.35rem, 2vw, 1rem);
+  width: 100%;
+  max-width: 30rem;
+}
+
+.podium-step {
+  flex: 1 1 0;
+  max-width: 10rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1em;
+  padding: 0.9em 0.4em 0.6em;
+  border-radius: 14px 14px 0 0;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5),
+    0 4px 10px rgba(0, 0, 0, 0.14);
+}
+
+/* Hauteurs liées à la hauteur d'écran : marches plus courtes si la place
+   manque, pour que l'écran de fin tienne sans défilement. */
+.podium-step.rank-1 {
+  min-height: clamp(7em, 20vh, 11em);
+  color: #3a2c05;
+  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
+}
+
+.podium-step.rank-2 {
+  min-height: clamp(5.75em, 16vh, 9em);
+  color: #34383f;
+  background-image: linear-gradient(180deg, #edeef1 0%, #cfd2d8 45%, #a9adb6 100%);
+}
+
+.podium-step.rank-3 {
+  min-height: clamp(4.75em, 13vh, 7.5em);
+  color: #3d2410;
+  background-image: linear-gradient(180deg, #e9bd94 0%, #cd894f 45%, #a5652f 100%);
+}
+
+.podium-medal {
+  font-size: 1.9em;
+  line-height: 1;
+}
+
+.podium-name {
+  font-weight: 700;
+  font-size: 0.95em;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.podium-score {
+  font-size: 1.4em;
+  font-weight: 800;
+}
+
+.podium-num {
+  margin-top: auto;
+  padding-top: 0.3em;
+  font-size: 0.9em;
+  font-weight: 700;
+  opacity: 0.55;
+}
+
+/* ========== TABLES DE RÉSULTATS ========== */
+#ranking-table,
+#best-scores-table,
+#worst-scores-table {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  border-collapse: collapse;
+  font-size: 1rem;
+  text-align: center;
+}
+
+#best-scores-table th,
+#worst-scores-table th,
+#best-scores-table td,
+#worst-scores-table td {
+  padding: 4px 8px;
+  vertical-align: middle;
+}
+
+/* Classement de fin : même style de carte que le Hall of Fame. */
+#ranking-table {
+  background-color: #fff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#ranking-table thead th {
+  background-image: linear-gradient(180deg, #4a5568 0%, #364152 100%);
+  color: #fff;
+  font-weight: 700;
+  padding: 0.7em 0.5em;
+}
+
+#ranking-table td {
+  padding: 0.6em 0.5em;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+/* Cellule flaggée 🏆 / 💩 : le badge est posé dans le coin, hors flux, pour
+   ne pas décaler la valeur — les scores restent alignés d'une ligne à l'autre. */
+#ranking-table td.cell-badged {
+  position: relative;
+}
+
+#ranking-table .cell-badge {
+  position: absolute;
+  top: 50%;
+  right: 0.1em;
+  transform: translateY(-50%);
+  font-size: 0.92em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+#ranking-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Ligne du vainqueur légèrement surlignée. */
+#ranking-table tbody tr:first-child {
+  background-color: #fdf5e0;
+  font-weight: 600;
+}
+
+/* ========== HALL & END SCREENS ========== */
+#hall-screen {
+  align-items: center;
+}
+
+/* Zone centrale : titre, aide et blocs — tout défile ensemble (la page), mais
+   aucun bloc ne se comprime : toutes les lignes des 3 tableaux restent
+   visibles, quitte à faire défiler. */
+#hall-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  width: 100%;
+  max-width: var(--content-max);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.9rem, 2.5vh, 1.6rem);
+  padding: clamp(0.8rem, 2vh, 1.4rem) clamp(1rem, 4vw, 2.5rem);
+}
+
+#hall-content > * {
+  flex-shrink: 0;
+}
+
+#hall-content > h1 {
+  margin: 0.2rem 0 0;
+}
+
+/* Aide sous le titre : les lignes des tableaux sont cliquables. */
+.hall-hint {
+  margin: -0.4rem 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #777;
+}
+
+/* Écran de fin : contenu ancré vers le haut, comme l'accueil. */
+#end-screen .screen-body {
+  justify-content: flex-start;
+  gap: clamp(1rem, 3.5vh, 2.25rem);
+  padding-top: clamp(1rem, 4vh, 2.5rem);
+}
+
+#end-screen h1 {
+  margin: 0;
+  font-size: clamp(1.5rem, 4.5vh, 2.1rem);
+}
+
+/* Record du téléphone battu : bandeau or, même métal que la 1re marche. */
+#record-banner {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  color: #3a2c05;
+  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
+  border-radius: 10px;
+  padding: 0.7em 1em;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 3px 8px rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* Légende des pastilles 🏆 / 💩 du classement. */
+#hof-legend {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Export / import : deux boutons pleins empilés. */
+#backup-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+#backup-controls .btn {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+/* Numéro de version : discret, en haut à droite du contenu Paramètres. Il
+   défile avec le reste (positionné dans .screen-body, pas dans .screen). */
+#app-version {
+  position: absolute;
+  top: 0.6rem;
+  right: 1rem;
+  width: auto; /* sinon .screen-body > * impose width:100% et le colle à gauche */
+  font-size: 0.72rem;
+  color: #999;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Les 3 blocs (meilleurs / pires / stats) : cartes identiques, filet de
+   couleur en tête pour le repère (or / terracotta / neutre). */
+.hall-block {
+  background: #fff;
+  border-radius: 12px;
+  border-top: 4px solid var(--hall-accent, #ccc);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
+  overflow: hidden;
+  padding: 0.85rem 0 0.15rem;
+}
+
+.hall-block--best {
+  --hall-accent: #d9a520;
+}
+
+.hall-block--worst {
+  --hall-accent: #a9713f;
+}
+
+.hall-block--stats {
+  --hall-accent: #97a2ab;
+}
+
+#hall-screen h2 {
+  margin: 0 0 0.55rem;
+  padding: 0 clamp(0.8rem, 3vw, 1.4rem);
+  font-size: clamp(1rem, 2vh, 1.3rem);
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Cellules à taille fluide : compactes sur iPhone, généreuses sur tablette. */
+#hall-screen th,
+#hall-screen td {
+  padding: clamp(0.4rem, 1.2vh, 0.8rem) clamp(0.55rem, 2.4vw, 1.4rem);
+  font-size: clamp(0.9rem, 1.7vh, 1.2rem);
+  border-bottom: 1px solid #eee;
+}
+
+#hall-screen thead th {
+  background: #f4f4f6;
+  color: #666;
+  font-size: 0.78em;
+  font-weight: 700;
+  border-bottom: 2px solid #e4e4e6;
+}
+
+#hall-screen tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.hall-empty {
+  text-align: center;
+  font-style: italic;
+  color: #888;
+  padding: 1.1em 1em;
+}
+
+.hall-note {
+  margin: -0.3rem 0 0.5rem;
+  padding: 0 clamp(0.8rem, 3vw, 1.4rem);
+  text-align: center;
+  font-size: 0.78rem;
+  color: #999;
+}
+
+/* Carte « Record du téléphone » : point focal, ton or. */
+#record-card {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.8rem 1.1rem;
+  border-radius: 14px;
+  background: linear-gradient(150deg, #fbeecb 0%, #f3d98f 100%);
+  border: 1px solid #e6c268;
+  box-shadow: 0 3px 10px rgba(180, 140, 30, 0.25);
+  color: #3a2c05;
+}
+
+#record-card.clickable {
+  cursor: pointer;
+  transition: filter 0.15s;
+}
+
+#record-card.clickable:hover {
+  filter: brightness(0.97);
+}
+
+#record-card.clickable::after {
+  content: "›";
+  flex: none;
+  margin-left: auto;
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
+
+#record-card:focus-visible {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+.record-crown {
+  flex: none;
+  font-size: 1.9rem;
+  line-height: 1;
+}
+
+.record-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.record-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.record-main {
+  font-size: 1.05rem;
+}
+
+.record-main strong {
+  font-weight: 800;
+}
+
+.record-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.82rem;
+  opacity: 0.85;
+}
+
+/* Lignes cliquables → feuille de score détaillée. Chevron en fin de ligne
+   comme repère permanent (visible aussi sans survol, sur tactile). */
+#best-scores-table tr.clickable,
+#worst-scores-table tr.clickable {
+  cursor: pointer;
+}
+
+#best-scores-table tr.clickable td:last-child,
+#worst-scores-table tr.clickable td:last-child {
+  position: relative;
+}
+
+/* Chevron hors flux (coin droit de la cellule) : ne décale pas le score,
+   qui reste centré comme dans les lignes non cliquables. */
+#best-scores-table tr.clickable td:last-child::after,
+#worst-scores-table tr.clickable td:last-child::after {
+  content: "›";
+  position: absolute;
+  top: 50%;
+  right: 0.35em;
+  transform: translateY(-50%);
+  color: #b0b0b0;
+  font-weight: 400;
+  pointer-events: none;
+}
+
+#best-scores-table tr.clickable:hover td,
+#worst-scores-table tr.clickable:hover td {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+#best-scores-table tr.clickable:focus-visible,
+#worst-scores-table tr.clickable:focus-visible {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: -2px;
+}
+
+/* Statistiques par joueur : 2 lignes par joueur (nom + moyenne, puis
+   record perso · nombre de parties en sous-ligne discrète). */
+#stats-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stats-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.6em clamp(0.8rem, 3vw, 1.4rem);
+  border-bottom: 1px solid #eee;
+}
+
+.stats-row:last-child {
+  border-bottom: none;
+}
+
+.stats-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75em;
+}
+
+.stats-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats-avg {
+  flex: none;
+  font-weight: 700;
+  color: #2f3a40;
+}
+
+.stats-sub {
+  font-size: 0.78rem;
+  color: #8a8a8a;
+}
+
+/* ---------- Easter egg : 5 clics sur le trophée ---------- */
+.hof-trophy {
+  display: inline-block;
+  cursor: default;
+  user-select: none;
+  transform-origin: center;
+  will-change: transform;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hof-trophy.celebrate {
+  animation: trophy-jump 1s cubic-bezier(0.3, 0.7, 0.35, 1);
+}
+
+/* Anticipation (petit accroupi) → saut avec un tour complet sur lui-même →
+   atterrissage avec écrasement puis rebond. */
+@keyframes trophy-jump {
+  0% {
+    transform: translateY(0) scale(1) rotate(0);
+  }
+  12% {
+    transform: translateY(0.06em) scale(1.18, 0.82) rotate(0);
+  }
+  38% {
+    transform: translateY(-0.8em) scale(0.92, 1.12) rotate(180deg);
+  }
+  58% {
+    transform: translateY(-0.95em) scale(1.05) rotate(300deg);
+  }
+  78% {
+    transform: translateY(0) scale(1.25, 0.75) rotate(360deg);
+  }
+  89% {
+    transform: translateY(0) scale(0.9, 1.1) rotate(360deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(360deg);
+  }
+}
+
+/* Carte de crédits : au centre de l'écran, mise en valeur par une lueur dorée. */
+#app-credit {
+  position: fixed;
+  left: 50%;
+  top: 45%;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7em;
+  width: max-content;
+  max-width: min(30rem, 94vw);
+  padding: 1.4em 1.7em;
+  border-radius: 22px;
+  background: linear-gradient(150deg, #33333f 0%, #1a1a26 100%);
+  color: #f6f6f8;
+  font-size: 1.02rem;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 212, 94, 0.28),
+    0 0 46px rgba(255, 200, 70, 0.4);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.82);
+  pointer-events: none;
+  user-select: none;
+  transition: opacity 0.35s ease,
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.credit-text {
+  white-space: nowrap;
+}
+
+#app-credit.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+#app-credit strong {
+  color: #ffd45e;
+  font-weight: 700;
+}
+
+.credit-spark {
+  flex: none;
+  font-size: 1.2em;
+  animation: credit-twinkle 1.9s ease-in-out infinite;
+}
+
+/* La ✨ de droite scintille en miroir et en décalé de celle de gauche. */
+.credit-spark:last-child {
+  animation-delay: 0.95s;
+  animation-direction: reverse;
+}
+
+@keyframes credit-twinkle {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.65) rotate(-25deg);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.4) rotate(12deg);
+  }
+  55% {
+    opacity: 0.55;
+    transform: scale(0.95) rotate(-6deg);
+  }
+  80% {
+    opacity: 1;
+    transform: scale(1.25) rotate(18deg);
+  }
+  100% {
+    opacity: 0.3;
+    transform: scale(0.65) rotate(-25deg);
+  }
+}

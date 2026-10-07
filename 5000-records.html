@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>5000 — Palmarès</title>
+    <!--@head-->
+  </head>
+  <body>
+    <div id="g5000-records-screen" class="screen">
+      <div class="screen-body">
+        <h1>🏆 Palmarès du 5000</h1>
+
+        <!-- Puces générées par src/pages/g5000/records.ts : une par objectif
+             qui a des records. Masquées s'il n'y en a qu'un. -->
+        <section class="variants" id="target-block" hidden>
+          <h2>Objectif</h2>
+          <div class="variant-options" id="target-options"></div>
+        </section>
+
+        <!-- Texte posé par src/pages/g5000/records.ts (il nomme l'objectif). -->
+        <p class="hall-note" id="records-empty" hidden></p>
+
+        <section class="records-block">
+          <h2>Les meilleurs</h2>
+          <ul class="record-cards" id="records-best"></ul>
+        </section>
+
+        <section class="records-block records-block--worst">
+          <h2>Les pires</h2>
+          <ul class="record-cards" id="records-worst"></ul>
+        </section>
+
+        <section class="records-block" id="wins-block" hidden>
+          <h2>Victoires</h2>
+          <ul class="wins-list" id="wins-list"></ul>
+        </section>
+      </div>
+
+      <div class="action-bar">
+        <a id="back-btn" href="5000.html" class="btn btn-secondary">🏠 Retour</a>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/g5000/records.ts"></script>
+  </body>
+</html>

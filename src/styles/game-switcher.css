@@ -1,0 +1,75 @@
+/* ---------- Menu déroulant « choisir un jeu » ---------- */
+/* Ancré sous le titre de la barre, pas au centre de l'écran : le chevron promet
+   un déroulé, et changer d'écran ne mérite pas d'assombrir la page.
+   `.screen` porte `overflow: hidden`, mais le menu reste dans ses limites — il
+   se pose simplement par-dessus le contenu, d'où le z-index. */
+.switcher-menu {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 20;
+  min-width: 13rem;
+  max-width: min(20rem, 80vw);
+  list-style: none;
+  margin: 0;
+  padding: 0.35rem 0;
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: 0 10px 30px rgba(10, 20, 25, 0.22),
+    0 0 0 1px rgba(10, 20, 25, 0.06);
+  animation: switcher-in 0.12s ease-out;
+}
+
+@keyframes switcher-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.switcher-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  padding: 0.7em 1em;
+  color: inherit;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.switcher-row:active,
+.switcher-row:focus-visible {
+  background: #f1f4f5;
+}
+
+.switcher-row:focus-visible {
+  outline: 2px solid var(--secondary-color);
+  outline-offset: -2px;
+}
+
+.switcher-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+  flex: none;
+}
+
+.switcher-label {
+  flex: 1;
+  font-weight: 700;
+}
+
+.switcher-row.is-current {
+  color: var(--primary-hover);
+}
+
+.switcher-mark {
+  font-weight: 800;
+}
+
+/* Sépare les jeux du retour au menu : ce n'est pas un jeu de plus. */
+.switcher-separator {
+  height: 1px;
+  margin: 0.3em 1em;
+  background: #e4e8ea;
+}

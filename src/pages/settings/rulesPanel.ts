@@ -2,16 +2,18 @@
 // préférences d'affichage. Tout y est enregistré à la volée, sans bouton
 // « Enregistrer » : les règles ne s'appliquent qu'à la prochaine partie lancée.
 
-import { requireEl } from "../../ui";
-import { getRules, saveRules } from "../../storage/rulesRepo";
-import { getPrefs, savePrefs } from "../../storage/prefsRepo";
+import { requireEl } from "../../core/ui";
+import { getRules, saveRules } from "../../games/yams/storage/rulesRepo";
+import { getPrefs, savePrefs } from "../../games/yams/storage/prefsRepo";
 import {
   DEFAULT_RULES,
-  BONUS_MIN,
-  BONUS_MAX,
+  GROUP_SIZE,
   LINE_POINTS_MIN,
   LINE_POINTS_MAX,
-} from "../../scoring";
+  normalizeRules,
+  type GroupLine,
+} from "../../games/yams/scoring";
+import type { GameRules, GroupMode } from "../../games/yams/types";
 import { showMessage } from "./dialogs";
 
 type ModeKey =
@@ -31,15 +33,29 @@ const MODE_KEYS: ModeKey[] = [
   "yams",
 ];
 
-// Remplacé par les règles enregistrées au démarrage du panneau.
+// Remplacé par les règles enregistrées au démarrage du panneau. Jamais modifié
+// en place : chaque changement produit un nouvel objet (cf. update).
 let rules = DEFAULT_RULES;
+
+// Chaque contrôle s'inscrit ici : « Valeurs par défaut » les redessine tous
+// d'un coup.
 const syncers: (() => void)[] = [];
 
 const resetBtn = requireEl<HTMLButtonElement>("reset-rules");
 
-function persist(): void {
+// Toute modification passe par normalizeRules : les bornes ne sont écrites
+// qu'une fois, dans le barème.
+function update(patch: Partial<GameRules>): void {
+  rules = normalizeRules({ ...rules, ...patch });
   saveRules(rules);
   updateResetVisibility();
+}
+
+// Nombre saisi dans un champ, ou `null` si le champ est vide ou illisible —
+// la valeur en place est alors gardée.
+function typed(input: HTMLInputElement): number | null {
+  const n = Number(input.value);
+  return input.value.trim() !== "" && Number.isFinite(n) ? n : null;
 }
 
 // Le bouton "Valeurs par défaut" ne sert que si les règles ont été modifiées.
@@ -51,21 +67,12 @@ function rulesAreDefault(): boolean {
   if (rules.bonus !== DEFAULT_RULES.bonus) return false;
   if (rules.chance !== DEFAULT_RULES.chance) return false;
   return MODE_KEYS.every((key) => {
-    const a = rules[key];
-    const b = DEFAULT_RULES[key];
-    if (a.type === "sum" && b.type === "sum") return true;
+    const a: GroupMode = rules[key];
+    const b: GroupMode = DEFAULT_RULES[key];
     if (a.type === "fixed" && b.type === "fixed") return a.points === b.points;
-    return false;
+    return a.type === b.type;
   });
 }
-
-function clamp(raw: string, fallback: number, min: number, max: number): number {
-  const n = Math.round(Number(raw));
-  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
-}
-
-const clampLine = (raw: string, fallback: number): number =>
-  clamp(raw, fallback, LINE_POINTS_MIN, LINE_POINTS_MAX);
 
 // Proposé quand on bascule sur "Fixe" une ligne qui était en "Somme" : aucune
 // valeur à reprendre, et 30 est la plus courante des règles maison.
@@ -86,7 +93,11 @@ function setupModeRow(key: ModeKey): void {
   seg.className = "seg";
   const btnSum = segButton("sum", "Somme");
   const btnFixed = segButton("fixed", "Fixe");
-  seg.append(btnSum, btnFixed);
+  // Brelan et Carré : compter seulement les dés de la combinaison (trois 5 =
+  // 15), variante répandue. Le bouton dit combien de dés comptent.
+  const size = key in GROUP_SIZE ? GROUP_SIZE[key as GroupLine] : null;
+  const btnDice = size ? segButton("dice", `${size} dés`) : null;
+  seg.append(...[btnSum, btnDice, btnFixed].filter((b): b is HTMLButtonElement => b !== null));
 
   const input = document.createElement("input");
   input.type = "number";
@@ -105,29 +116,29 @@ function setupModeRow(key: ModeKey): void {
   input.value = String(fixedPoints());
 
   const sync = (): void => {
-    const isSum = rules[key].type === "sum";
-    btnSum.classList.toggle("on", isSum);
-    btnFixed.classList.toggle("on", !isSum);
-    input.hidden = isSum;
-    if (!isSum) input.value = String(fixedPoints());
+    const type = rules[key].type;
+    btnSum.classList.toggle("on", type === "sum");
+    btnDice?.classList.toggle("on", type === "dice");
+    btnFixed.classList.toggle("on", type === "fixed");
+    input.hidden = type !== "fixed";
+    if (type === "fixed") input.value = String(fixedPoints());
   };
   syncers.push(sync);
 
+  const setFixed = (): void => {
+    update({ [key]: { type: "fixed", points: typed(input) ?? fixedPoints() } });
+    sync();
+  };
   btnSum.addEventListener("click", () => {
-    rules[key] = { type: "sum" };
-    persist();
+    update({ [key]: { type: "sum" } });
     sync();
   });
-  btnFixed.addEventListener("click", () => {
-    rules[key] = { type: "fixed", points: clampLine(input.value, DEFAULT_FIXED_POINTS) };
-    persist();
+  btnDice?.addEventListener("click", () => {
+    update({ [key]: { type: "dice" } });
     sync();
   });
-  input.addEventListener("change", () => {
-    rules[key] = { type: "fixed", points: clampLine(input.value, DEFAULT_FIXED_POINTS) };
-    persist();
-    sync();
-  });
+  btnFixed.addEventListener("click", setFixed);
+  input.addEventListener("change", setFixed);
 
   sync();
 }
@@ -147,8 +158,8 @@ function setupBonus(): void {
   };
   syncers.push(sync);
   input.addEventListener("change", () => {
-    rules.bonus = clamp(input.value, rules.bonus, BONUS_MIN, BONUS_MAX);
-    persist();
+    const bonus = typed(input);
+    if (bonus !== null) update({ bonus });
     sync();
   });
   sync();
@@ -160,15 +171,12 @@ function setupChance(): void {
     toggle.checked = rules.chance;
   };
   syncers.push(sync);
-  toggle.addEventListener("change", () => {
-    rules.chance = toggle.checked;
-    persist();
-  });
+  toggle.addEventListener("change", () => update({ chance: toggle.checked }));
   sync();
 }
 
 function setupDisplay(): void {
-  // Pas dans `syncers` ni dans persist() : ce n'est pas une règle de jeu, et
+  // Pas dans `syncers` ni dans update() : ce n'est pas une règle de jeu, et
   // "Valeurs par défaut" ne doit donc pas y toucher.
   const prefs = getPrefs();
   const toggle = requireEl<HTMLInputElement>("bonus-hint-toggle");
@@ -189,8 +197,7 @@ function setupDisplay(): void {
 
 function setupReset(): void {
   resetBtn.addEventListener("click", () => {
-    rules = structuredClone(DEFAULT_RULES);
-    persist();
+    update(DEFAULT_RULES);
     for (const sync of syncers) sync();
   });
 }

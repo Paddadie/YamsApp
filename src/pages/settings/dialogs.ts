@@ -1,7 +1,7 @@
 // Pop-up de message des Paramètres, partagée par les panneaux (aide de
 // l'indice de bonus, résultat d'un import).
 
-import { makeDismissible, requireEl } from "../../ui";
+import { makeDismissible, requireEl } from "../../core/ui";
 
 const messageDialog = requireEl<HTMLDialogElement>("message-dialog");
 const messageTitle = requireEl("message-title");

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { expandFragments } from "./htmlFragments";
 
 const fromRoot = (path: string): string =>
   fileURLToPath(new URL(path, import.meta.url));
@@ -10,21 +11,15 @@ const pkg = JSON.parse(readFileSync(fromRoot("package.json"), "utf-8")) as {
   version: string;
 };
 
-// Partie commune du <head> des six pages : viewport, icône, réglages PWA iOS.
+// Fragments communs des pages (<head>, pictogrammes) : voir htmlFragments.ts.
 // Seuls <title> et <meta charset> restent dans chaque fichier.
-const COMMON_HEAD = `<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <link rel="icon" href="/de.png" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="Yams" />`;
-
 // `order: "pre"` : l'injection doit passer AVANT le traitement HTML de Vite,
 // sinon le chemin absolu /de.png ne serait pas réécrit avec `base`.
 const sharedHead = (): Plugin => ({
-  name: "yams-shared-head",
+  name: "cornet-shared-head",
   transformIndexHtml: {
     order: "pre",
-    handler: (html) => html.replace("<!--@head-->", COMMON_HEAD),
+    handler: expandFragments,
   },
 });
 
@@ -45,10 +40,16 @@ export default defineConfig({
       input: {
         home: fromRoot("index.html"),
         players: fromRoot("players.html"),
-        game: fromRoot("game.html"),
-        end: fromRoot("end.html"),
-        hall: fromRoot("hall.html"),
         settings: fromRoot("settings.html"),
+        rules: fromRoot("rules.html"),
+        yamsHome: fromRoot("yams.html"),
+        yamsGame: fromRoot("yams-game.html"),
+        yamsEnd: fromRoot("yams-end.html"),
+        yamsHall: fromRoot("yams-hall.html"),
+        g5000Home: fromRoot("5000.html"),
+        g5000Game: fromRoot("5000-game.html"),
+        g5000End: fromRoot("5000-end.html"),
+        g5000Records: fromRoot("5000-records.html"),
       },
     },
   },
@@ -57,13 +58,13 @@ export default defineConfig({
     sharedHead(),
     VitePWA({
       registerType: "prompt", // on gère nous-mêmes le bandeau "Mettre à jour"
-      injectRegister: false, // enregistrement fait à la main dans src/pwa/updatePrompt.ts
+      injectRegister: false, // enregistrement fait à la main dans src/core/pwa/updatePrompt.ts
       includeAssets: ["de.png"],
       manifest: {
         lang: "fr",
-        name: "Score de Yams",
-        short_name: "Yams",
-        description: "Feuille de score de Yams (classique, montante, descendante, one shot).",
+        name: "Cornet — jeux de dés",
+        short_name: "Cornet",
+        description: "Feuilles de score pour jeux de dés : Yams et 5000.",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
@@ -75,15 +76,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Précache les six pages + le JS/CSS produit.
+        // Précache toutes les pages + le JS/CSS produit.
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
-        // Workbox compare l'URL complète, paramètres compris : sans ce réglage
-        // `game.html?review=1` ne correspond à aucune entrée du précache, la
+        // Workbox compare l'URL complète, paramètres compris : une page appelée
+        // avec un paramètre (`yams-game.html?review=1`, `settings.html?game=yams`,
+        // `rules.html?game=g5000`) ne correspond à aucune entrée du précache, la
         // requête retombe sur la NavigationRoute (liée à index.html) et
-        // l'utilisateur atterrit sur l'accueil au lieu des feuilles de score.
-        // Invisible en développement, où il n'y a pas de service worker.
-        // Les deux premiers motifs sont les valeurs par défaut de Workbox.
-        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^review$/],
+        // l'utilisateur atterrit sur le menu des jeux. Invisible en
+        // développement, où il n'y a pas de service worker.
+        // On ignore donc TOUS les paramètres plutôt que de les lister : le piège
+        // a mordu deux fois (`review`, puis `game`), et aucune page n'a de
+        // version en cache qui dépende de ses paramètres — elles les lisent en JS.
+        ignoreURLParametersMatching: [/.*/],
       },
       devOptions: {
         enabled: false,

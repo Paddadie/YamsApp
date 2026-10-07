@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Yams — Partie</title>
+    <!--@head-->
+  </head>
+  <body>
+    <div id="game-screen" class="screen">
+      <!-- Même barre qu'au 5000 : le jeu à gauche, règles et pause à droite.
+           Hors de la ligne du joueur, pour ne pas être confondue avec les
+           flèches. Le titre n'est pas un <h1> : c'est le nom du joueur. -->
+      <header class="screen-bar">
+        <p class="screen-bar-title"><span class="game-label">🍀 Yams</span></p>
+        <!-- Affiché quand la grille montrée n'est pas celle du joueur qui doit
+             jouer (flèches, glissement) : y ramène d'un toucher. Dans la barre
+             et non sous le nom : le milieu de la barre est libre, la grille ne
+             perd rien et ne bouge pas quand le rappel apparaît. -->
+        <button id="turn-hint" type="button" class="turn-hint" hidden></button>
+        <div class="screen-bar-actions">
+          <a
+            class="screen-bar-action"
+            href="rules.html?game=yams&amp;from=play"
+            aria-label="Règles du Yams"
+            title="Règles du Yams"
+          >
+            <!--@icon:info-->
+          </a>
+          <button
+            type="button"
+            id="pause-btn"
+            class="screen-bar-action"
+            aria-label="Mettre en pause"
+            title="Mettre en pause"
+          >
+            <!--@icon:pause-->
+          </button>
+        </div>
+      </header>
+      <div class="player-header">
+        <button id="prev-player-btn" type="button" class="nav-arrow" aria-label="Joueur précédent">⬅️</button>
+        <h1 id="current-player-name"></h1>
+        <button id="next-player-btn" type="button" class="nav-arrow" aria-label="Joueur suivant">➡️</button>
+      </div>
+      <div id="score-tables"></div>
+      <!-- Consultation depuis l'écran de fin seulement : retour au classement. -->
+      <div class="action-bar" id="review-bar" hidden>
+        <a href="yams-end.html" class="btn btn-gold">🥇 Classement final</a>
+      </div>
+    </div>
+
+    <dialog id="value-picker" tabindex="-1">
+      <div class="picker-head">
+        <span class="picker-variant" id="picker-variant" aria-hidden="true"></span>
+        <span class="picker-line" id="picker-line"></span>
+      </div>
+      <div class="picker-values" id="picker-values"></div>
+      <button type="button" class="picker-clear" id="picker-clear" hidden>
+        Effacer la valeur
+      </button>
+    </dialog>
+
+    <script type="module" src="/src/pages/yams/game.ts"></script>
+  </body>
+</html>

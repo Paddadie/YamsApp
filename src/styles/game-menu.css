@@ -1,0 +1,125 @@
+/* ========== PASTILLE DE COIN (paramètres, sur le menu des jeux) ========== */
+/* Posé sur une classe et non sur une liste d'id, qu'il faudrait rallonger à
+   chaque écran ajouté — c'est le piège déjà rencontré avec les dialogues.
+   Les écrans d'un jeu n'en ont pas : ils portent une .screen-bar. */
+.corner-link {
+  position: absolute;
+  top: calc(0.6rem + env(safe-area-inset-top));
+  right: calc(0.6rem + env(safe-area-inset-right));
+  z-index: 5;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 1.35rem;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.corner-link:hover {
+  background: #fff;
+}
+
+/* ========== MENU DES JEUX (accueil) ========== */
+/* Une tuile par entrée du registre : la liste n'est pas écrite en dur, un jeu
+   ajouté apparaît ici sans toucher au CSS. */
+#menu-screen .screen-body {
+  justify-content: flex-start;
+  gap: clamp(0.9rem, 3vh, 1.5rem);
+  padding-top: clamp(1rem, 3.5vh, 2.75rem);
+}
+
+#menu-screen h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 3rem);
+  letter-spacing: 0.02em;
+}
+
+.menu-hint {
+  margin: 0;
+  text-align: center;
+  color: #5b6b73;
+  font-size: 0.95rem;
+}
+
+#game-list {
+  list-style: none;
+  margin: 0 auto auto;
+  padding: 0;
+  width: 100%;
+  max-width: var(--content-max);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* La teinte du jeu ne sert qu'ici : un filet et un halo, jamais un aplat —
+   le fond plein écran reste réservé à la couleur du joueur pendant son tour. */
+.game-tile {
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  border-left: 5px solid var(--accent, var(--secondary-color));
+}
+
+.game-link {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.game-link:active {
+  background: #f1f4f5;
+}
+
+.game-icon {
+  font-size: 2rem;
+  line-height: 1;
+  flex: none;
+}
+
+.game-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.game-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.game-tagline {
+  font-size: 0.85rem;
+  color: #5b6b73;
+}
+
+/* Seconde entrée de la tuile : mène droit à l'écran de partie, sans repasser
+   par l'accueil du jeu. */
+.game-resume {
+  display: block;
+  padding: 0.7rem 1.1rem;
+  border-top: 1px solid #e4e8ea;
+  background: #f6f9f7;
+  color: var(--primary-hover);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.game-resume:active {
+  background: #e8f1ea;
+}

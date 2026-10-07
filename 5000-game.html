@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>5000 — Partie</title>
+    <!--@head-->
+  </head>
+  <body>
+    <div id="g5000-screen" class="screen">
+      <header class="screen-bar">
+        <h1 class="screen-bar-title">
+          <span class="game-label" id="game-label"></span>
+        </h1>
+        <!-- Affiché quand la main a été donnée à quelqu'un d'autre que celui
+             dont c'est le tour en suivant la table : y ramène d'un toucher.
+             Même pastille qu'au Yams. -->
+        <button id="turn-hint" type="button" class="turn-hint" hidden></button>
+        <div class="screen-bar-actions">
+          <a
+            class="screen-bar-action"
+            href="rules.html?game=g5000&amp;from=play"
+            aria-label="Règles du 5000"
+            title="Règles du 5000"
+          >
+            <!--@icon:info-->
+          </a>
+          <!-- Dessiné, pas écrit : le caractère ⏸ dépend de la police emoji de
+               l'appareil et n'apparaissait pas du tout sur certains. -->
+          <button
+            type="button"
+            id="pause-btn"
+            class="screen-bar-action"
+            aria-label="Mettre en pause"
+            title="Mettre en pause"
+          >
+            <!--@icon:pause-->
+          </button>
+        </div>
+      </header>
+
+      <!-- Bandeau du joueur courant : la couleur pleine largeur est la
+           signature de l'application, reprise du Yams. -->
+      <div class="turn-banner" id="turn-banner">
+        <span class="turn-eyebrow">Au tour de</span>
+        <p class="turn-name" id="turn-name"></p>
+        <div class="gauge">
+          <span class="gauge-num" id="gauge-score"></span>
+          <span class="gauge-track"><span class="gauge-fill" id="gauge-fill"></span></span>
+          <span class="gauge-num gauge-num--target" id="gauge-target"></span>
+        </div>
+        <p class="blank-turns" id="blank-turns"></p>
+      </div>
+
+      <div class="screen-body">
+        <!-- Feuille de progression, construite par src/pages/g5000/game.ts -->
+        <div class="sheet-scroll" id="sheet-scroll"><table id="score-sheet" class="g5000-sheet"></table></div>
+      </div>
+
+      <div class="action-bar">
+        <!-- La calculette guide qui découvre le jeu ; la saisie rapide va plus
+             vite pour qui a déjà compté. Les libellés le disent (07/10). -->
+        <button id="play-btn" type="button" class="btn btn-primary">🧮 Compter mon tour pas à pas</button>
+        <button id="quick-btn" type="button" class="btn btn-primary btn-outline">✍️ Entrer mon total du tour</button>
+      </div>
+    </div>
+
+    <!-- Calculette assistée : on lui donne les faces, elle dit ce qui marque. -->
+    <dialog id="calc-dialog" aria-labelledby="calc-title">
+      <div class="dlg">
+        <div class="dlg-head">
+          <span class="dlg-title" id="calc-title"></span>
+          <span class="dlg-sub" id="calc-sub"></span>
+        </div>
+        <div class="dlg-body">
+          <div class="pot">
+            <p class="pot-value" id="calc-pot">0</p>
+            <p class="pot-label">points ce tour</p>
+            <p class="pot-after" id="calc-after"></p>
+          </div>
+          <div class="targets" id="calc-targets"></div>
+          <div id="calc-stage"></div>
+        </div>
+        <div class="dlg-foot" id="calc-foot"></div>
+      </div>
+    </dialog>
+
+    <!-- Remise à zéro du tour, par-dessus la calculette : rien ne s'efface sans
+         montrer ce qui va disparaître. -->
+    <dialog id="restart-dialog">
+      <p class="sheet-title">Recommencer le tour ?</p>
+      <dl id="restart-summary" class="delete-summary"></dl>
+      <p class="delete-warn">
+        Le tour repart de zéro : pot, dés mis de côté et chiffres activés sont
+        oubliés. À utiliser après une erreur de saisie.
+      </p>
+      <div class="delete-actions">
+        <button type="button" id="restart-cancel" class="btn btn-secondary">
+          Garder le tour
+        </button>
+        <button type="button" id="restart-confirm" class="btn btn-danger">
+          Recommencer
+        </button>
+      </div>
+    </dialog>
+
+    <!-- Changement de joueur alors qu'un tour est entamé : le tour sera perdu. -->
+    <dialog id="switch-dialog">
+      <p class="sheet-title" id="switch-title"></p>
+      <dl id="switch-summary" class="delete-summary"></dl>
+      <p class="delete-warn">
+        Le tour entamé sera abandonné : ses points ne seront pas comptés.
+      </p>
+      <div class="delete-actions">
+        <button type="button" id="switch-cancel" class="btn btn-secondary">
+          Garder le tour
+        </button>
+        <button type="button" id="switch-confirm" class="btn btn-danger">
+          Changer de joueur
+        </button>
+      </div>
+    </dialog>
+
+    <!-- Saisie rapide : pour qui connaît le jeu et sait déjà ce qu'il a marqué. -->
+    <dialog id="quick-dialog" aria-labelledby="quick-title">
+      <div class="dlg">
+        <div class="dlg-head">
+          <span class="dlg-title" id="quick-title"></span>
+          <span class="dlg-sub">Saisie rapide</span>
+        </div>
+        <div class="dlg-body">
+          <div class="pot">
+            <p class="pot-value" id="quick-pot">0</p>
+            <p class="pot-label">points ce tour</p>
+            <p class="pot-after" id="quick-after"></p>
+          </div>
+          <div class="targets" id="quick-targets"></div>
+          <div class="chips" id="quick-chips"></div>
+          <p class="tape" id="quick-tape"></p>
+        </div>
+        <div class="dlg-foot">
+          <button type="button" id="quick-bank" class="btn btn-primary">Banquer</button>
+          <div class="btn-row">
+            <button type="button" id="quick-bust" class="btn btn-danger">Bust — 0 pt</button>
+            <button type="button" id="quick-cancel" class="btn btn-secondary">Annuler</button>
+          </div>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Déroulé des redescentes provoquées par un tour. -->
+    <dialog id="cascade-dialog" aria-labelledby="cascade-title">
+      <div class="dlg">
+        <div class="dlg-head"><span class="dlg-title" id="cascade-title"></span></div>
+        <div class="dlg-body"><div class="cascade" id="cascade-list"></div></div>
+        <div class="dlg-foot">
+          <button type="button" id="cascade-ok" class="btn btn-secondary">Continuer</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script type="module" src="/src/pages/g5000/game.ts"></script>
+  </body>
+</html>

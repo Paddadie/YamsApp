@@ -2,14 +2,14 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <title>Yams — Paramètres</title>
+    <title>Paramètres</title>
     <!--@head-->
   </head>
   <body>
     <div id="settings-screen" class="screen">
       <div class="screen-body">
         <div id="app-version"></div>
-        <h1>⚙️ Paramètres</h1>
+        <h1 id="settings-title">⚙️ Paramètres</h1>
 
         <!-- Trois natures très différentes cohabitaient sur cet écran : les
              règles du jeu, l'administration des joueurs et des scores, et la
@@ -20,12 +20,23 @@
             type="button"
             class="panel-tab"
             role="tab"
-            id="tab-rules"
-            aria-controls="panel-rules"
+            id="tab-scoring-yams"
+            aria-controls="panel-scoring-yams"
             aria-selected="true"
           >
-            <span class="panel-tab-icon" aria-hidden="true">🎲</span>
-            <span>Règles du jeu</span>
+            <span class="panel-tab-icon" aria-hidden="true">🍀</span>
+            <span>Barème du Yams</span>
+          </button>
+          <button
+            type="button"
+            class="panel-tab"
+            role="tab"
+            id="tab-rules-g5000"
+            aria-controls="panel-rules-g5000"
+            aria-selected="false"
+          >
+            <span class="panel-tab-icon" aria-hidden="true">💰</span>
+            <span>Règles du 5000</span>
           </button>
           <button
             type="button"
@@ -51,15 +62,20 @@
           </button>
         </div>
 
-        <div class="panel" id="panel-rules" role="tabpanel" aria-labelledby="tab-rules">
+        <div class="panel" id="panel-scoring-yams" role="tabpanel" aria-labelledby="tab-scoring-yams">
           <!-- Bonus et combinaisons réunis : "↺ Valeurs par défaut" remet TOUTES
                les règles à zéro, bonus compris. Dans une carte "Combinaisons"
                séparée, le bouton mentait sur sa portée. -->
           <section class="settings-group">
-            <h2>Règles de score</h2>
+            <h2>Barème du Yams</h2>
             <p class="settings-hint">
               S'appliquent à la prochaine partie lancée, pas à une partie déjà
               en cours.
+            </p>
+            <p class="settings-hint">
+              <strong>Somme</strong> : les 5 dés. <strong>3 dés</strong> /
+              <strong>4 dés</strong> : seulement ceux du brelan ou du carré.
+              <strong>Fixe</strong> : toujours le même nombre de points.
             </p>
 
             <div class="setting-row">
@@ -100,7 +116,7 @@
               <span class="setting-label">Yams</span>
             </div>
 
-            <button type="button" id="reset-rules">↺ Valeurs par défaut</button>
+            <button type="button" id="reset-rules" class="reset-rules">↺ Valeurs par défaut</button>
           </section>
 
           <section class="settings-group">
@@ -118,26 +134,7 @@
                   class="info-btn"
                   aria-label="À quoi sert l'indice de bonus ?"
                 >
-                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10.6"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    />
-                    <circle cx="12" cy="6.9" r="1.45" fill="currentColor" />
-                    <line
-                      x1="12"
-                      y1="10.5"
-                      x2="12"
-                      y2="17.3"
-                      stroke="currentColor"
-                      stroke-width="2.4"
-                      stroke-linecap="round"
-                    />
-                  </svg>
+                  <!--@icon:info-->
                 </button>
               </span>
               <div class="setting-control">
@@ -160,9 +157,9 @@
           </section>
 
           <section class="settings-group">
-            <h2>Scores enregistrés</h2>
+            <h2>Palmarès du Yams</h2>
             <p class="settings-hint">
-              Supprimer une entrée des classements du Hall of Fame.
+              Supprimer une entrée des classements du palmarès.
             </p>
             <div class="score-admin-block">
               <h3 class="score-admin-title">👑 Meilleurs</h3>
@@ -173,6 +170,183 @@
               <ul id="worst-admin" class="score-admin-list"></ul>
             </div>
           </section>
+
+          <section class="settings-group">
+            <h2>Palmarès du 5000</h2>
+            <p class="settings-hint">
+              Effacer un record : la prochaine partie terminée pourra l'établir
+              à nouveau.
+            </p>
+            <div class="score-admin-block">
+              <h3 class="score-admin-title">🏅 Records</h3>
+              <ul id="g5000-records-admin" class="score-admin-list"></ul>
+            </div>
+            <div class="score-admin-block">
+              <h3 class="score-admin-title">🏆 Victoires</h3>
+              <ul id="g5000-wins-admin" class="score-admin-list"></ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="panel" id="panel-rules-g5000" role="tabpanel" aria-labelledby="tab-rules-g5000" hidden>
+          <section class="settings-group">
+            <h2>Déroulement</h2>
+            <p class="settings-hint">
+              Les réglages s'appliquent à la prochaine partie lancée. Une partie
+              en cours garde ceux avec lesquels elle a démarré. L'objectif et
+              les variantes se choisissent sur l'accueil du 5000.
+            </p>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Entrer en jeu
+                <span class="setting-note">Le premier score doit atteindre ce minimum en un seul tour.</span>
+              </span>
+              <div class="setting-control">
+                <label class="switch">
+                  <input type="checkbox" id="g5000-open-on" aria-label="Minimum pour entrer en jeu" />
+                  <span class="switch-track"></span>
+                </label>
+              </div>
+              <div class="setting-sub" id="g5000-open-sub">
+                <input
+                  id="g5000-open-at"
+                  class="num num--wide"
+                  type="number"
+                  min="50"
+                  max="5000"
+                  step="50"
+                  inputmode="numeric"
+                  aria-label="Points à faire en un tour pour entrer en jeu"
+                />
+                <span class="num-unit">points en un tour</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Busts d'affilée
+                <span class="setting-note">Ils font redescendre au score précédent.</span>
+              </span>
+              <div class="setting-control">
+                <label class="switch">
+                  <input type="checkbox" id="g5000-blank-on" aria-label="Pénalité des busts d'affilée" />
+                  <span class="switch-track"></span>
+                </label>
+              </div>
+              <div class="setting-sub" id="g5000-blank-sub">
+                <input
+                  id="g5000-blank"
+                  class="num"
+                  type="number"
+                  min="1"
+                  max="9"
+                  step="1"
+                  inputmode="numeric"
+                  aria-label="Nombre de busts d'affilée"
+                />
+                <span class="num-unit">busts de suite</span>
+              </div>
+            </div>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Riposte
+                <span class="setting-note" id="g5000-last-round-note"></span>
+              </span>
+              <div class="setting-control">
+                <label class="switch">
+                  <input type="checkbox" id="g5000-last-round" aria-label="Riposte" />
+                  <span class="switch-track"></span>
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section class="settings-group">
+            <h2>Barème</h2>
+            <p class="settings-hint">
+              Un 1 vaut 100, un 5 vaut 50. Les valeurs saisies sont arrondies à
+              50 près.
+            </p>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Brelan
+                <span class="setting-note" id="g5000-triple-note">trois 1 = 1 000, sinon chiffre × 100</span>
+              </span>
+              <div class="setting-control">
+                <div class="seg" id="g5000-triple" role="group" aria-label="Valeur du brelan">
+                  <button type="button" data-value="classic">Classique</button>
+                  <button type="button" data-value="custom">Perso</button>
+                </div>
+              </div>
+              <div class="setting-sub face-grid" id="g5000-triple-grid"></div>
+            </div>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Carré
+                <span class="setting-note">4 dés identiques</span>
+              </span>
+              <div class="setting-control">
+                <div class="seg" id="g5000-four" role="group" aria-label="Valeur du carré">
+                  <button type="button" data-value="half">1,5 × brelan</button>
+                  <button type="button" data-value="double">2 × brelan</button>
+                  <button type="button" data-value="custom">Perso</button>
+                </div>
+              </div>
+              <div class="setting-sub face-grid" id="g5000-four-grid"></div>
+            </div>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Quinte
+                <span class="setting-note">5 dés identiques</span>
+              </span>
+              <div class="setting-control">
+                <div class="seg" id="g5000-five" role="group" aria-label="Valeur de la quinte">
+                  <button type="button" data-value="doubleFour">2 × carré</button>
+                  <button type="button" data-value="doubleThree">2 × brelan</button>
+                  <button type="button" data-value="custom">Perso</button>
+                </div>
+              </div>
+              <div class="setting-sub face-grid" id="g5000-five-grid"></div>
+            </div>
+
+            <div class="setting-row">
+              <span class="setting-label">
+                Suite
+                <span class="setting-note">1-2-3-4-5 ou 2-3-4-5-6</span>
+              </span>
+              <div class="setting-control">
+                <div class="seg" id="g5000-run" role="group" aria-label="Valeur de la suite">
+                  <button type="button" data-value="1000">1 000</button>
+                  <button type="button" data-value="1500">1 500</button>
+                  <button type="button" data-value="custom">Perso</button>
+                </div>
+              </div>
+              <div class="setting-sub" id="g5000-run-sub">
+                <input
+                  id="g5000-run-points"
+                  class="num num--wide"
+                  type="number"
+                  min="0"
+                  max="5000"
+                  step="50"
+                  inputmode="numeric"
+                  aria-label="Points d'une suite"
+                />
+                <span class="num-unit">points (0 : la suite ne compte pas)</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Hors des cartes : il remet TOUT le panneau à zéro, pas seulement le
+               barème. Rangé dans la dernière carte, il mentait sur sa portée. -->
+          <button id="g5000-reset" type="button" class="reset-rules reset-rules--panel" hidden>
+            ↺ Remettre les règles du 5000 par défaut
+          </button>
         </div>
 
         <div class="panel" id="panel-backup" role="tabpanel" aria-labelledby="tab-backup" hidden>
@@ -183,10 +357,10 @@
               toutes les données présentes par celles du fichier.
             </p>
             <div id="backup-controls">
-              <button id="export-btn" type="button" class="btn btn-export">
+              <button id="export-btn" type="button" class="btn btn-primary btn-outline">
                 ⬇️ Exporter mes données
               </button>
-              <label for="import-input" class="btn btn-import">
+              <label for="import-input" class="btn btn-danger btn-outline">
                 ⬆️ Importer une sauvegarde
               </label>
               <input id="import-input" type="file" accept="application/json,.json" hidden />
@@ -196,16 +370,30 @@
       </div>
 
       <div class="action-bar">
-        <a href="index.html" class="btn btn-secondary">🏠 Retour</a>
+        <a id="back-btn" href="index.html" class="btn btn-secondary">🏠 Retour</a>
       </div>
     </div>
+
+    <dialog id="record-delete-dialog">
+      <p class="sheet-title" id="record-delete-title">Effacer ce record ?</p>
+      <dl id="record-delete-summary" class="delete-summary"></dl>
+      <p class="delete-warn" id="record-delete-warn"></p>
+      <div class="delete-actions">
+        <button type="button" id="record-delete-cancel" class="btn btn-secondary">
+          Annuler
+        </button>
+        <button type="button" id="record-delete-confirm" class="btn btn-danger">
+          Oui, effacer
+        </button>
+      </div>
+    </dialog>
 
     <dialog id="delete-dialog">
       <p class="sheet-title">Supprimer ce score ?</p>
       <dl id="delete-summary" class="delete-summary"></dl>
       <table id="delete-sheet" class="score-sheet"></table>
       <p class="delete-warn">
-        Cette donnée sera définitivement retirée du Hall of Fame.
+        Cette donnée sera définitivement retirée du palmarès.
       </p>
       <div class="delete-actions">
         <button type="button" id="delete-cancel" class="btn btn-secondary">
@@ -243,8 +431,8 @@
       <p class="sheet-title">Supprimer ce joueur ?</p>
       <dl id="player-delete-summary" class="delete-summary"></dl>
       <p class="delete-warn">
-        Le joueur, ses statistiques et tous ses scores au Hall of Fame seront
-        définitivement supprimés.
+        Le joueur et tout ce que les jeux conservent à son nom (statistiques,
+        classements, records) seront définitivement supprimés.
       </p>
       <div class="delete-actions">
         <button
@@ -268,7 +456,7 @@
       <p class="sheet-title">Importer cette sauvegarde ?</p>
       <dl id="import-summary" class="delete-summary"></dl>
       <p class="delete-warn">
-        Toutes les données de cet appareil (joueurs, statistiques, Hall of Fame,
+        Toutes les données de cet appareil (joueurs, statistiques, palmarès,
         partie en cours) seront remplacées par celles du fichier.
       </p>
       <div class="delete-actions">
@@ -285,7 +473,7 @@
       <p class="sheet-title" id="message-title"></p>
       <p class="message-text" id="message-text"></p>
       <div class="delete-actions">
-        <button type="button" id="message-ok" class="btn btn-primary">
+        <button type="button" id="message-ok" class="btn btn-secondary">
           OK
         </button>
       </div>

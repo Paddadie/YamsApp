@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Yams — Fin de partie</title>
+    <!--@head-->
+  </head>
+  <body>
+    <div id="end-screen" class="screen">
+      <div class="screen-body">
+        <h1>🎉 Fin de la partie&nbsp;!</h1>
+        <div id="podium"></div>
+        <p id="record-banner" hidden></p>
+        <table id="ranking-table"></table>
+        <p id="hof-legend" hidden></p>
+      </div>
+      <div class="action-bar">
+        <a href="yams-game.html?review=1" class="btn btn-gold btn-outline">
+          📋 Revoir les feuilles de score
+        </a>
+        <button id="quit-btn" type="button" class="btn btn-secondary">🏠 Quitter</button>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/yams/end.ts"></script>
+  </body>
+</html>

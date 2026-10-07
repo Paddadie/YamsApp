@@ -1,0 +1,74 @@
+/* ========== TABLETTE & GRANDS ÉCRANS ========== */
+@media (min-width: 768px) {
+  :root {
+    --content-max: 40rem;
+    --grid-max: 34rem;
+  }
+
+  .btn {
+    max-width: 26rem;
+  }
+
+  /* Les 4 variantes sur une seule ligne. */
+  .variant-options {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* Les objectifs restent deux par ligne. */
+  .chip-flow:not(.chip-flow--targets) > .variant-chip {
+    flex-basis: calc((100% - 1.2rem) / 3);
+  }
+
+  /* La grille : padding confortable (hauteur et police sont déjà fluides). */
+  .score-wrapper {
+    padding: 1.5em;
+  }
+}
+
+/* Très grands écrans : grille de score encore plus large. */
+@media (min-width: 1100px) {
+  :root {
+    --grid-max: 42rem;
+    --content-max: 46rem;
+  }
+}
+
+/* Écrans courts (téléphone en paysage, petites tablettes en paysage) :
+   on resserre tout pour continuer à éviter le défilement le plus longtemps
+   possible. */
+@media (max-height: 680px) {
+  .screen-body {
+    gap: 0.7rem;
+    padding-top: 0.7rem;
+    padding-bottom: 0.7rem;
+  }
+
+  #home-screen .screen-body,
+  #menu-screen .screen-body {
+    gap: 0.7rem;
+    padding-top: 0.7rem;
+  }
+
+  #menu-screen h1 {
+    font-size: clamp(1.6rem, 7vh, 2.3rem);
+  }
+
+  .action-bar {
+    gap: 0.4em;
+    padding-top: 0.55em;
+  }
+
+  .action-bar .btn {
+    padding: 0.6em 1em;
+  }
+
+  .podium-step.rank-1 {
+    min-height: 6em;
+  }
+  .podium-step.rank-2 {
+    min-height: 5em;
+  }
+  .podium-step.rank-3 {
+    min-height: 4.2em;
+  }
+}

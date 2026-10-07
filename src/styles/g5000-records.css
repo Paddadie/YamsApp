@@ -1,0 +1,161 @@
+/* ========== 5000 — RECORDS ========== */
+/* Pas de tableau de scores : une carte par exploit, un seul détenteur chacune.
+   Les pires sont teintés, pour qu'on voie d'un coup d'œil qu'on n'y est pas
+   fier. */
+
+.records-block {
+  width: 100%;
+}
+
+.records-block h2 {
+  margin: 0 0 0.6em;
+  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b767d;
+}
+
+.record-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.record-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.records-block--worst .record-card {
+  background: #fff8f1;
+}
+
+.record-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  flex: none;
+}
+
+.record-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.record-head {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-title {
+  font-weight: 800;
+}
+
+.record-hint {
+  font-size: 0.78rem;
+  color: #7b858c;
+}
+
+.record-main {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  margin-top: 0.15rem;
+}
+
+.record-holder {
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.record-value {
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.record-meta {
+  font-size: 0.78rem;
+  color: #7b858c;
+}
+
+/* Record jamais établi : la carte reste, discrète, pour dire ce qu'il y a à
+   conquérir. */
+.record-card.is-vacant {
+  opacity: 0.6;
+  box-shadow: inset 0 0 0 1px #e4e8ea;
+}
+
+.record-vacant {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #8b959b;
+}
+
+/* Classement des victoires, sous les cartes. */
+.wins-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-radius: 14px;
+  background: var(--white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.wins-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.65em 1em;
+  border-top: 1px solid #eef1f2;
+}
+
+.wins-row:first-child {
+  border-top: none;
+}
+
+.wins-name {
+  font-weight: 700;
+}
+
+.wins-count {
+  font-variant-numeric: tabular-nums;
+  color: #55616a;
+}
+
+/* ---------- Records battus, sur l'écran de fin ---------- */
+.records-broken {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.record-new {
+  padding: 0.6em 0.9em;
+  border-radius: var(--border-radius);
+  background: #fff4e0;
+  box-shadow: inset 0 0 0 1px #e8c48a;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.record-new--worst {
+  background: #fdecea;
+  box-shadow: inset 0 0 0 1px #f0c6c6;
+}

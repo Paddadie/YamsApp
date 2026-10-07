@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>5000</title>
+    <!--@head-->
+  </head>
+  <body>
+    <div id="home-screen" class="screen">
+      <header class="screen-bar">
+        <!-- Même barre qu'à l'accueil du Yams (voir yams.html). -->
+        <div class="screen-bar-start">
+          <h1 class="screen-bar-title">
+            <button
+              type="button"
+              id="game-switch"
+              class="game-switch"
+              aria-haspopup="true"
+              aria-controls="game-switcher"
+            ></button>
+          </h1>
+          <ul id="game-switcher" class="switcher-menu" hidden></ul>
+        </div>
+        <div class="screen-bar-actions">
+          <a
+            class="screen-bar-action"
+            href="rules.html?game=g5000"
+            aria-label="Règles du 5000"
+            title="Règles du 5000"
+          >
+            <!--@icon:info-->
+          </a>
+          <a
+            class="screen-bar-action"
+            href="settings.html?game=g5000"
+            aria-label="Réglages du 5000"
+            title="Réglages du 5000"
+            >⚙️</a
+          >
+        </div>
+      </header>
+
+      <div class="screen-body">
+        <div class="home-choices">
+          <!-- Puces générées par src/pages/g5000/home.ts -->
+          <section class="variants">
+            <h2>Objectif de la partie :</h2>
+            <div class="variant-options chip-flow chip-flow--targets" id="target-options"></div>
+          </section>
+          <section class="variants">
+            <h2>Variantes :</h2>
+            <div class="variant-options chip-flow" id="g5000-variant-options"></div>
+          </section>
+        </div>
+      </div>
+
+      <div class="action-bar">
+        <button id="resume-btn" type="button" class="btn btn-primary btn-outline" disabled>
+          ▶ Reprendre la partie
+        </button>
+        <button id="start-btn" type="button" class="btn btn-primary">🎲 Commencer</button>
+        <a href="5000-records.html" class="btn btn-gold">🏆 Palmarès</a>
+      </div>
+    </div>
+
+    <script type="module" src="/src/pages/g5000/home.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,116 @@
+/* ========== BOUTONS UNIFORMISÉS ========== */
+/* Un seul gabarit dans toute l'application : même largeur, même hauteur,
+   même position (au sein d'une .action-bar). */
+.btn {
+  display: block;
+  font-size: 1.05rem;
+  padding: 0.85em 1em;
+  margin: 0;
+  width: 100%;
+  max-width: 22rem;
+  text-align: center;
+  text-decoration: none; /* pour les <a class="btn"> */
+  border: none;
+  border-radius: var(--border-radius);
+  color: var(--white);
+  cursor: pointer;
+  transition: background-color var(--transition), transform 0.08s ease;
+}
+
+/* Enfoncement au toucher : sur mobile c'est le seul retour immédiat que reçoit
+   le doigt, avant même que l'écran suivant ne s'affiche. */
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* CODE COULEUR DES BOUTONS — une couleur = un sens, dans toute l'application :
+     vert   (primary)   jouer, faire avancer la partie, valider ;
+     bleu   (secondary) revenir ou renoncer sans rien perdre (Retour, Annuler,
+                        Fermer, Continuer) ;
+     or     (gold)      résultats et palmarès (Records, Hall of Fame,
+                        classement) ;
+     rouge  (danger)    on perd ou on efface quelque chose ;
+     gris               désactivé, et RIEN d'autre.
+   `.btn-outline` (fond blanc, bord de la couleur) : l'action secondaire de la
+   même famille — « Saisir mon score » à côté de « Jouer mon tour », ou un
+   bouton rouge qui ouvre une confirmation au lieu d'effacer lui-même.
+   Ne pas réintroduire de teinte sans signification ni de gris actif : c'est
+   ce que Paul a demandé de supprimer (06/10/2026).
+
+   Chaque variante pose sa couleur une fois (--btn), la teinte du survol
+   (--btn-hover) et celle du texte en contour (--btn-ink, plus foncée : le
+   texte coloré sur blanc doit rester lisible). */
+.btn-primary {
+  --btn: var(--primary-color);
+  --btn-hover: var(--primary-hover);
+  --btn-ink: var(--primary-hover);
+}
+
+.btn-secondary {
+  --btn: var(--secondary-color);
+  --btn-hover: var(--secondary-hover);
+  --btn-ink: var(--secondary-hover);
+}
+
+.btn-gold {
+  --btn: var(--gold-color);
+  --btn-hover: var(--gold-hover);
+  --btn-ink: var(--gold-hover);
+}
+
+.btn-danger {
+  --btn: var(--danger-color);
+  --btn-hover: var(--danger-hover);
+  --btn-ink: var(--danger-hover);
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-gold,
+.btn-danger {
+  background-color: var(--btn);
+}
+
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-gold:hover,
+.btn-danger:hover {
+  background-color: var(--btn-hover);
+}
+
+.btn.btn-outline {
+  background-color: var(--white);
+  color: var(--btn-ink);
+  box-shadow: inset 0 0 0 2px var(--btn);
+}
+
+.btn.btn-outline:hover {
+  background-color: color-mix(in srgb, var(--btn) 10%, var(--white));
+}
+
+.btn:disabled,
+.btn:disabled:hover {
+  background-color: var(--disabled-color);
+  color: var(--white);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* ========== BARRE D'ACTIONS (bas de chaque écran) ========== */
+/* Toujours au même endroit : dernier élément de la colonne .screen, jamais
+   dans le flux qui défile. Identique sur toutes les pages. */
+.action-bar {
+  flex: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.75em clamp(1rem, 4vw, 2.5rem)
+    calc(0.75em + env(safe-area-inset-bottom));
+  background-color: var(--bg-color);
+}
+
+.action-bar .btn {
+  margin: 0;
+}

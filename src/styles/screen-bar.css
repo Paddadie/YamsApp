@@ -1,0 +1,143 @@
+/* ========== BARRE D'EN-TÊTE D'UN JEU ========== */
+/* Miroir de .action-bar : celle du bas porte les actions de l'écran, celle du
+   haut dit où l'on est et comment remonter. Un lien « ← Cornet » écrit en
+   toutes lettres plutôt qu'une flèche seule dans une pastille : sur l'accueil
+   d'un jeu, la flèche ne disait pas vers quoi elle remontait. Chaque jeu ajouté
+   reprend cette barre telle quelle. */
+.screen-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  padding: 0.45em clamp(0.6rem, 3vw, 1rem);
+  padding-top: calc(0.45em + env(safe-area-inset-top, 0px));
+  background: var(--white);
+  border-bottom: 1px solid #e4e8ea;
+}
+
+/* Le <h1> de l'écran vit dans la barre : il ne porte aucun style propre, tout
+   est sur le bouton qu'il contient. */
+.screen-bar-title {
+  margin: 0;
+  font-size: 1rem;
+  text-align: left;
+  /* Jamais sur deux lignes (« 💰 5000 · 5 000 pts » se coupait au milieu du
+     nombre sur un téléphone étroit) : c'est la pastille « C'est à… », au
+     milieu, qui cède la place. */
+  white-space: nowrap;
+}
+
+/* Le titre et son menu déroulant, frères : le menu s'ancre sur ce bloc. */
+.screen-bar-start {
+  position: relative;
+}
+
+/* Le titre est un bouton : il dit où l'on est ET ouvre la liste des jeux. */
+.game-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.3em 0.55em 0.3em 0.45em;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--black);
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.game-switch:hover {
+  background: #f1f4f5;
+}
+
+.game-switch:active {
+  background: #e7ecee;
+}
+
+.game-switch-icon {
+  font-size: 1.1em;
+  line-height: 1;
+}
+
+/* Dessiné et non écrit : voir gameSwitcher.ts. `currentColor` le fait suivre la
+   couleur du titre, et il est volontairement plus discret que lui. */
+.game-switch-chevron {
+  width: 0.85em;
+  height: 0.85em;
+  flex: none;
+  opacity: 0.55;
+  transition: transform 0.15s ease;
+}
+
+/* Retourné tant que le menu est déroulé : le bouton dit dans quel sens il va. */
+.game-switch[aria-expanded="true"] .game-switch-chevron {
+  transform: rotate(180deg);
+}
+
+/* Plusieurs pastilles à droite de la barre : règles puis réglages, dans l'ordre
+   d'usage — on consulte pour apprendre, on ouvre pour ajuster. */
+.screen-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.screen-bar-action {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.screen-bar-action:active {
+  background: #f1f4f5;
+}
+
+/* Les pictogrammes de la barre (règles, pause) sont dessinés : ils suivent la
+   taille du bouton et prennent sa couleur, contrairement à un caractère de
+   police, qui peut ne pas s'afficher du tout. */
+.screen-bar-action svg {
+  display: block;
+  width: 1.3rem;
+  height: 1.3rem;
+  color: #55616a;
+}
+
+/* « C'est à Marie › » : au milieu de la barre du haut des écrans de jeu (Yams :
+   grille d'un autre joueur ; 5000 : main donnée à un autre). Bleu : c'est un
+   retour, qui ne fait rien perdre (code couleur des boutons). Un nom long se
+   coupe plutôt que de pousser ⓘ et la pause hors de l'écran. Pas un `.btn` :
+   couleur et marges posées ici. */
+.turn-hint {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.3em 0.85em;
+  border: none;
+  border-radius: 999px;
+  background: var(--secondary-color);
+  color: var(--white);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Téléphone étroit : la barre n'a plus la place pour la phrase entière, le nom
+   seul suffit (« Marie › »). */
+@media (max-width: 400px) {
+  .turn-hint-lead {
+    display: none;
+  }
+}
