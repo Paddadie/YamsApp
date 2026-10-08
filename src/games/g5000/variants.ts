@@ -3,54 +3,56 @@
 // d'une partie ses pastilles. Ce qu'elles changent au jeu est dans rules.ts et
 // engine.ts, qui ne demandent qu'une chose : `hasVariant`.
 
+import type { IconName } from "../../core/iconPaths";
 import type { G5000Rules, G5000Variant } from "./types";
 
 export interface G5000VariantDef {
   id: G5000Variant;
   label: string;
-  icon: string;
+  icon: IconName;
   color: string;
   // Quelques mots sous le nom, dans la puce de l'accueil : de quoi choisir
   // sans ouvrir les règles (demande de Paul). Le détail est dans rulesDoc.
   hint: string;
 }
 
-// L'ordre est celui des puces de l'accueil et des paragraphes des règles.
+// L'ordre est celui des lignes de l'accueil et de la liste des règles (choisi
+// par Paul le 08/10).
 export const G5000_VARIANTS: G5000VariantDef[] = [
   {
     id: "sniper",
     label: "Sniper",
-    icon: "🎯",
+    icon: "crosshair",
     color: "#c62828",
     hint: "Tomber pile sur un adversaire le fait redescendre",
   },
   {
-    id: "exact",
-    label: "Dans le mille",
-    icon: "🏹",
-    color: "#1565c0",
-    hint: "L'objectif pile, pas un point de plus",
-  },
-  {
     id: "noFifty",
     label: "Sans demi-mesure",
-    icon: "⭕",
+    icon: "fifty",
     color: "#6a1b9a",
     hint: "Interdit de marquer un score en 50",
   },
   {
-    id: "freeHotDice",
-    label: "Pas de zèle",
-    icon: "😌",
-    color: "#2e7d32",
-    hint: "Main pleine : on peut s'arrêter",
+    id: "exact",
+    label: "Dans le mille",
+    icon: "bullseye",
+    color: "#1565c0",
+    hint: "L'objectif pile, pas un point de plus",
   },
   {
     id: "combo",
     label: "Combo",
-    icon: "🔗",
+    icon: "link",
     color: "#c25e00",
     hint: "Un brelan active son chiffre : +100 par dé",
+  },
+  {
+    id: "freeHotDice",
+    label: "Pas de zèle",
+    icon: "stop",
+    color: "#2e7d32",
+    hint: "Main pleine : on peut s'arrêter",
   },
 ];
 

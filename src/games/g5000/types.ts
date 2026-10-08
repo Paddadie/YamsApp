@@ -1,3 +1,5 @@
+import type { Move } from "./engine";
+
 // Types du 5000. Le jeu n'a rien à voir avec la grille fermée du Yams : ici le
 // score est une PROGRESSION, une suite de cumuls successifs, et deux règles
 // (Sniper, tours sans marquer) la font redescendre d'un cran.
@@ -87,7 +89,7 @@ export interface G5000Turn {
   openDigits: Face[]; // chiffres activés ce tour (variante Combo)
   rolls: number;
   // Mains pleines enchaînées pendant ce tour, pour les records. Facultatif :
-  // la saisie rapide ne le connaît pas.
+  // absent des parties enregistrées avant lui.
   hotStreak?: number;
 }
 
@@ -118,6 +120,20 @@ export interface G5000Game {
   // mémorisés — même raison que `hofImpact` au Yams : recalculés après écriture,
   // ils se compareraient à eux-mêmes et ne verraient plus rien.
   recordsBroken?: string[];
+  // La partie telle qu'elle était juste avant le dernier tour joué (sans son
+  // propre `previous` ni `lastTurn`) : « Corriger » y revient exactement —
+  // feuilles, busts d'affilée, redescentes Sniper, statistiques des records,
+  // qui doit jouer. Un seul tour en arrière : le tour suivant la remplace.
+  previous?: G5000Game;
+  // Ce que le dernier tour a écrit, pour la ligne « Dernier tour » de l'écran.
+  lastTurn?: LastTurn;
+}
+
+export interface LastTurn {
+  player: number;
+  how: "bank" | "bust";
+  pot: number; // le pot du tour : banqué, ou perdu sur un bust
+  moves: Move[]; // ce qu'il a provoqué (banque, redescentes)
 }
 
 // Un exploit de la partie, rattaché à son auteur.

@@ -111,6 +111,18 @@ describe("chargement avec données", () => {
   });
 });
 
+describe("longueur des noms", () => {
+  // Un nom doit tenir sur l'onglet de la feuille du 5000 et sur le podium :
+  // même limite à l'ajout et au renommage.
+  it("20 caractères au plus, à l'ajout comme au renommage", async () => {
+    draft("yams", [], { variants: ["Classique"] });
+    await openPage("players");
+    expect(document.querySelector<HTMLInputElement>("#player-name")?.maxLength).toBe(20);
+    await openPage("settings");
+    expect(document.querySelector<HTMLInputElement>("#player-edit-input")?.maxLength).toBe(20);
+  });
+});
+
 describe("poignée des joueurs sélectionnés", () => {
   it("est dessinée, pas écrite avec un caractère de police", async () => {
     knownPlayers("Alice", "Bob");

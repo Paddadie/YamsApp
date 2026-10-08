@@ -1,11 +1,38 @@
-/* ========== PODIUM (écran de fin) ========== */
+/* ========== EN-TÊTE DES ÉCRANS DE FIN ========== */
+/* « Bravo Alice ! » : le nom surligné à la couleur de partie du joueur, des
+   confettis de papier autour (endScreen.ts, paper.css). Le titre peut passer
+   sur deux lignes (plusieurs vainqueurs, noms longs). */
+.end-title {
+  display: block;
+  max-width: 80%;
+  text-wrap: balance;
+}
+
+.end-winner {
+  padding: 0 0.12em;
+  background: linear-gradient(
+      100deg,
+      transparent 2%,
+      var(--winner, var(--best-tab)) 5%,
+      var(--winner, var(--best-tab)) 95%,
+      transparent 98%
+    )
+    no-repeat 0 78% / 100% 60%;
+}
+
+/* ========== PODIUM (écrans de fin) ========== */
+/* Trois marches en papiers de couleur — or, argent, bronze — posées sur un
+   trait d'encre ; le rang sur sa gommette, le nom, le score en grands
+   chiffres. */
 #podium {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: clamp(0.35rem, 2vw, 1rem);
+  gap: clamp(0.4rem, 2vw, 0.9rem);
   width: 100%;
   max-width: 30rem;
+  padding: 0.4rem 0.2rem 0;
+  border-bottom: 2px solid var(--ink);
 }
 
 .podium-step {
@@ -14,60 +41,52 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.1em;
-  padding: 0.9em 0.4em 0.6em;
-  border-radius: 14px 14px 0 0;
-  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.5),
-    0 4px 10px rgba(0, 0, 0, 0.14);
+  gap: 0.3em;
+  padding: 0.85em 0.35em 0.6em;
+  border-radius: var(--radius-s) var(--radius-s) 0 0;
+  background: var(--sheet);
+  box-shadow: 0 1px 0 rgba(var(--shade-rgb), 0.06), 0 12px 22px -16px rgba(var(--shade-rgb), 0.55);
 }
 
 /* Hauteurs liées à la hauteur d'écran : marches plus courtes si la place
    manque, pour que l'écran de fin tienne sans défilement. */
 .podium-step.rank-1 {
-  min-height: clamp(7em, 20vh, 11em);
-  color: #3a2c05;
-  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
+  min-height: clamp(7.5em, 21vh, 11em);
+  background: #fbe39a;
 }
 
 .podium-step.rank-2 {
-  min-height: clamp(5.75em, 16vh, 9em);
-  color: #34383f;
-  background-image: linear-gradient(180deg, #edeef1 0%, #cfd2d8 45%, #a9adb6 100%);
+  min-height: clamp(6.2em, 17vh, 9em);
+  background: #e3e8ef;
 }
 
 .podium-step.rank-3 {
-  min-height: clamp(4.75em, 13vh, 7.5em);
-  color: #3d2410;
-  background-image: linear-gradient(180deg, #e9bd94 0%, #cd894f 45%, #a5652f 100%);
-}
-
-.podium-medal {
-  font-size: 1.9em;
-  line-height: 1;
+  min-height: clamp(5.3em, 14vh, 7.5em);
+  background: #f4cfb1;
 }
 
 .podium-name {
   font-weight: 700;
-  font-size: 0.95em;
+  font-size: 0.92em;
   text-align: center;
   overflow-wrap: anywhere;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .podium-score {
-  font-size: 1.4em;
-  font-weight: 800;
+  font-size: 1.9em;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
 }
 
-.podium-num {
-  margin-top: auto;
-  padding-top: 0.3em;
-  font-size: 0.9em;
-  font-weight: 700;
-  opacity: 0.55;
+.podium-step.rank-1 .podium-score {
+  font-size: 2.3em;
 }
 
 /* ========== TABLES DE RÉSULTATS ========== */
+/* Des tableaux réglés dans un feuillet : intitulés en petites capitales sur
+   un trait d'encre, un trait par ligne, chiffres en capitales étroites. */
 #ranking-table,
 #best-scores-table,
 #worst-scores-table {
@@ -77,39 +96,73 @@
   border-collapse: collapse;
   font-size: 1rem;
   text-align: center;
+  background: var(--sheet);
+  border-radius: var(--radius-s) var(--radius-s) var(--radius-m) var(--radius-m);
+  box-shadow: var(--shadow-sheet);
 }
 
+#ranking-table th,
 #best-scores-table th,
-#worst-scores-table th,
+#worst-scores-table th {
+  padding: 0.75em 0.6em 0.45em;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: 1.5px solid var(--ink);
+  vertical-align: bottom;
+}
+
+#ranking-table td,
 #best-scores-table td,
 #worst-scores-table td {
-  padding: 4px 8px;
+  padding: 0.55em 0.6em;
+  border-bottom: 1px solid var(--rule);
   vertical-align: middle;
 }
 
-/* Classement de fin : même style de carte que le Hall of Fame. */
-#ranking-table {
-  background-color: #fff;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  overflow: hidden;
+#ranking-table tbody tr:last-child td,
+#best-scores-table tbody tr:last-child td,
+#worst-scores-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-#ranking-table thead th {
-  background-image: linear-gradient(180deg, #4a5568 0%, #364152 100%);
-  color: #fff;
-  font-weight: 700;
-  padding: 0.7em 0.5em;
+#ranking-table strong,
+#best-scores-table strong,
+#worst-scores-table strong {
+  font-size: 1.15em;
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
 }
 
-#ranking-table td {
-  padding: 0.6em 0.5em;
-  border-bottom: 1px solid #eee;
-  vertical-align: middle;
+/* Les pastilles de variante en tête de colonne (classement du Yams). */
+#ranking-table th .badge {
+  font-size: 0.85rem;
 }
 
-/* Cellule flaggée 🏆 / 💩 : le badge est posé dans le coin, hors flux, pour
-   ne pas décaler la valeur — les scores restent alignés d'une ligne à l'autre. */
+/* Colonne du rang : le tampon. */
+#ranking-table td.cell-rank {
+  width: 2.8em;
+  padding-right: 0;
+}
+
+/* Les colonnes de chiffres (scores, total, tours) : capitales étroites. */
+#ranking-table td:nth-child(n + 3) {
+  font-size: 1.15em;
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+#ranking-table td:nth-child(n + 3) strong {
+  font-size: 1em;
+}
+
+/* Cellule marquée (entre au palmarès / dans les pires) : le pictogramme est
+   posé dans le coin, hors flux, pour ne pas décaler la valeur — les scores
+   restent alignés d'une ligne à l'autre. */
 #ranking-table td.cell-badged {
   position: relative;
 }
@@ -117,214 +170,205 @@
 #ranking-table .cell-badge {
   position: absolute;
   top: 50%;
-  right: 0.1em;
+  right: 0.15em;
   transform: translateY(-50%);
-  font-size: 0.92em;
+  display: grid;
+  place-items: center;
   line-height: 1;
   pointer-events: none;
 }
 
-#ranking-table tbody tr:last-child td {
-  border-bottom: none;
+.cell-badge .ic {
+  width: 0.95em;
+  height: 0.95em;
+  stroke-width: 2.3;
 }
 
-/* Ligne du vainqueur légèrement surlignée. */
-#ranking-table tbody tr:first-child {
-  background-color: #fdf5e0;
-  font-weight: 600;
+.cell-badge--trophy {
+  color: var(--gold-color);
+}
+
+.cell-badge--fall {
+  color: var(--danger-hover);
+}
+
+/* Ligne du vainqueur : un voile d'or. */
+#ranking-table tbody tr:first-child td {
+  background: color-mix(in srgb, var(--medal-1) 9%, var(--sheet));
+}
+
+#ranking-table tbody tr:first-child td:nth-child(2) {
+  font-weight: 750;
 }
 
 /* ========== HALL & END SCREENS ========== */
-#hall-screen {
-  align-items: center;
-}
-
-/* Zone centrale : titre, aide et blocs — tout défile ensemble (la page), mais
-   aucun bloc ne se comprime : toutes les lignes des 3 tableaux restent
+/* Zone centrale du palmarès : aide, record et blocs — tout défile ensemble,
+   mais aucun bloc ne se comprime : toutes les lignes des 3 tableaux restent
    visibles, quitte à faire défiler. */
 #hall-content {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
   width: 100%;
-  max-width: var(--content-max);
   display: flex;
   flex-direction: column;
-  gap: clamp(0.9rem, 2.5vh, 1.6rem);
-  padding: clamp(0.8rem, 2vh, 1.4rem) clamp(1rem, 4vw, 2.5rem);
+  align-items: center;
+  gap: clamp(0.9rem, 2.5vh, 1.4rem);
+  padding: clamp(1rem, 2.4vh, 1.4rem) var(--gutter);
 }
 
 #hall-content > * {
   flex-shrink: 0;
+  width: 100%;
+  max-width: var(--content-max);
 }
 
-#hall-content > h1 {
-  margin: 0.2rem 0 0;
-}
-
-/* Aide sous le titre : les lignes des tableaux sont cliquables. */
+/* Aide sous l'en-tête : les lignes des tableaux sont cliquables. */
 .hall-hint {
-  margin: -0.4rem 0 0;
-  text-align: center;
+  margin: 0;
   font-size: 0.82rem;
-  color: #777;
+  color: var(--ink-soft);
 }
 
-/* Écran de fin : contenu ancré vers le haut, comme l'accueil. */
-#end-screen .screen-body {
+/* Écran de fin : contenu ancré vers le haut. */
+#end-screen .screen-body,
+#g5000-end-screen .screen-body {
   justify-content: flex-start;
-  gap: clamp(1rem, 3.5vh, 2.25rem);
-  padding-top: clamp(1rem, 4vh, 2.5rem);
 }
 
-#end-screen h1 {
-  margin: 0;
-  font-size: clamp(1.5rem, 4.5vh, 2.1rem);
+/* Record du téléphone battu : un post-it scotché (paper.css), la couronne,
+   puis sur deux lignes ce qui est battu et — à la ligne — qui et combien
+   (recordLine, endScreen.ts). */
+.record-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.4rem 0 0;
 }
 
-/* Record du téléphone battu : bandeau or, même métal que la 1re marche. */
-#record-banner {
-  margin: 0;
-  text-align: center;
-  font-weight: 700;
-  color: #3a2c05;
-  background-image: linear-gradient(180deg, #f5d67a 0%, #e3b73f 45%, #c8960a 100%);
-  border-radius: 10px;
-  padding: 0.7em 1em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    0 3px 8px rgba(0, 0, 0, 0.12);
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+.record-banner > .ic,
+.record-new > .ic {
+  flex: none;
+  width: 1.45rem;
+  height: 1.45rem;
+  color: var(--gold-hover);
 }
 
-/* Légende des pastilles 🏆 / 💩 du classement. */
-#hof-legend {
-  margin: 0;
-  text-align: center;
-  font-size: 0.85rem;
-  color: #666;
-}
-
-/* Export / import : deux boutons pleins empilés. */
-#backup-controls {
+.record-line {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  width: 100%;
+  gap: 0.1rem;
+  min-width: 0;
+  line-height: 1.25;
 }
 
-#backup-controls .btn {
-  width: 100%;
-  max-width: none;
+.record-line-what {
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--ink) 75%, var(--postit));
+}
+
+.record-line-who {
+  font-size: 1.15rem;
+  font-stretch: 75%;
+  font-weight: 800;
+}
+
+/* Légende des marques du classement. */
+#hof-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
   margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
 }
 
-/* Numéro de version : discret, en haut à droite du contenu Paramètres. Il
-   défile avec le reste (positionné dans .screen-body, pas dans .screen). */
-#app-version {
-  position: absolute;
-  top: 0.6rem;
-  right: 1rem;
-  width: auto; /* sinon .screen-body > * impose width:100% et le colle à gauche */
-  font-size: 0.72rem;
-  color: #999;
-  pointer-events: none;
-  user-select: none;
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
 }
 
-/* Les 3 blocs (meilleurs / pires / stats) : cartes identiques, filet de
-   couleur en tête pour le repère (or / terracotta / neutre). */
-.hall-block {
-  background: #fff;
-  border-radius: 12px;
-  border-top: 4px solid var(--hall-accent, #ccc);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.09);
-  overflow: hidden;
-  padding: 0.85rem 0 0.15rem;
+/* Les trois blocs du palmarès (meilleurs / pires / stats) : chacun sur son
+   papier de couleur, l'onglet porte le titre (paper.css). Le tableau se pose
+   sur le papier, sans feuillet blanc par-dessus. */
+#hall-screen .paper-block table,
+#hall-screen .paper-block #stats-list {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
 }
 
-.hall-block--best {
-  --hall-accent: #d9a520;
+#hall-screen .paper-block th {
+  padding-top: 0.6em;
+  border-bottom-color: color-mix(in srgb, var(--ink) 55%, transparent);
 }
 
-.hall-block--worst {
-  --hall-accent: #a9713f;
+#hall-screen .paper-block td,
+#hall-screen .paper-block .stats-row {
+  border-bottom-color: color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
-.hall-block--stats {
-  --hall-accent: #97a2ab;
+#hall-screen .paper-block td.cell-rank {
+  width: 2.2rem;
+  padding-right: 0;
 }
 
-#hall-screen h2 {
-  margin: 0 0 0.55rem;
-  padding: 0 clamp(0.8rem, 3vw, 1.4rem);
-  font-size: clamp(1rem, 2vh, 1.3rem);
-  font-weight: 700;
-  text-align: center;
-}
-
-/* Cellules à taille fluide : compactes sur iPhone, généreuses sur tablette. */
-#hall-screen th,
-#hall-screen td {
-  padding: clamp(0.4rem, 1.2vh, 0.8rem) clamp(0.55rem, 2.4vw, 1.4rem);
-  font-size: clamp(0.9rem, 1.7vh, 1.2rem);
-  border-bottom: 1px solid #eee;
-}
-
-#hall-screen thead th {
-  background: #f4f4f6;
-  color: #666;
-  font-size: 0.78em;
-  font-weight: 700;
-  border-bottom: 2px solid #e4e4e6;
-}
-
-#hall-screen tbody tr:last-child td {
-  border-bottom: none;
+/* Le chevron de la ligne cliquable, et son survol, sur le papier. */
+#best-scores-table tr.clickable:hover td,
+#worst-scores-table tr.clickable:hover td {
+  background: color-mix(in srgb, var(--tab-color) 45%, transparent);
 }
 
 .hall-empty {
   text-align: center;
-  font-style: italic;
-  color: #888;
+  color: var(--ink-soft);
   padding: 1.1em 1em;
 }
 
-.hall-note {
-  margin: -0.3rem 0 0.5rem;
-  padding: 0 clamp(0.8rem, 3vw, 1.4rem);
-  text-align: center;
-  font-size: 0.78rem;
-  color: #999;
+/* Tableau vide : pas d'en-têtes de colonnes au-dessus de rien. Le podium à
+   prendre (gommettes en pointillés), un titre, une phrase. */
+table.is-empty thead {
+  display: none;
 }
 
-/* Carte « Record du téléphone » : point focal, ton or. */
+.empty-podium {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.hall-empty-title {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 1.05rem;
+  color: var(--ink);
+}
+
+.hall-note {
+  margin: -0.25rem 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-align: left;
+}
+
+/* Carte « Record du téléphone » : un post-it scotché (paper.css), la gommette
+   d'or, le nom en capitales, le score en très grand. */
 #record-card {
   display: flex;
   align-items: center;
-  gap: 0.9rem;
-  padding: 0.8rem 1.1rem;
-  border-radius: 14px;
-  background: linear-gradient(150deg, #fbeecb 0%, #f3d98f 100%);
-  border: 1px solid #e6c268;
-  box-shadow: 0 3px 10px rgba(180, 140, 30, 0.25);
-  color: #3a2c05;
+  gap: 0.85rem;
+  margin-top: 0.4rem;
 }
 
 #record-card.clickable {
   cursor: pointer;
-  transition: filter 0.15s;
 }
 
-#record-card.clickable:hover {
+#record-card.clickable:active {
   filter: brightness(0.97);
-}
-
-#record-card.clickable::after {
-  content: "›";
-  flex: none;
-  margin-left: auto;
-  font-size: 1.5rem;
-  opacity: 0.5;
 }
 
 #record-card:focus-visible {
@@ -332,41 +376,64 @@
   outline-offset: 2px;
 }
 
-.record-crown {
-  flex: none;
-  font-size: 1.9rem;
-  line-height: 1;
-}
-
-.record-body {
+#record-card .record-body {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  gap: 0.15rem;
   min-width: 0;
 }
 
 .record-label {
-  font-size: 0.7rem;
+  font-size: 0.64rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  opacity: 0.7;
+  letter-spacing: 0.15em;
+  color: var(--gold-hover);
 }
 
-.record-main {
-  font-size: 1.05rem;
+.record-name {
+  font-size: 1.6rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.record-main strong {
-  font-weight: 800;
-}
-
-.record-meta {
+#record-card .record-meta {
   display: flex;
   align-items: center;
   gap: 0.4em;
-  font-size: 0.82rem;
-  opacity: 0.85;
+  font-size: 0.78rem;
+  color: color-mix(in srgb, var(--ink) 70%, var(--postit));
+}
+
+.record-score {
+  flex: none;
+  text-align: right;
+  line-height: 1;
+}
+
+.record-score strong {
+  display: block;
+  font-size: 2.3rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.record-score span {
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--ink) 70%, var(--postit));
+}
+
+.record-go .ic {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: color-mix(in srgb, var(--ink) 55%, var(--postit));
 }
 
 /* Lignes cliquables → feuille de score détaillée. Chevron en fin de ligne
@@ -390,14 +457,9 @@
   top: 50%;
   right: 0.35em;
   transform: translateY(-50%);
-  color: #b0b0b0;
+  color: var(--ink-faint);
   font-weight: 400;
   pointer-events: none;
-}
-
-#best-scores-table tr.clickable:hover td,
-#worst-scores-table tr.clickable:hover td {
-  background: rgba(0, 0, 0, 0.05);
 }
 
 #best-scores-table tr.clickable:focus-visible,
@@ -406,20 +468,31 @@
   outline-offset: -2px;
 }
 
+/* La date, en retrait (après la gommette de rang, le joueur et, chez les
+   meilleurs, la variante). */
+#best-scores-table td:nth-child(4),
+#worst-scores-table td:nth-child(3) {
+  color: var(--ink-soft);
+  font-size: 0.85em;
+}
+
 /* Statistiques par joueur : 2 lignes par joueur (nom + moyenne, puis
    record perso · nombre de parties en sous-ligne discrète). */
 #stats-list {
   list-style: none;
   margin: 0;
   padding: 0;
+  background: var(--sheet);
+  border-radius: var(--radius-s) var(--radius-s) var(--radius-m) var(--radius-m);
+  box-shadow: var(--shadow-sheet);
 }
 
 .stats-row {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  padding: 0.6em clamp(0.8rem, 3vw, 1.4rem);
-  border-bottom: 1px solid #eee;
+  padding: 0.65em 0.95rem;
+  border-bottom: 1px solid var(--rule);
 }
 
 .stats-row:last-child {
@@ -435,7 +508,7 @@
 .stats-name {
   flex: 1;
   min-width: 0;
-  font-weight: 600;
+  font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -443,24 +516,42 @@
 
 .stats-avg {
   flex: none;
-  font-weight: 700;
-  color: #2f3a40;
+  font-size: 1.25em;
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-avg small {
+  margin-right: 0.3em;
+  font-size: 0.62em;
+  font-stretch: 100%;
+  font-weight: 500;
+  color: var(--ink-soft);
 }
 
 .stats-sub {
   font-size: 0.78rem;
-  color: #8a8a8a;
+  color: var(--ink-soft);
 }
 
 /* ---------- Easter egg : 5 clics sur le trophée ---------- */
 .hof-trophy {
-  display: inline-block;
+  display: inline-grid;
+  place-items: center;
+  color: var(--gold-color);
   cursor: default;
   user-select: none;
   transform-origin: center;
   will-change: transform;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.hof-trophy .ic {
+  width: 0.85em;
+  height: 0.85em;
+  stroke-width: 2.4;
 }
 
 .hof-trophy.celebrate {
@@ -493,7 +584,8 @@
   }
 }
 
-/* Carte de crédits : au centre de l'écran, mise en valeur par une lueur dorée. */
+/* Carte de crédits : au centre de l'écran, un feuillet à l'encre, lueur
+   dorée. */
 #app-credit {
   position: fixed;
   left: 50%;
@@ -506,8 +598,8 @@
   width: max-content;
   max-width: min(30rem, 94vw);
   padding: 1.4em 1.7em;
-  border-radius: 22px;
-  background: linear-gradient(150deg, #33333f 0%, #1a1a26 100%);
+  border-radius: var(--radius-m);
+  background: var(--ink);
   color: #f6f6f8;
   font-size: 1.02rem;
   line-height: 1.45;
@@ -539,11 +631,17 @@
 
 .credit-spark {
   flex: none;
-  font-size: 1.2em;
+  display: grid;
+  color: #ffd45e;
   animation: credit-twinkle 1.9s ease-in-out infinite;
 }
 
-/* La ✨ de droite scintille en miroir et en décalé de celle de gauche. */
+.credit-spark .ic {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+/* L'étincelle de droite scintille en miroir et en décalé de celle de gauche. */
 .credit-spark:last-child {
   animation-delay: 0.95s;
   animation-direction: reverse;

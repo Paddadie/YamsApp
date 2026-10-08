@@ -7,11 +7,26 @@
   </head>
   <body>
     <div id="menu-screen" class="screen">
-      <a id="settings-btn" href="settings.html" class="corner-link" aria-label="Paramètres">⚙️</a>
+      <header class="brand-bar">
+        <h1 class="brand-name">Cornet</h1>
+        <!-- Le cornet renversé et ses dés, dessinés par home.ts. -->
+        <span class="brand-mark" id="brand-mark"></span>
+        <a
+          id="settings-btn"
+          href="settings.html"
+          class="screen-bar-action"
+          aria-label="Paramètres"
+          title="Paramètres"
+          ><!--@icon:gear--></a
+        >
+      </header>
       <div class="screen-body">
-        <h1>🎲&nbsp;Cornet</h1>
-        <p class="menu-hint">Choisissez un jeu.</p>
-        <!-- Tuiles générées par src/pages/home.ts d'après src/games/registry.ts -->
+        <!-- La dernière victoire, tous jeux confondus (home.ts, lastWinRepo). En
+             tête et non sous les cartes : avec d'autres jeux, il passerait sous
+             le pli (demande de Paul, 08/10). -->
+        <aside class="postit last-win" id="last-win" hidden></aside>
+        <p class="section-label">Choisissez un jeu</p>
+        <!-- Cartes générées par src/pages/home.ts d'après src/games/registry.ts -->
         <ul id="game-list"></ul>
       </div>
     </div>

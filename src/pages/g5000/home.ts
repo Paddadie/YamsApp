@@ -15,7 +15,9 @@ import { goTo } from "../../core/nav";
 import { requireEl } from "../../core/ui";
 import { formatScore } from "../../core/format";
 import { getDraft, saveDraft } from "../../core/storage/draftRepo";
-import { setupGameSwitcher } from "../gameSwitcher";
+import { setupGameHero, showResumeCard } from "../gameHero";
+import { targetOption } from "../targetOption";
+import { icon } from "../../core/icons";
 import { G5000, G5000_ID } from "../../games/g5000/gameDef";
 import { getRules, hasSavedGame, saveRules } from "../../games/g5000/repo";
 import { DEFAULT_RULES, TARGETS } from "../../games/g5000/rules";
@@ -40,23 +42,9 @@ function renderTargets(): void {
   const current = getRules().target;
   targetOptions.replaceChildren();
   for (const value of TARGETS) {
-    const chip = document.createElement("label");
-    chip.className = "variant-chip";
-    chip.style.setProperty("--chip-color", G5000.accent);
-
-    const radio = document.createElement("input");
-    radio.type = "radio";
-    radio.name = "target";
-    radio.value = String(value);
-    radio.checked = value === current;
-    radio.addEventListener("change", () => remember({ target: value }));
-
-    const label = document.createElement("span");
-    label.className = "chip-label";
-    label.textContent = formatScore(value);
-
-    chip.append(radio, label);
-    targetOptions.appendChild(chip);
+    const option = targetOption(value, formatScore(value), value === current);
+    option.input.addEventListener("change", () => remember({ target: value }));
+    targetOptions.appendChild(option.label);
   }
 }
 
@@ -65,7 +53,7 @@ function renderVariants(): void {
   variantOptions.replaceChildren();
   for (const variant of G5000_VARIANTS) {
     const chip = document.createElement("label");
-    chip.className = "variant-chip";
+    chip.className = "variant-row";
     chip.style.setProperty("--chip-color", variant.color);
 
     const checkbox = document.createElement("input");
@@ -81,20 +69,29 @@ function renderVariants(): void {
       remember({ variants });
     });
 
-    const icon = document.createElement("span");
-    icon.className = "chip-icon";
-    icon.textContent = variant.icon;
-    icon.setAttribute("aria-hidden", "true");
+    const pictogram = document.createElement("span");
+    pictogram.className = "chip-icon";
+    pictogram.appendChild(icon(variant.icon));
 
-    const label = document.createElement("span");
-    label.className = "chip-label";
-    label.textContent = variant.label;
+    // Le nom dans un <span> : c'est lui que le feutre surligne une fois cochée.
+    const name = document.createElement("span");
+    name.className = "variant-name";
+    const nameText = document.createElement("span");
+    nameText.textContent = variant.label;
+    name.appendChild(nameText);
 
     const hint = document.createElement("span");
     hint.className = "chip-hint";
     hint.textContent = variant.hint;
 
-    chip.append(checkbox, icon, label, hint);
+    const text = document.createElement("span");
+    text.className = "variant-text";
+    text.append(name, hint);
+
+    const box = document.createElement("span");
+    box.className = "check-box";
+
+    chip.append(checkbox, pictogram, text, box);
     variantOptions.appendChild(chip);
   }
 }
@@ -106,15 +103,14 @@ function renderVariants(): void {
 // coché à l'écran.
 if (!TARGETS.includes(getRules().target)) remember({ target: DEFAULT_RULES.target });
 
-setupGameSwitcher(G5000_ID);
+setupGameHero(G5000_ID);
 renderTargets();
 renderVariants();
 
 if (hasSavedGame()) {
+  showResumeCard(G5000.resume());
   resumeBtn.disabled = false;
   resumeBtn.addEventListener("click", () => goTo("g5000Game"));
-} else {
-  resumeBtn.hidden = true;
 }
 
 startBtn.addEventListener("click", () => {

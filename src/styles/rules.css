@@ -1,46 +1,83 @@
 /* ========== PAGE DES RÈGLES ========== */
-/* Une colonne de lecture, pas une grille de réglages : le texte prime, les
-   tableaux ne servent qu'au barème. */
+/* Un dépliant : un seul feuillet, une colonne de lecture. Le texte prime, les
+   tableaux ne servent qu'au barème, les variantes sont dans un encadré. */
 #rules-screen .screen-body {
   justify-content: flex-start;
-  gap: 0;
 }
 
-#rules-screen h1 {
-  margin: 0 0 0.4em;
+#rules-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  padding: 1.1rem 1rem 1.2rem;
 }
 
 .rules-section {
   width: 100%;
-  margin-bottom: 1.6rem;
 }
 
 .rules-section h2 {
-  margin: 0 0 0.5em;
-  text-align: left;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b767d;
+  margin: 0 0 0.55em;
 }
 
 .rules-section p {
-  margin: 0 0 0.7em;
+  margin: 0 0 0.6em;
   line-height: 1.5;
 }
 
-/* Les variantes ne sont pas les règles de base : elles sont encadrées pour
-   qu'on ne les confonde pas avec ce qui se joue à chaque partie. */
+.rules-section p:last-child {
+  margin-bottom: 0;
+}
+
+/* Les variantes ne sont pas les règles de base : elles sont encadrées d'un
+   trait d'encre pour qu'on ne les confonde pas avec ce qui se joue à chaque
+   partie. */
 .rules-section--variants {
-  padding: 1rem 1.1rem 0.5rem;
-  border-radius: 14px;
-  background: #fff4e0;
-  box-shadow: inset 0 0 0 1px #e8c48a;
+  padding: 0.9rem 0.9rem 1rem;
+  border-radius: var(--radius-s);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
 }
 
 .rules-section--variants h2 {
-  color: var(--gold-hover);
+  font-size: 1.35rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.rules-section--variants h2::after {
+  display: none;
+}
+
+/* Une variante : son pictogramme à sa couleur, son nom, ce qu'elle change. */
+.rules-items {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.rules-item {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  line-height: 1.45;
+}
+
+.rules-item > .ic {
+  width: 1.4rem;
+  height: 1.4rem;
+  margin-top: 0.05rem;
+  color: var(--item-color, var(--ink));
+}
+
+.rules-item strong {
+  display: block;
+  font-weight: 750;
 }
 
 .rules-table-wrap {
@@ -50,21 +87,17 @@
 .rules-table {
   width: 100%;
   border-collapse: collapse;
-  background: var(--white);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .rules-table th {
-  padding: 0.6em 0.9em;
+  padding: 0 0 0.4em;
   text-align: left;
-  font-size: 0.75rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.13em;
   text-transform: uppercase;
-  color: #6b767d;
-  background: #f3f6f7;
+  color: var(--ink-soft);
+  border-bottom: 1.5px solid var(--ink);
 }
 
 .rules-table th:last-child,
@@ -74,18 +107,65 @@
 }
 
 .rules-table td {
-  padding: 0.6em 0.9em;
-  border-top: 1px solid #eef1f2;
-  font-size: 0.95rem;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--rule);
+  font-size: 0.93rem;
+}
+
+.rules-table td + td {
+  padding-left: 0.8em;
 }
 
 .rules-table td:last-child {
-  font-weight: 700;
+  font-stretch: 75%;
+  font-weight: 800;
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .rules-note {
   margin: 0.5em 0 0;
-  font-size: 0.8rem;
-  color: #6b767d;
-  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+/* Exemples en vrais dés (buildExamples, rules.ts) : la main dessinée sur le
+   papier du jeu, les dés qui ne comptent pas pâlis, le résultat à droite. */
+.rules-examples {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.6rem;
+  padding: 0;
+  list-style: none;
+}
+
+.rules-example {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.8rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-s);
+  background: var(--accent-paper, var(--paper));
+}
+
+.rules-example-dice {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.rules-example-dice .die {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.rules-example-dice .die.is-idle {
+  opacity: 0.32;
+}
+
+.rules-example-result {
+  margin-left: auto;
+  font-size: 1.05rem;
+  font-stretch: 75%;
+  font-weight: 800;
 }

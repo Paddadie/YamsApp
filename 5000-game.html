@@ -42,25 +42,38 @@
            signature de l'application, reprise du Yams. -->
       <div class="turn-banner" id="turn-banner">
         <span class="turn-eyebrow">Au tour de</span>
-        <p class="turn-name" id="turn-name"></p>
+        <!-- Annoncé à chaque passage de main, comme le nom au Yams. -->
+        <p class="turn-name" id="turn-name" aria-live="polite"></p>
         <div class="gauge">
           <span class="gauge-num" id="gauge-score"></span>
-          <span class="gauge-track"><span class="gauge-fill" id="gauge-fill"></span></span>
+          <span class="gauge-track"><span class="gauge-pot" id="gauge-pot"></span><span class="gauge-fill" id="gauge-fill"></span></span>
           <span class="gauge-num gauge-num--target" id="gauge-target"></span>
         </div>
         <p class="blank-turns" id="blank-turns"></p>
       </div>
 
       <div class="screen-body">
+        <!-- Ce que le dernier tour a écrit, et de quoi le reprendre s'il a été
+             mal saisi (« Corriger »). Rempli par src/pages/g5000/game.ts. -->
+        <div class="last-turn" id="last-turn" hidden>
+          <span class="last-turn-label">Dernier tour</span>
+          <span class="last-turn-text" id="last-turn-text"></span>
+          <button type="button" class="last-turn-fix" id="undo-btn">Corriger</button>
+        </div>
         <!-- Feuille de progression, construite par src/pages/g5000/game.ts -->
         <div class="sheet-scroll" id="sheet-scroll"><table id="score-sheet" class="g5000-sheet"></table></div>
       </div>
 
-      <div class="action-bar">
+      <div class="action-bar" id="entry-bar">
         <!-- La calculette guide qui découvre le jeu ; la saisie rapide va plus
              vite pour qui a déjà compté. Les libellés le disent (07/10). -->
-        <button id="play-btn" type="button" class="btn btn-primary">🧮 Compter mon tour pas à pas</button>
-        <button id="quick-btn" type="button" class="btn btn-primary btn-outline">✍️ Entrer mon total du tour</button>
+        <button id="play-btn" type="button" class="btn btn-primary"><!--@icon:calc-->Compter mon tour pas à pas</button>
+        <button id="quick-btn" type="button" class="btn btn-primary btn-outline"><!--@icon:pen-->Entrer mon total du tour</button>
+      </div>
+      <!-- Consultation depuis l'écran de fin (`?review=1`) : la feuille en
+           lecture seule, et le retour au classement à la place des saisies. -->
+      <div class="action-bar" id="review-bar" hidden>
+        <a href="5000-end.html" class="btn btn-gold"><!--@icon:trophy-->Classement final</a>
       </div>
     </div>
 
@@ -103,6 +116,21 @@
       </div>
     </dialog>
 
+    <!-- Reprendre le dernier tour : la partie revient à l'état d'avant lui. -->
+    <dialog id="undo-dialog">
+      <p class="sheet-title" id="undo-title"></p>
+      <dl id="undo-summary" class="delete-summary"></dl>
+      <p class="delete-warn" id="undo-warn"></p>
+      <div class="delete-actions">
+        <button type="button" id="undo-cancel" class="btn btn-secondary">
+          Garder
+        </button>
+        <button type="button" id="undo-confirm" class="btn btn-danger">
+          Reprendre
+        </button>
+      </div>
+    </dialog>
+
     <!-- Changement de joueur alors qu'un tour est entamé : le tour sera perdu. -->
     <dialog id="switch-dialog">
       <p class="sheet-title" id="switch-title"></p>
@@ -121,21 +149,24 @@
     </dialog>
 
     <!-- Saisie rapide : pour qui connaît le jeu et sait déjà ce qu'il a marqué. -->
-    <dialog id="quick-dialog" aria-labelledby="quick-title">
+    <dialog id="quick-dialog" aria-labelledby="quick-title" tabindex="-1">
       <div class="dlg">
         <div class="dlg-head">
           <span class="dlg-title" id="quick-title"></span>
           <span class="dlg-sub">Saisie rapide</span>
         </div>
         <div class="dlg-body">
-          <div class="pot">
-            <p class="pot-value" id="quick-pot">0</p>
-            <p class="pot-label">points ce tour</p>
-            <p class="pot-after" id="quick-after"></p>
-          </div>
           <div class="targets" id="quick-targets"></div>
-          <div class="chips" id="quick-chips"></div>
-          <p class="tape" id="quick-tape"></p>
+          <!-- L'addition posée : une ligne par main pleine, la main en cours
+               sous un trait, le total du tour sous un double trait. -->
+          <div class="slip">
+            <ol class="slip-lines" id="quick-lines" aria-label="Montants du tour"></ol>
+            <div class="slip-total">
+              <p class="pot-after" id="quick-after"></p>
+              <p class="slip-sum" id="quick-pot" aria-live="polite">0</p>
+            </div>
+          </div>
+          <div class="keys" id="quick-chips"></div>
         </div>
         <div class="dlg-foot">
           <button type="button" id="quick-bank" class="btn btn-primary">Banquer</button>

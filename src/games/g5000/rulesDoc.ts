@@ -9,10 +9,10 @@
 // Depuis le menu du jeu, la page décrit TOUTES les variantes ; ouverte pendant
 // une partie, seulement celles de la partie (`scope`).
 
-import type { RulesSection } from "../types";
+import type { RulesExample, RulesSection } from "../types";
 import { formatScore } from "../../core/format";
-import { FACES, figureValue, groupValue } from "./rules";
-import type { G5000Rules, G5000Variant } from "./types";
+import { FACES, bestValue, countsOf, figureValue, groupValue } from "./rules";
+import type { Face, G5000Rules, G5000Variant } from "./types";
 import { G5000_VARIANTS } from "./variants";
 
 const pts = (n: number): string => `${formatScore(n)} point${n > 1 ? "s" : ""}`;
@@ -26,6 +26,24 @@ const factorText = (factor: number, of: string): string =>
 // formule ne les résume.
 const perFace = (name: string, size: number, rules: G5000Rules): [string, string][] =>
   FACES.map((face) => [`${name} de ${face}`, pts(figureValue(face, size, rules))]);
+
+// Des lancers en vrais dés, comptés par le moteur (bestValue) : l'exemple suit
+// le barème réglé. Les dés qui ne rapportent rien sont pâlis.
+export function scoringExamples(rules: G5000Rules): RulesExample[] {
+  const value = (dice: Face[]): number => bestValue(countsOf(dice), [], rules);
+  const examples: RulesExample[] = [
+    {
+      dice: [1, 1, 1, 5, 3],
+      counted: [0, 1, 2, 3],
+      result: `Brelan de 1 et un 5 → ${pts(value([1, 1, 1, 5]))}`,
+    },
+    { dice: [2, 2, 4, 6, 3], counted: [], result: "Rien ne rapporte → bust" },
+  ];
+  if (rules.runPoints > 0) {
+    examples.push({ dice: [1, 2, 3, 4, 5], result: `Suite → ${pts(value([1, 2, 3, 4, 5]))}` });
+  }
+  return examples;
+}
 
 // Le barème, ligne par ligne, calculé par les mêmes fonctions que le jeu.
 export function scoringRows(rules: G5000Rules): [string, string][] {
@@ -96,6 +114,7 @@ export function g5000RulesDoc(rules: G5000Rules, scope: RulesScope = "all"): Rul
     },
     {
       title: "Le barème",
+      examples: scoringExamples(rules),
       table: {
         head: ["Combinaison", "Rapporte"],
         rows: scoringRows(rules),
@@ -138,10 +157,13 @@ export function g5000RulesDoc(rules: G5000Rules, scope: RulesScope = "all"): Rul
   if (shown.length > 0) {
     sections.push({
       title: scope === "all" ? "Les variantes" : "Les variantes de la partie",
-      body: [
-        ...(scope === "all" ? ["À cocher sur l'accueil du 5000, avant la partie."] : []),
-        ...shown.map((v) => `${v.icon} ${v.label} — ${variantText(v.id, rules)}`),
-      ],
+      body: scope === "all" ? ["À cocher sur l'accueil du 5000, avant la partie."] : [],
+      items: shown.map((v) => ({
+        icon: v.icon,
+        color: v.color,
+        title: v.label,
+        text: variantText(v.id, rules),
+      })),
       kind: "variants",
     });
   }

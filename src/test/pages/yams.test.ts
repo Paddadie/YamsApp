@@ -90,7 +90,7 @@ describe("Hall of Fame : la feuille garde les libellés de sa partie", () => {
     const labels = [...document.querySelectorAll("#sheet-table td:first-child")].map(
       (td) => td.textContent,
     );
-    expect(labels).toEqual(["1", "Bonus", "Full (30)"]);
+    expect(labels).toEqual(["1", "Bonus (35)", "Full (30)"]);
   });
 });
 
@@ -139,5 +139,79 @@ describe("écran allumé", () => {
     await openPage(page);
     vi.unstubAllGlobals();
     expect(request).toHaveBeenCalledWith("screen");
+  });
+});
+
+describe("saisie : la case s'écrit, comme sur la feuille", () => {
+  // Ligne des 4 de la première grille (les lignes des chiffres n'ont pas de
+  // libellé texte : un dé dessiné).
+  const fourLine = (): HTMLButtonElement =>
+    document.querySelectorAll<HTMLButtonElement>("#score-tables .score-cell")[3];
+
+  it("les chiffres disent leur nombre de dés", async () => {
+    yamsGame();
+    await openPage("yamsGame");
+    click(fourLine());
+    const dice = [...document.querySelectorAll("#picker-values .picker-dice")].map(
+      (d) => d.textContent,
+    );
+    expect(dice).toEqual(["aucun", "1×", "2×", "3×", "4×", "5×"]);
+    expect(el("#picker-values").children[2].getAttribute("aria-label")).toBe("8, 2 dés");
+  });
+
+  it("un 0 se barre", async () => {
+    yamsGame();
+    await openPage("yamsGame");
+    click(fourLine());
+    click(el("#picker-values .picker-value.is-zero"));
+    expect(fourLine().classList.contains("is-zero")).toBe(true);
+    expect(fourLine().classList.contains("is-written")).toBe(true);
+  });
+
+  it("un Yams s'entoure et se fête", async () => {
+    yamsGame();
+    await openPage("yamsGame");
+    openLine("Yams");
+    click(button("50", el("#picker-values")));
+    const row = [...document.querySelectorAll("#score-tables tr")].find((tr) =>
+      tr.firstElementChild?.textContent?.startsWith("Yams"),
+    )!;
+    expect(row.querySelector(".score-cell .hand-circle")).not.toBeNull();
+    expect(row.querySelector(".yams-stamp")?.textContent).toBe("Yams !");
+    expect(savedYams()?.players[0].scores.Classique?.yams).toBe(50);
+  });
+});
+
+describe("Montante / Descendante : la prochaine case", () => {
+  const marker = (): HTMLElement | null => document.querySelector(".next-marker");
+
+  it("un liseré cerne la case à remplir, puis passe à la suivante", async () => {
+    yamsGame(["Alice", "Bob"], ["Montante"]);
+    await openPage("yamsGame");
+    expect(marker()?.hidden).toBe(false);
+    expect(marker()?.dataset.line).toBe("yams");
+
+    openLine("Yams");
+    click(button("50", el("#picker-values")));
+    expect(marker()?.dataset.line).toBe("chance");
+  });
+
+  it("aucun liseré en Classique, où toutes les cases sont ouvertes", async () => {
+    yamsGame();
+    await openPage("yamsGame");
+    expect(marker()).toBeNull();
+  });
+});
+
+describe("changer de joueur au clavier", () => {
+  it("la flèche garde le focus, et le nouveau joueur est annoncé", async () => {
+    yamsGame(["Alice", "Bob"]);
+    await openPage("yamsGame");
+    const next = el<HTMLButtonElement>("#next-player-btn");
+    next.focus();
+    click(next);
+    expect(document.activeElement).toBe(next);
+    expect(el("#current-player-name").textContent).toBe("Bob");
+    expect(el("#current-player-name").getAttribute("aria-live")).toBe("polite");
   });
 });

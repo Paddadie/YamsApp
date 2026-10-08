@@ -1,5 +1,6 @@
 // Renommer ou supprimer un joueur PARTOUT où il laisse une trace : joueurs
-// connus, compteur de parties, brouillon d'avant-partie, et tout ce que chaque
+// connus, compteur de parties, brouillon d'avant-partie, dernière victoire du
+// menu, et tout ce que chaque
 // jeu conserve à son nom (partie en cours comprise, cf. GameDef.renamePlayer).
 //
 // Sans DOM, donc testable : l'écran des Paramètres ne fait que l'appeler. Un
@@ -22,6 +23,7 @@ import {
   renamePlayerGames,
 } from "../core/storage/playerGamesRepo";
 import { getDraft, saveDraft } from "../core/storage/draftRepo";
+import { getLastWin, removeFromLastWin, renameInLastWin } from "../core/storage/lastWinRepo";
 
 // Refuse (renvoie false) si le nouveau nom est vide ou déjà porté par un autre
 // joueur : rien n'est alors modifié.
@@ -30,6 +32,7 @@ export function renamePlayer(oldName: string, newName: string): boolean {
   if (!renameKnownName(oldName, next)) return false;
   renamePlayerGames(oldName, next);
   renameInDraft(oldName, next);
+  renameInLastWin(oldName, next);
   for (const game of GAMES) game.renamePlayer(oldName, next);
   return true;
 }
@@ -40,6 +43,7 @@ export function removePlayer(name: string): void {
   removeKnownName(name);
   removePlayerGames(name);
   removeFromDraft(name);
+  removeFromLastWin(name);
   for (const game of GAMES) game.removePlayer(name);
 }
 
@@ -55,6 +59,7 @@ export function allPlayerNames(): string[] {
   getKnownNames().forEach(add);
   Object.keys(getPlayerGames()).forEach(add);
   getDraft()?.playerNames.forEach(add);
+  getLastWin()?.winners.forEach(add);
   for (const game of GAMES) game.playerNames().forEach(add);
   return [...seen.values()].sort(compareNames);
 }

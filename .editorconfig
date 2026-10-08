@@ -1,0 +1,8 @@
+# Fins de ligne LF et UTF-8 dès l'écriture, comme .gitattributes les impose au
+# commit : sans ça, l'éditeur Windows écrit en CRLF et settings.html, qui doit
+# rester en LF, change de forme sous les doigts.
+root = true
+
+[*]
+end_of_line = lf
+charset = utf-8

@@ -7,9 +7,16 @@
   </head>
   <body>
     <div id="settings-screen" class="screen">
+      <header class="page-head">
+        <!-- Surtitre et titre posés par src/pages/settings.ts : « Paramètres »
+             au-dessus du nom du jeu quand on vient d'un jeu, « Cornet » au
+             menu. -->
+        <p class="page-eyebrow">
+          <span id="settings-eyebrow">Cornet</span><span class="page-version" id="app-version"></span>
+        </p>
+        <h1 class="page-title" id="settings-title">Paramètres</h1>
+      </header>
       <div class="screen-body">
-        <div id="app-version"></div>
-        <h1 id="settings-title">⚙️ Paramètres</h1>
 
         <!-- Trois natures très différentes cohabitaient sur cet écran : les
              règles du jeu, l'administration des joueurs et des scores, et la
@@ -24,7 +31,7 @@
             aria-controls="panel-scoring-yams"
             aria-selected="true"
           >
-            <span class="panel-tab-icon" aria-hidden="true">🍀</span>
+            <!--@icon:clover-->
             <span>Barème du Yams</span>
           </button>
           <button
@@ -35,8 +42,8 @@
             aria-controls="panel-rules-g5000"
             aria-selected="false"
           >
-            <span class="panel-tab-icon" aria-hidden="true">💰</span>
-            <span>Règles du 5000</span>
+            <!--@icon:bag-->
+            <span>Réglages du 5000</span>
           </button>
           <button
             type="button"
@@ -46,7 +53,7 @@
             aria-controls="panel-data"
             aria-selected="false"
           >
-            <span class="panel-tab-icon" aria-hidden="true">👥</span>
+            <!--@icon:people-->
             <span>Joueurs et scores</span>
           </button>
           <button
@@ -57,7 +64,7 @@
             aria-controls="panel-backup"
             aria-selected="false"
           >
-            <span class="panel-tab-icon" aria-hidden="true">💾</span>
+            <!--@icon:disk-->
             <span>Sauvegarde</span>
           </button>
         </div>
@@ -116,7 +123,7 @@
               <span class="setting-label">Yams</span>
             </div>
 
-            <button type="button" id="reset-rules" class="reset-rules">↺ Valeurs par défaut</button>
+            <button type="button" id="reset-rules" class="reset-rules"><!--@icon:reset-->Valeurs par défaut</button>
           </section>
 
           <section class="settings-group">
@@ -156,33 +163,33 @@
             <ul id="players-admin" class="score-admin-list"></ul>
           </section>
 
-          <section class="settings-group">
+          <section class="settings-group" data-game="yams">
             <h2>Palmarès du Yams</h2>
             <p class="settings-hint">
               Supprimer une entrée des classements du palmarès.
             </p>
             <div class="score-admin-block">
-              <h3 class="score-admin-title">👑 Meilleurs</h3>
+              <h3 class="score-admin-title"><!--@icon:crown-->Meilleurs</h3>
               <ul id="best-admin" class="score-admin-list"></ul>
             </div>
             <div class="score-admin-block">
-              <h3 class="score-admin-title">💩 Pires</h3>
+              <h3 class="score-admin-title"><!--@icon:fall-->Pires</h3>
               <ul id="worst-admin" class="score-admin-list"></ul>
             </div>
           </section>
 
-          <section class="settings-group">
+          <section class="settings-group" data-game="g5000">
             <h2>Palmarès du 5000</h2>
             <p class="settings-hint">
               Effacer un record : la prochaine partie terminée pourra l'établir
               à nouveau.
             </p>
             <div class="score-admin-block">
-              <h3 class="score-admin-title">🏅 Records</h3>
+              <h3 class="score-admin-title"><!--@icon:sparkle-->Records</h3>
               <ul id="g5000-records-admin" class="score-admin-list"></ul>
             </div>
             <div class="score-admin-block">
-              <h3 class="score-admin-title">🏆 Victoires</h3>
+              <h3 class="score-admin-title"><!--@icon:trophy-->Victoires</h3>
               <ul id="g5000-wins-admin" class="score-admin-list"></ul>
             </div>
           </section>
@@ -306,8 +313,8 @@
               </span>
               <div class="setting-control">
                 <div class="seg" id="g5000-five" role="group" aria-label="Valeur de la quinte">
-                  <button type="button" data-value="doubleFour">2 × carré</button>
                   <button type="button" data-value="doubleThree">2 × brelan</button>
+                  <button type="button" data-value="doubleFour">2 × carré</button>
                   <button type="button" data-value="custom">Perso</button>
                 </div>
               </div>
@@ -345,7 +352,7 @@
           <!-- Hors des cartes : il remet TOUT le panneau à zéro, pas seulement le
                barème. Rangé dans la dernière carte, il mentait sur sa portée. -->
           <button id="g5000-reset" type="button" class="reset-rules reset-rules--panel" hidden>
-            ↺ Remettre les règles du 5000 par défaut
+            <!--@icon:reset-->Remettre les réglages du 5000 par défaut
           </button>
         </div>
 
@@ -358,10 +365,13 @@
             </p>
             <div id="backup-controls">
               <button id="export-btn" type="button" class="btn btn-primary btn-outline">
-                ⬇️ Exporter mes données
+                <!--@icon:download-->Exporter mes données
               </button>
+              <!-- Le nom du fichier, quelques secondes après l'export : sur
+                   iPhone il part sans bruit dans Fichiers (backupPanel.ts). -->
+              <p id="export-done" class="export-done" role="status" hidden></p>
               <label for="import-input" class="btn btn-danger btn-outline">
-                ⬆️ Importer une sauvegarde
+                <!--@icon:upload-->Importer une sauvegarde
               </label>
               <input id="import-input" type="file" accept="application/json,.json" hidden />
             </div>
@@ -370,7 +380,7 @@
       </div>
 
       <div class="action-bar">
-        <a id="back-btn" href="index.html" class="btn btn-secondary">🏠 Retour</a>
+        <a id="back-btn" href="index.html" class="btn btn-secondary btn-outline"><!--@icon:home-->Retour</a>
       </div>
     </div>
 
@@ -412,7 +422,7 @@
         id="player-edit-input"
         class="player-edit-input"
         autocomplete="off"
-        maxlength="40"
+        maxlength="20"
       />
       <p class="player-edit-error" id="player-edit-error" hidden>
         Ce nom est déjà utilisé.

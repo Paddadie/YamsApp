@@ -7,17 +7,27 @@
   </head>
   <body>
     <div id="hall-screen" class="screen">
+      <header class="page-head">
+        <p class="page-eyebrow">Yams</p>
+        <!-- Cinq touchers sur le trophée : les crédits (hall.ts). -->
+        <h1 class="page-title">
+          <span id="hof-trophy" class="hof-trophy"><!--@icon:trophy--></span>Palmarès
+        </h1>
+      </header>
       <div id="hall-content">
-        <h1><span id="hof-trophy" class="hof-trophy">🏆</span> Palmarès du Yams</h1>
         <p class="hall-hint">Touchez une partie pour voir le détail des points.</p>
 
-        <div id="record-card" hidden></div>
+        <div id="record-card" class="postit" hidden></div>
 
-        <section class="hall-block hall-block--best">
-          <h2>👑 Meilleurs scores</h2>
+        <!-- Un papier de couleur par famille, avec son onglet : meilleurs en
+             jaune, pires en rose, statistiques en bleu (demande de Paul :
+             blanc sur fond clair, les trois blocs se distinguaient mal). -->
+        <section class="hall-block paper-block paper-block--best">
+          <h2 class="paper-tab"><!--@icon:crown-->Meilleurs scores</h2>
           <table id="best-scores-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Joueur</th>
                 <th>Variante</th>
                 <th>Date</th>
@@ -28,12 +38,12 @@
           </table>
         </section>
 
-        <section class="hall-block hall-block--worst">
-          <h2>💩 Pires scores</h2>
-          <p class="hall-note">Parties classiques uniquement</p>
+        <section class="hall-block paper-block paper-block--worst">
+          <h2 class="paper-tab"><!--@icon:fall-->Pires scores · classiques</h2>
           <table id="worst-scores-table">
             <thead>
               <tr>
+                <th></th>
                 <th>Joueur</th>
                 <th>Date</th>
                 <th>Score</th>
@@ -43,15 +53,14 @@
           </table>
         </section>
 
-        <section class="hall-block hall-block--stats">
-          <h2>📊 Statistiques</h2>
-          <p class="hall-note">Parties classiques uniquement</p>
+        <section class="hall-block paper-block paper-block--stats">
+          <h2 class="paper-tab"><!--@icon:chart-->Statistiques · classiques</h2>
           <ul id="stats-list"></ul>
         </section>
       </div>
 
       <div class="action-bar">
-        <a href="yams.html" class="btn btn-secondary">🏠 Retour</a>
+        <a href="yams.html" class="btn btn-secondary btn-outline"><!--@icon:home-->Retour</a>
       </div>
     </div>
 

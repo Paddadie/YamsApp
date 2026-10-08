@@ -1,13 +1,19 @@
 /* Feuille de style de l'application, découpée par domaine dans styles/.
 
-   L'ORDRE des imports est celui de l'ancienne feuille d'un seul tenant, et il
-   compte : des règles de même spécificité se départagent par leur position
-   (`.score-cell.has-hint::before` après `.score-cell.is-empty::before`, dans
-   yams-game.css ; les surcharges de tablet.css après tout le reste). Un
-   fichier ajouté ou déplacé se vérifie en comparant le CSS compilé avant et
-   après. */
+   L'ORDRE des imports compte : des règles de même spécificité se départagent
+   par leur position (`.score-cell.has-hint::before` après
+   `.score-cell.is-empty::before`, dans yams-game.css ; les surcharges de
+   tablet.css après tout le reste). Un fichier ajouté ou déplacé se vérifie en
+   comparant le CSS compilé avant et après.
 
+   La police en premier : un @import doit précéder toute règle. Seule la
+   version à largeur variable est chargée (capitales étroites des titres et des
+   chiffres, largeur normale du texte) ; ses fichiers sont mis en cache par le
+   service worker, comme le reste. */
+
+@import "@fontsource-variable/archivo/wdth.css";
 @import "./styles/base.css";
+@import "./styles/paper.css";
 @import "./styles/buttons.css";
 @import "./styles/screens.css";
 @import "./styles/players.css";

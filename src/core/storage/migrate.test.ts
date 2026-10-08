@@ -28,11 +28,11 @@ const aGame = (over: Record<string, unknown> = {}): Record<string, unknown> => (
 describe("marqueur de version", () => {
   it("pose la version courante après un passage", () => {
     migrateStorage();
-    expect(localStorage.getItem(STORAGE_KEYS.schemaVersion)).toBe("7");
+    expect(localStorage.getItem(STORAGE_KEYS.schemaVersion)).toBe("8");
   });
 
   it("ne retouche plus rien une fois la version atteinte", () => {
-    localStorage.setItem(STORAGE_KEYS.schemaVersion, "7");
+    localStorage.setItem(STORAGE_KEYS.schemaVersion, "8");
     put(STORAGE_KEYS.knownNames, ["Jean", "jean"]);
     migrateStorage();
     expect(read<string[]>(STORAGE_KEYS.knownNames)).toEqual(["Jean", "jean"]);
@@ -195,7 +195,8 @@ describe("classements du Hall of Fame", () => {
     };
     put(STORAGE_KEYS.bestScores, [entry]);
     migrateStorage();
-    expect(read<ScoreEntry[]>(STORAGE_KEYS.bestScores)[0]).toEqual(entry);
+    // Seule la date change de forme (v8).
+    expect(read<ScoreEntry[]>(STORAGE_KEYS.bestScores)[0]).toEqual({ ...entry, date: "2026-02-01" });
   });
 
   it("v7 — convertit une ancienne feuille et retrouve son barème dans ses libellés", () => {
@@ -362,5 +363,46 @@ describe("v6 — brouillon d'avant-partie", () => {
     put(STORAGE_KEYS.draft, draft);
     migrateStorage();
     expect(read(STORAGE_KEYS.draft)).toEqual(draft);
+  });
+});
+
+describe("v8 — dates en ISO", () => {
+  it("convertit les dates du palmarès, des records du 5000 et de la dernière victoire", () => {
+    put(STORAGE_KEYS.bestScores, [{ name: "Jean", score: 250, date: "1/2/2026" }]);
+    put(STORAGE_KEYS.worstScores, [{ name: "Jean", score: 90, date: "15/08/2025", variant: "Classique" }]);
+    put(STORAGE_KEYS.g5000Records, {
+      targets: { "5000": { biggestBank: { name: "Bob", value: 2350, date: "03/10/2026" } } },
+      wins: { Bob: 2 },
+    });
+    put(STORAGE_KEYS.lastWin, { gameId: "g5000", winners: ["Bob"], score: 5150, date: "07/10/2026" });
+    migrateStorage();
+    expect(read<ScoreEntry[]>(STORAGE_KEYS.bestScores)[0].date).toBe("2026-02-01");
+    expect(read<ScoreEntry[]>(STORAGE_KEYS.worstScores)[0].date).toBe("2025-08-15");
+    expect(
+      read<{ targets: Record<string, Record<string, { date: string }>> }>(STORAGE_KEYS.g5000Records)
+        .targets["5000"].biggestBank.date,
+    ).toBe("2026-10-03");
+    expect(read<{ date: string }>(STORAGE_KEYS.lastWin).date).toBe("2026-10-07");
+  });
+
+  it("laisse en place une date déjà en ISO, vide ou illisible", () => {
+    put(STORAGE_KEYS.bestScores, [
+      { name: "A", score: 3, date: "2026-10-08T21:14" },
+      { name: "B", score: 2, date: "" },
+      { name: "C", score: 1, date: "hier soir" },
+    ]);
+    migrateStorage();
+    expect(read<ScoreEntry[]>(STORAGE_KEYS.bestScores).map((e) => e.date)).toEqual([
+      "2026-10-08T21:14",
+      "",
+      "hier soir",
+    ]);
+  });
+
+  it("une donnée d'une version précédente repasse par là (import d'une vieille sauvegarde)", () => {
+    localStorage.setItem(STORAGE_KEYS.schemaVersion, "7");
+    put(STORAGE_KEYS.lastWin, { gameId: "yams", winners: ["Jean"], score: 280, date: "08/10/2026" });
+    migrateStorage();
+    expect(read<{ date: string }>(STORAGE_KEYS.lastWin).date).toBe("2026-10-08");
   });
 });

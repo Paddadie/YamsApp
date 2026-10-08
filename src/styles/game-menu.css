@@ -1,125 +1,204 @@
-/* ========== PASTILLE DE COIN (paramètres, sur le menu des jeux) ========== */
-/* Posé sur une classe et non sur une liste d'id, qu'il faudrait rallonger à
-   chaque écran ajouté — c'est le piège déjà rencontré avec les dialogues.
-   Les écrans d'un jeu n'en ont pas : ils portent une .screen-bar. */
-.corner-link {
-  position: absolute;
-  top: calc(0.6rem + env(safe-area-inset-top));
-  right: calc(0.6rem + env(safe-area-inset-right));
-  z-index: 5;
-  width: 2.4rem;
-  height: 2.4rem;
-  display: grid;
-  place-items: center;
-  border: none;
-  padding: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 1.35rem;
-  line-height: 1;
-  text-decoration: none;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-}
-
-.corner-link:hover {
-  background: #fff;
-}
-
 /* ========== MENU DES JEUX (accueil) ========== */
-/* Une tuile par entrée du registre : la liste n'est pas écrite en dur, un jeu
-   ajouté apparaît ici sans toucher au CSS. */
+/* La marque en tête (« CORNET » en grandes capitales étroites, un dé au trait),
+   puis une carte par entrée du registre : la liste n'est pas écrite en dur, un
+   jeu ajouté apparaît ici sans toucher au CSS. */
+.brand-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: calc(1.6rem + env(safe-area-inset-top, 0px))
+    max(0.5rem, calc((100% - var(--content-max)) / 2 - 0.5rem)) 0.2rem
+    max(var(--gutter), calc((100% - var(--content-max)) / 2));
+}
+
+/* Le cornet renversé, juste après le nom (core/illustrations.ts) ; le
+   pictogramme des Paramètres reste calé à droite. */
+.brand-mark {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  align-self: stretch;
+}
+
+.cornet-illustration {
+  width: clamp(4.4rem, 18vw, 5.4rem);
+  height: auto;
+  overflow: visible;
+}
+
+.cornet-shadow {
+  fill: rgba(var(--shade-rgb), 0.14);
+}
+
+.cornet-cup {
+  fill: var(--cup);
+  stroke: var(--ink);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.cornet-rim {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.cornet-band {
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1.4;
+}
+
+.brand-name {
+  flex: none;
+  margin: 0;
+  text-align: left;
+  font-size: clamp(2.9rem, 13vw, 3.4rem);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
 #menu-screen .screen-body {
   justify-content: flex-start;
-  gap: clamp(0.9rem, 3vh, 1.5rem);
-  padding-top: clamp(1rem, 3.5vh, 2.75rem);
+  gap: 1rem;
+  padding-top: 0.9rem;
 }
 
-#menu-screen h1 {
-  margin: 0;
-  font-size: clamp(2rem, 6vw, 3rem);
-  letter-spacing: 0.02em;
-}
-
-.menu-hint {
-  margin: 0;
-  text-align: center;
-  color: #5b6b73;
-  font-size: 0.95rem;
-}
-
+/* Rangées égales : toutes les cartes prennent la hauteur de la plus haute.
+   Sans ça, la carte du Yams (extrait de 3 lignes) est plus courte que celle du
+   5000 (4 lignes), et une carte avec une partie en cours dépasse les autres. */
 #game-list {
   list-style: none;
-  margin: 0 auto auto;
+  margin: 0;
   padding: 0;
-  width: 100%;
-  max-width: var(--content-max);
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  display: grid;
+  /* minmax(0, …) : une colonne implicite prendrait la largeur de son contenu
+     et ferait déborder l'écran. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 1.1rem;
 }
 
-/* La teinte du jeu ne sert qu'ici : un filet et un halo, jamais un aplat —
-   le fond plein écran reste réservé à la couleur du joueur pendant son tour. */
+/* Une carte = un feuillet détaché du bloc de son jeu : le nom à l'encre du jeu
+   (--accent, posé par home.ts), son accroche, un extrait de sa feuille. La
+   partie principale s'étire pour remplir la rangée, la reprise reste en bas. */
 .game-tile {
-  border-radius: 14px;
-  background: var(--white);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
-  overflow: hidden;
-  border-left: 5px solid var(--accent, var(--secondary-color));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* le papier teinté suit les coins du feuillet */
 }
 
 .game-link {
-  display: flex;
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.85rem;
-  padding: 1rem 1.1rem;
-  text-decoration: none;
+  gap: 0.75rem;
+  padding: 1.15rem 1rem 1rem;
+  /* Le haut de la carte au papier du jeu, la reprise reste sur le feuillet. */
+  background: var(--accent-paper, var(--sheet));
   color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .game-link:active {
-  background: #f1f4f5;
-}
-
-.game-icon {
-  font-size: 2rem;
-  line-height: 1;
-  flex: none;
+  background: color-mix(in srgb, var(--ink) 6%, var(--accent-paper, var(--sheet)));
 }
 
 .game-text {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.4rem;
   min-width: 0;
 }
 
 .game-title {
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: clamp(2.6rem, 12vw, 3rem);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.88;
+  text-transform: uppercase;
+  color: var(--accent, var(--ink));
 }
 
 .game-tagline {
   font-size: 0.85rem;
-  color: #5b6b73;
+  line-height: 1.35;
+  color: var(--ink-soft);
 }
 
-/* Seconde entrée de la tuile : mène droit à l'écran de partie, sans repasser
-   par l'accueil du jeu. */
+/* Seconde entrée de la carte, sous un pointillé : mène droit à l'écran de
+   partie, sans repasser par l'accueil du jeu. */
 .game-resume {
-  display: block;
-  padding: 0.7rem 1.1rem;
-  border-top: 1px solid #e4e8ea;
-  background: #f6f9f7;
-  color: var(--primary-hover);
-  font-size: 0.9rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 0.9rem 0.75rem 1rem;
+  border-top: 1.5px dashed var(--rule);
+  color: var(--ink);
+  font-size: 0.88rem;
   text-decoration: none;
+}
+
+.game-resume:active {
+  background: color-mix(in srgb, var(--primary-color) 6%, var(--sheet));
+}
+
+.game-resume-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+
+.game-resume-names {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.game-resume:active {
-  background: #e8f1ea;
+.game-resume-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  flex: none;
+  font-weight: 700;
+  color: var(--primary-hover);
+}
+
+/* Le post-it « Dernière victoire » (renderLastWin, home.ts), en tête du menu,
+   un peu de travers comme ceux du palmarès (.postit, paper.css). */
+.last-win {
+  align-self: center;
+  width: min(100%, 21rem);
+  margin: 0.5rem 0 0.3rem;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.last-win-label {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-hover);
+}
+
+.last-win-who {
+  font-size: 1.15rem;
+  font-stretch: 75%;
+  font-weight: 900;
+}
+
+.last-win-date {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
 }

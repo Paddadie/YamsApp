@@ -121,3 +121,20 @@ export function button(text: string, root: ParentNode = document): HTMLButtonEle
 export function hasButton(text: string, root: ParentNode = document): boolean {
   return [...root.querySelectorAll("button")].some((b) => b.textContent?.includes(text));
 }
+
+// Un événement de pointeur au doigt. jsdom n'a pas `PointerEvent` : un
+// MouseEvent du même nom, auquel on ajoute ce que lisent les écrans
+// (identifiant du pointeur, pointeur principal, doigt plutôt que souris).
+export function pointer(
+  target: EventTarget,
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  { x = 0, y = 0, id = 1 }: { x?: number; y?: number; id?: number } = {},
+): void {
+  const event = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y });
+  Object.defineProperties(event, {
+    pointerId: { value: id },
+    isPrimary: { value: true },
+    pointerType: { value: "touch" },
+  });
+  target.dispatchEvent(event);
+}

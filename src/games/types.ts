@@ -10,6 +10,7 @@
 
 import type { GameDraft } from "../core/storage/draftRepo";
 import type { SummaryValue } from "../core/ui";
+import type { IconName } from "../core/iconPaths";
 
 // Ligne d'un récapitulatif <dl> (cf. summaryRow dans core/ui). En données, pas
 // en DOM : un jeu décrit, l'écran construit — et resume() / describePlayer()
@@ -35,30 +36,78 @@ export interface RulesTable {
   note?: string;
 }
 
+// Une entrée d'une liste illustrée (les variantes) : son pictogramme dessiné,
+// son nom, ce qu'elle change.
+export interface RulesItem {
+  icon: IconName;
+  color: string;
+  title: string;
+  text: string;
+}
+
+// Un exemple en vrais dés (dessinés) : la main, les dés qui comptent, ce que
+// ça rapporte. Le résultat est calculé par le barème du jeu, jamais écrit à
+// la main.
+export interface RulesExample {
+  dice: number[];
+  // Indices des dés qui comptent ; les autres sont pâlis. Absent : tous.
+  counted?: number[];
+  result: string;
+}
+
 export interface RulesSection {
   title: string;
   body?: string[];
+  examples?: RulesExample[];
   table?: RulesTable;
+  items?: RulesItem[];
   // `variants` : encadré des variantes, distinct des règles de base.
   kind?: "variants";
+}
+
+// Quelques lignes d'une feuille de ce jeu, en filigrane de sa carte au menu et
+// de son accueil : un jeu se reconnaît à sa feuille. Une ligne porte un
+// libellé (grille du Yams, face de dé facultative) ou non (colonne de cumuls du
+// 5000) ; `mark` est le geste du marqueur posé dessus.
+export interface SheetSampleLine {
+  label?: string;
+  die?: number;
+  value: string;
+  mark?: "circle" | "strike" | "live";
 }
 
 // Partie en cours d'un jeu, telle que l'accueil et l'avertissement
 // « une partie est en cours » la décrivent.
 export interface ResumeInfo {
   playerNames: string[];
+  // Leurs couleurs de partie, dans le même ordre : les pastilles de la reprise.
+  playerColors: string[];
   // Récapitulatif détaillé : variantes du Yams, objectif du 5000…
   rows: SummaryRow[];
+  // Où en est la partie, sur la carte « Partie en cours » : une phrase
+  // (« Tour 6 sur 13 », « Bob mène · 3 100 ») et une jauge de 0 à 1.
+  progress?: { label: string; ratio: number };
 }
 
 export interface GameDef {
   id: string;
   title: string;
-  icon: string;
-  // Teinte du jeu sur la tuile d'accueil. Distincte des couleurs de joueur.
+  // Emblème dessiné (sélecteur de jeu, onglets des Paramètres).
+  icon: IconName;
+  // Encre du jeu : son titre, ses entourés, sa carte au menu. Distincte des
+  // couleurs de joueur, qui seules colorent le fond d'un écran de partie.
   accent: string;
+  // Le papier du jeu : l'accent très éclairci, fond des en-têtes de ses pages
+  // et du haut de sa carte au menu (cf. pages/gameTheme.ts).
+  accentPaper: string;
+  // Les cinq dés lancés de l'illustration de son accueil : un coup qui dit le
+  // jeu (un Yams de 6, un brelan de 1…). Purement décoratif.
+  sceneDice: number[];
   // Une phrase sur la tuile d'accueil.
   tagline: string;
+  // L'extrait de feuille de la carte du menu et de l'accueil (cf.
+  // SheetSampleLine).
+  sample: SheetSampleLine[];
 
   // Les liens vers les records et les règles sont écrits dans le HTML de
   // l'accueil du jeu : seuls ces deux-là sont construits par le code.

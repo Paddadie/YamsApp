@@ -49,3 +49,22 @@ describe("stockage persistant", () => {
     expect(persist).toHaveBeenCalledOnce();
   });
 });
+
+describe("export de la sauvegarde", () => {
+  it("dit que le fichier est parti, et lequel", async () => {
+    vi.useFakeTimers();
+    // jsdom ne fabrique pas d'URL de blob ni ne télécharge : on les bouchonne.
+    URL.createObjectURL = vi.fn(() => "blob:sauvegarde");
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    await openPage("settings");
+    click("#export-btn");
+
+    const notice = el("#export-done");
+    expect(notice.hidden).toBe(false);
+    expect(notice.textContent).toMatch(/^Sauvegarde téléchargée : cornet-sauvegarde-\d{4}-\d{2}-\d{2}\.json$/);
+
+    vi.runAllTimers();
+    expect(notice.hidden).toBe(true);
+  });
+});

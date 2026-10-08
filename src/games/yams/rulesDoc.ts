@@ -7,9 +7,9 @@
 // construit la grille de jeu. Si un jour le barème change de forme, cette page
 // suivra ou un test cassera — elle ne peut pas diverger en silence.
 
-import type { RulesSection } from "../types";
+import type { RulesExample, RulesSection } from "../types";
 import type { GameRules, GroupMode } from "./types";
-import { BONUS_THRESHOLD, GROUP_SIZE } from "./scoring";
+import { BONUS_THRESHOLD, GROUP_SIZE, handScore } from "./scoring";
 import { VARIANTS } from "./variants";
 
 // « Somme des 5 dés », « somme des 3 dés de la combinaison » ou « 25 points » :
@@ -59,25 +59,51 @@ export function yamsRulesDoc(rules: GameRules): RulesSection[] {
         "Les six premières lignes ne comptent que les dés du chiffre concerné : trois 4 valent 12 sur la ligne des 4, et le reste des dés ne compte pas.",
         `Atteignez ${BONUS_THRESHOLD} points sur ces six lignes et vous décrochez le bonus. ${BONUS_THRESHOLD} points, c'est trois dés de chaque chiffre — mais tout autre chemin fait l'affaire.`,
       ],
+      // Seuls les trois 4 comptent sur la ligne des 4.
+      examples: [{ dice: [4, 4, 4, 2, 6], counted: [0, 1, 2], result: "Ligne des 4 → 12" }],
     },
     {
       title: "Les combinaisons",
+      examples: combinationExamples(rules),
       table: {
         head: ["Combinaison", "Rapporte"],
         rows: [
           ...combinationRows(rules),
           [`Bonus — ${BONUS_THRESHOLD}+ dans la section des chiffres`, `${rules.bonus} points`],
         ],
-        note: "D'après vos réglages. Modifiables dans ⚙️ Barème du Yams.",
+        note: "D'après vos réglages. Modifiables dans Paramètres › Barème du Yams.",
       },
     },
     {
       title: "Les variantes",
       body: [
         "Vous pouvez jouer plusieurs variantes dans la même partie : chacune a sa colonne, et le classement se fait sur le total de toutes.",
-        ...VARIANTS.map((variant) => `${variant.icon} ${variant.label} — ${VARIANT_TEXT[variant.value]}`),
       ],
+      items: VARIANTS.map((variant) => ({
+        icon: variant.icon,
+        color: variant.color,
+        title: variant.label,
+        text: VARIANT_TEXT[variant.value],
+      })),
     },
+  ];
+}
+
+// Trois mains en vrais dés, valeurs calculées par le barème en vigueur (Somme,
+// dés de la combinaison ou points fixes) : l'exemple suit les Paramètres.
+function combinationExamples(rules: GameRules): RulesExample[] {
+  const example = (dice: number[], line: "brelan" | "full" | "yams", name: string): RulesExample => {
+    const points = handScore(line, dice, rules);
+    return { dice, result: `${name} → ${points} point${points > 1 ? "s" : ""}` };
+  };
+  return [
+    {
+      ...example([5, 5, 5, 2, 1], "brelan", "Brelan"),
+      // En « dés de la combinaison », les deux autres dés ne comptent pas.
+      counted: rules.brelan.type === "dice" ? [0, 1, 2] : undefined,
+    },
+    example([3, 3, 3, 5, 5], "full", "Full"),
+    example([6, 6, 6, 6, 6], "yams", "Yams"),
   ];
 }
 
@@ -85,11 +111,11 @@ export function yamsRulesDoc(rules: GameRules): RulesSection[] {
 // tenues par l'application (elle verrouille les cases dans l'ordre) ; les deux
 // autres reposent sur un accord entre joueurs.
 const VARIANT_TEXT: Record<string, string> = {
-  Classique: "les cases se remplissent dans l'ordre que vous voulez.",
+  Classique: "Les cases se remplissent dans l'ordre que vous voulez.",
   Montante:
-    "les cases se remplissent de bas en haut, du Yams vers les chiffres. L'application verrouille les suivantes.",
+    "Les cases se remplissent de bas en haut, du Yams vers les chiffres. L'application verrouille les suivantes.",
   Descendante:
-    "les cases se remplissent de haut en bas, des chiffres vers le Yams. L'application verrouille les suivantes.",
+    "Les cases se remplissent de haut en bas, des chiffres vers le Yams. L'application verrouille les suivantes.",
   "One Shot":
-    "un seul lancer par tour, sans relance. L'application ne le vérifie pas : c'est à la table de s'y tenir.",
+    "Un seul lancer par tour, sans relance. L'application ne le vérifie pas : c'est à la table de s'y tenir.",
 };

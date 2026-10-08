@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getRules, getSavedGame, isG5000Game } from "./repo";
-import { createGame } from "./engine";
+import { getRules, getSavedGame, isG5000Game, renameInSavedGame, saveSavedGame } from "./repo";
+import { createGame, enterTurn, finishTurn, undoLastTurn } from "./engine";
 import { DEFAULT_RULES } from "./rules";
 import { STORAGE_KEYS } from "../../core/storage/keys";
+import type { G5000Game } from "./types";
 
 beforeEach(() => localStorage.clear());
 
@@ -80,5 +81,32 @@ describe("règles d'avant les variantes", () => {
       JSON.stringify({ ...DEFAULT_RULES, variants: ["combo"] }),
     );
     expect(getRules().variants).toEqual(["combo"]);
+  });
+});
+
+describe("la partie d'avant le dernier tour (« Corriger »)", () => {
+  function playedGame() {
+    const game = createGame(["Marlo", "Poulet"], ["#FCC1C7", "#A5E4BB"], DEFAULT_RULES);
+    enterTurn(game, 600, 0);
+    finishTurn(game, "bank");
+    saveSavedGame(game);
+    return game;
+  }
+
+  it("suit un renommage : reprendre le tour ne ramène pas l'ancien nom", () => {
+    playedGame();
+    renameInSavedGame("marlo", "Marlène");
+    const game = getSavedGame()!;
+    undoLastTurn(game);
+    expect(game.players.map((p) => p.name)).toEqual(["Marlène", "Poulet"]);
+  });
+
+  it("abîmée, elle est écartée sans perdre la partie", () => {
+    const game = playedGame();
+    saveSavedGame({ ...game, previous: { players: "?" } as unknown as G5000Game });
+    const read = getSavedGame()!;
+    expect(read.players[0].sheet).toEqual([{ score: 600 }]);
+    expect(read.previous).toBeUndefined();
+    expect(read.lastTurn).toBeUndefined();
   });
 });

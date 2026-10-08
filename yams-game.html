@@ -11,7 +11,7 @@
            Hors de la ligne du joueur, pour ne pas être confondue avec les
            flèches. Le titre n'est pas un <h1> : c'est le nom du joueur. -->
       <header class="screen-bar">
-        <p class="screen-bar-title"><span class="game-label">🍀 Yams</span></p>
+        <p class="screen-bar-title"><span class="game-label">Yams</span></p>
         <!-- Affiché quand la grille montrée n'est pas celle du joueur qui doit
              jouer (flèches, glissement) : y ramène d'un toucher. Dans la barre
              et non sous le nom : le milieu de la barre est libre, la grille ne
@@ -38,14 +38,16 @@
         </div>
       </header>
       <div class="player-header">
-        <button id="prev-player-btn" type="button" class="nav-arrow" aria-label="Joueur précédent">⬅️</button>
-        <h1 id="current-player-name"></h1>
-        <button id="next-player-btn" type="button" class="nav-arrow" aria-label="Joueur suivant">➡️</button>
+        <button id="prev-player-btn" type="button" class="nav-arrow" aria-label="Joueur précédent"><!--@icon:chevronLeft--></button>
+        <!-- aria-live : un lecteur d'écran annonce le joueur à chaque changement
+             (flèches, glissement, avance automatique après une saisie). -->
+        <h1 id="current-player-name" aria-live="polite"></h1>
+        <button id="next-player-btn" type="button" class="nav-arrow" aria-label="Joueur suivant"><!--@icon:chevronRight--></button>
       </div>
       <div id="score-tables"></div>
       <!-- Consultation depuis l'écran de fin seulement : retour au classement. -->
       <div class="action-bar" id="review-bar" hidden>
-        <a href="yams-end.html" class="btn btn-gold">🥇 Classement final</a>
+        <a href="yams-end.html" class="btn btn-gold"><!--@icon:trophy-->Classement final</a>
       </div>
     </div>
 

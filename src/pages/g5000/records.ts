@@ -13,10 +13,13 @@
 // en bas (README, « Conventions »).
 
 import { bootstrap } from "../../core/bootstrap";
-import { plural, requireEl } from "../../core/ui";
+import { iconGommette } from "../../core/icons";
+import { requireEl } from "../../core/ui";
 import { formatDate } from "../../core/dates";
 import { formatScore } from "../../core/format";
+import { targetOption } from "../targetOption";
 import { G5000 } from "../../games/g5000/gameDef";
+import { applyGameTheme } from "../gameTheme";
 import { getRecords, getRules, getSavedGame } from "../../games/g5000/repo";
 import {
   mostWins,
@@ -62,8 +65,10 @@ function buildCard(key: RecordKey): HTMLLIElement {
   const card = document.createElement("li");
   card.className = holder ? "record-card" : "record-card is-vacant";
 
-  const icon = span("record-icon", label.icon);
-  icon.setAttribute("aria-hidden", "true");
+  // Le pictogramme du record sur une gommette de la couleur de sa famille.
+  const pictogram = document.createElement("span");
+  pictogram.className = "record-icon";
+  pictogram.appendChild(iconGommette(label.icon));
 
   const head = document.createElement("div");
   head.className = "record-head";
@@ -75,7 +80,7 @@ function buildCard(key: RecordKey): HTMLLIElement {
 
   if (!holder) {
     // Une carte vide reste affichée : elle dit ce qu'il y a à conquérir.
-    body.appendChild(span("record-vacant", "à établir"));
+    body.appendChild(span("record-vacant", "à prendre"));
   } else {
     const main = document.createElement("div");
     main.className = "record-main";
@@ -88,7 +93,7 @@ function buildCard(key: RecordKey): HTMLLIElement {
     if (meta.length) body.appendChild(span("record-meta", meta.join(" · ")));
   }
 
-  card.append(icon, body);
+  card.append(pictogram, body);
   return card;
 }
 
@@ -101,26 +106,12 @@ function renderTargetChips(): void {
   const options = requireEl("target-options");
   options.replaceChildren();
   for (const value of targets) {
-    const chip = document.createElement("label");
-    chip.className = "variant-chip";
-    chip.style.setProperty("--chip-color", G5000.accent);
-
-    const radio = document.createElement("input");
-    radio.type = "radio";
-    radio.name = "target";
-    radio.value = String(value);
-    radio.checked = value === target;
-    radio.addEventListener("change", () => {
+    const option = targetOption(value, formatScore(value), value === target);
+    option.input.addEventListener("change", () => {
       target = value;
       renderRecords();
     });
-
-    const label = document.createElement("span");
-    label.className = "chip-label";
-    label.textContent = formatScore(value);
-
-    chip.append(radio, label);
-    options.appendChild(chip);
+    options.appendChild(option.label);
   }
 }
 
@@ -131,11 +122,39 @@ function renderRecords(): void {
     .some((key) => holderOf(key) !== null);
   empty.hidden = anyRecord;
   empty.textContent =
-    `Aucune partie terminée à ${formatScore(target)} points pour l'instant : ` +
-    "les records s'établiront à la fin de la première.";
+    `Aucun record à ${formatScore(target)} points pour l'instant. ` +
+    "Le premier vainqueur ouvrira le palmarès.";
 
   requireEl("records-best").replaceChildren(...BEST_RECORDS.map(buildCard));
   requireEl("records-worst").replaceChildren(...WORST_RECORDS.map(buildCard));
+}
+
+// Les victoires comptées en bâtons, par paquets de cinq (quatre traits et un
+// barré), comme sur un bloc. Au-delà de vingt, le chiffre seul suffit : une
+// rangée de bâtons ne se lirait plus.
+const TALLY_MAX = 20;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+function tally(count: number): HTMLElement {
+  const marks = document.createElement("span");
+  marks.className = "wins-tally";
+  marks.setAttribute("aria-hidden", "true");
+  if (count > TALLY_MAX) return marks;
+  for (let done = 0; done < count; done += 5) {
+    const inGroup = Math.min(5, count - done);
+    const group = document.createElementNS(SVG_NS, "svg");
+    group.setAttribute("viewBox", "0 0 28 22");
+    group.setAttribute("fill", "none");
+    group.setAttribute("stroke", "currentColor");
+    group.setAttribute("stroke-width", "2");
+    group.setAttribute("stroke-linecap", "round");
+    let lines = "";
+    for (let k = 0; k < Math.min(inGroup, 4); k++) lines += `<path d="M${4 + k * 6} 3v16"/>`;
+    if (inGroup === 5) lines += '<path d="M1 16L25 5"/>';
+    group.innerHTML = lines;
+    marks.appendChild(group);
+  }
+  return marks;
 }
 
 function renderWins(): void {
@@ -147,10 +166,7 @@ function renderWins(): void {
   for (const [name, count] of rows) {
     const li = document.createElement("li");
     li.className = "wins-row";
-    li.append(
-      span("wins-name", name),
-      span("wins-count", plural(count, "victoire")),
-    );
+    li.append(span("wins-name", name), tally(count), span("wins-count", String(count)));
     list.appendChild(li);
   }
 }
@@ -163,6 +179,7 @@ if (new URLSearchParams(location.search).get("from") === "end") {
   requireEl<HTMLAnchorElement>("back-btn").href = "5000-end.html";
 }
 
+applyGameTheme(requireEl("g5000-records-screen"), G5000);
 renderTargetChips();
 renderRecords();
 renderWins();

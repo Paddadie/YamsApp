@@ -2,6 +2,7 @@
 // fichier, et import qui les remplace — d'où la confirmation détaillée.
 
 import { makeDismissible, requireEl, summaryRow } from "../../core/ui";
+import { icon } from "../../core/icons";
 import { goTo } from "../../core/nav";
 import {
   downloadBackup,
@@ -16,11 +17,15 @@ import { showMessage } from "./dialogs";
 
 const importDialog = requireEl<HTMLDialogElement>("import-dialog");
 
+// Le temps de lire le nom du fichier, puis la ligne s'efface.
+const EXPORT_NOTICE_MS = 5000;
+let exportNoticeTimer: ReturnType<typeof setTimeout> | undefined;
+
 /* ---------- Export / import de sauvegarde ---------- */
 
 export function setupBackupPanel(): void {
   makeDismissible(importDialog, "import-cancel");
-  requireEl("export-btn").addEventListener("click", downloadBackup);
+  requireEl("export-btn").addEventListener("click", () => showExported(downloadBackup()));
 
   const importInput = requireEl<HTMLInputElement>("import-input");
   importInput.addEventListener("change", () => {
@@ -30,6 +35,27 @@ export function setupBackupPanel(): void {
     importInput.value = "";
     if (file) void restore(file);
   });
+}
+
+// Rien ne disait que l'export avait eu lieu : sur iPhone le fichier part sans
+// bruit dans Fichiers. Une ligne le confirme, avec le nom à y chercher.
+function showExported(fileName: string): void {
+  const notice = requireEl("export-done");
+  const name = document.createElement("strong");
+  name.textContent = fileName;
+  // Le texte dans un seul élément : la ligne est flex (pour la coche), où le
+  // texte et le nom deviendraient deux colonnes.
+  const text = document.createElement("span");
+  text.append("Sauvegarde téléchargée : ", name);
+  notice.replaceChildren(icon("check"), text);
+  // Retirée puis remise : un second export rejoue l'apparition.
+  notice.hidden = true;
+  void notice.offsetWidth;
+  notice.hidden = false;
+  clearTimeout(exportNoticeTimer);
+  exportNoticeTimer = setTimeout(() => {
+    notice.hidden = true;
+  }, EXPORT_NOTICE_MS);
 }
 
 // L'import remplace TOUTES les données locales : on lit et valide le fichier

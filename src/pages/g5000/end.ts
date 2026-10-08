@@ -1,19 +1,31 @@
 // Fin de partie du 5000 : podium et classement.
 //
-// Le podium reprend celui du Yams, mais le classement vient de `standings` : à
-// score égal sur l'objectif, le premier arrivé passe devant. Seule une partie
-// d'avant cette règle (sans `arrivals`) peut encore finir sur une victoire
-// partagée, d'où `renderSharedWin`.
+// Le podium et sa mise en scène sont ceux du Yams (endScreen.ts), mais le
+// classement vient de `standings` : à score égal sur l'objectif, le premier
+// arrivé passe devant. Seule une partie d'avant cette règle (sans `arrivals`)
+// peut encore finir sur une victoire partagée, d'où `renderSharedWin`.
 //
 // Ordre du module : gardes, constantes, fonctions, puis la mise en route tout
 // en bas (README, « Conventions »).
 
 import { bootstrap } from "../../core/bootstrap";
+import { G5000 } from "../../games/g5000/gameDef";
+import { applyGameTheme } from "../gameTheme";
 import { goTo } from "../../core/nav";
-import { MEDALS, plural, renderTable, requireEl, type Cell } from "../../core/ui";
+import { plural, renderTable, requireEl, type Cell } from "../../core/ui";
+import { icon } from "../../core/icons";
+import {
+  AFTER_PODIUM,
+  celebrate,
+  recordLine,
+  renderPodium,
+  reveal,
+  revealRanking,
+} from "../endScreen";
 import { formatScore } from "../../core/format";
-import { podiumOrder } from "../../core/ranking";
+import { dateStamp } from "../../core/dates";
 import { recordGamesPlayed } from "../../core/storage/playerGamesRepo";
+import { saveLastWin } from "../../core/storage/lastWinRepo";
 import { clearDraft } from "../../core/storage/draftRepo";
 import {
   getRecords,
@@ -53,45 +65,13 @@ const fmt = formatScore;
 
 const results = standings(game);
 
-// Les trois premières places, chacune avec sa médaille de RANG : deux
-// vainqueurs ex æquo montent tous les deux sur une marche d'or.
-function renderPodium(rows: Standing[]): void {
-  requireEl("podium").replaceChildren(
-    ...podiumOrder(rows).map((row) => buildStep(row, row.rank)),
-  );
-}
-
-function buildStep(row: Standing, rank: number): HTMLElement {
-  const step = document.createElement("div");
-  step.className = `podium-step rank-${rank}`;
-
-  const medal = document.createElement("span");
-  medal.className = "podium-medal";
-  medal.textContent = MEDALS[rank - 1];
-
-  const name = document.createElement("span");
-  name.className = "podium-name";
-  name.textContent = row.name;
-
-  const score = document.createElement("span");
-  score.className = "podium-score";
-  score.textContent = fmt(row.score);
-
-  const num = document.createElement("span");
-  num.className = "podium-num";
-  num.textContent = String(rank);
-
-  step.append(medal, name, score, num);
-  return step;
-}
-
 function renderRanking(rows: Standing[]): void {
   const table = requireEl<HTMLTableElement>("ranking-table");
   renderTable(
     table,
     ["", "Joueur", "Score", "Tours"],
     rows.map((row): Cell[] => [
-      MEDALS[row.rank - 1] ?? `${row.rank}`,
+      { rank: row.rank },
       row.name,
       { strong: fmt(row.score) },
       // Tours réellement joués, busts compris (la feuille ne garde que les
@@ -116,6 +96,8 @@ function renderSharedWin(rows: Standing[]): void {
 
 /* ---------- Mise en route ---------- */
 
+applyGameTheme(requireEl("g5000-end-screen"), G5000);
+
 // Enregistré dès l'arrivée, pas au clic sur « Quitter » : une partie terminée
 // ne doit pas être perdue si l'application est fermée ici. `recorded` empêche
 // le double comptage en cas de rafraîchissement.
@@ -127,11 +109,19 @@ let records: G5000Records = getRecords();
 
 if (!game.recorded) {
   const winners = results.filter((r) => r.rank === 1).map((r) => r.index);
-  const merged = mergeRecords(records, game, winners, new Date().toLocaleDateString("fr-FR"));
+  const merged = mergeRecords(records, game, winners, dateStamp());
   records = merged.records;
   broken = merged.broken;
   saveRecords(records);
   recordGamesPlayed(game.players.map((p) => p.name));
+  // Le post-it « Dernière victoire » du menu.
+  const firsts = results.filter((r) => r.rank === 1);
+  saveLastWin({
+    gameId: G5000.id,
+    winners: firsts.map((r) => r.name),
+    score: firsts[0]?.score ?? 0,
+    date: dateStamp(),
+  });
   saveSavedGame({ ...game, recorded: true, recordsBroken: broken });
 }
 
@@ -147,15 +137,27 @@ function renderBrokenRecords(): void {
     if (!label || !holder) continue;
     const li = document.createElement("li");
     li.className = label.worst ? "record-new record-new--worst" : "record-new";
-    li.textContent = `${label.icon} ${label.title} — ${holder.name}, ${label.format(holder.value)}`;
+    li.append(
+      icon(label.icon),
+      recordLine(label.title, `${holder.name}, ${label.format(holder.value)}`),
+    );
     list.appendChild(li);
   }
   list.hidden = list.children.length === 0;
+  // Le post-it se pose avec le classement, une fois le podium monté.
+  if (!list.hidden) reveal(list, AFTER_PODIUM);
 }
 
-renderPodium(results);
+requireEl("end-eyebrow").textContent = `5000 · objectif ${fmt(game.rules.target)}`;
+celebrate(
+  results
+    .filter((r) => r.rank === 1)
+    .map((r) => ({ name: r.name, color: game.players[r.index].color })),
+);
+renderPodium(requireEl("podium"), results, fmt);
 renderBrokenRecords();
 renderRanking(results);
+revealRanking(requireEl<HTMLTableElement>("ranking-table"));
 renderSharedWin(results);
 
 // La partie n'est effacée qu'ici : un rafraîchissement de cette page réaffiche

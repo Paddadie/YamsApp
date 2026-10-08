@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   lastRoster: "yams-last-roster", // derniers joueurs lancés
   knownNames: "yams-player-names", // référentiel des joueurs
   playerGames: "app-player-games", // parties terminées, tous jeux confondus
+  lastWin: "app-last-win", //      dernière victoire, tous jeux (post-it du menu)
 
   /* --- Yams --- */
   savedGame: "yams-saved-game",

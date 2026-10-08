@@ -9,6 +9,7 @@ import {
   currentScore,
   expectedPlayer,
   endTurn,
+  enterTurn,
   finishTurn,
   keepDice,
   reroll,
@@ -21,6 +22,8 @@ import {
   standings,
   tieTargets,
   bankOutcome,
+  canUndoLastTurn,
+  undoLastTurn,
 } from "./engine";
 import { combosOf, countsOf, DEFAULT_RULES } from "./rules";
 import type { Face, G5000Game, G5000Rules } from "./types";
@@ -698,6 +701,17 @@ describe("fin du tour (finishTurn)", () => {
     expect(g.stats?.longestHotStreak).toEqual({ player: 0, value: 2 });
   });
 
+  it("saisie rapide : le tour annoncé d'un bloc remplace la calculette abandonnée", () => {
+    const g = game([[1000], [2000]]);
+    startTurn(g);
+    keepDice(g, pick(g, [1, 2, 3, 4, 5], "run")); // calculette ouverte puis fermée
+    enterTurn(g, 1300, 2);
+    expect(g.turn).toEqual({ pot: 1300, diceLeft: 5, openDigits: [], rolls: 1, hotStreak: 2 });
+    finishTurn(g, "bank");
+    expect(liveScores(g.players[0])).toEqual([1000, 2300]);
+    expect(g.stats?.longestHotStreak).toEqual({ player: 0, value: 2 });
+  });
+
   it("annonce la fin de partie au dernier tour", () => {
     const g = game([[4800], [3000]], { target: 5000 });
     startTurn(g);
@@ -799,5 +813,117 @@ describe("choisir qui joue", () => {
     const g = game([[5000], [3000]]);
     g.ended = true;
     expect(choosePlayer(g, 1)).toBe(false);
+  });
+});
+
+describe("corriger le dernier tour (undoLastTurn)", () => {
+  // Joue un tour d'un bloc, comme la saisie rapide : `pot` banqué ou perdu.
+  const play = (g: G5000Game, pot: number, how: "bank" | "bust" = "bank") => {
+    enterTurn(g, pot, 0);
+    return finishTurn(g, how);
+  };
+
+  it("rien à reprendre avant le premier tour", () => {
+    const g = game([[], []]);
+    expect(canUndoLastTurn(g)).toBe(false);
+    expect(undoLastTurn(g)).toBe(false);
+  });
+
+  it("un tour banqué : le score, les statistiques et la main reviennent", () => {
+    const g = game([[500, 1400], [1000]]);
+    const before = structuredClone(g);
+    play(g, 650);
+    expect(scores(g)).toEqual([2050, 1000]);
+    expect(g.currentPlayerIndex).toBe(1);
+    expect(g.lastTurn).toMatchObject({ player: 0, how: "bank", pot: 650 });
+
+    expect(undoLastTurn(g)).toBe(true);
+    expect(g).toEqual(before);
+    expect(g.currentPlayerIndex).toBe(0);
+    expect(g.previous).toBeUndefined();
+    expect(g.lastTurn).toBeUndefined();
+  });
+
+  it("un bust par erreur : les busts d'affilée et le pot perdu reviennent", () => {
+    const g = game([[500], [1000]]);
+    g.players[0].blankTurns = 1;
+    play(g, 350, "bust");
+    expect(g.players[0].blankTurns).toBe(2);
+    expect(g.stats?.biggestBust?.value).toBe(350);
+
+    undoLastTurn(g);
+    expect(g.players[0].blankTurns).toBe(1);
+    expect(g.stats?.biggestBust).toBeUndefined();
+    expect(g.stats?.turns).toEqual([0, 0]);
+  });
+
+  it("Sniper : la cascade est défaite, la rature disparaît", () => {
+    const g = sniper([[500, 1400], [650, 1400, 2050]]);
+    play(g, 650); // Marie arrive sur 2 050 : Julien redescend
+    expect(scores(g)).toEqual([2050, 1400]);
+    expect(g.players[1].sheet[2].struck).toEqual({ kind: "tie", by: 0 });
+
+    undoLastTurn(g);
+    expect(scores(g)).toEqual([1400, 2050]);
+    expect(g.players[1].sheet[2].struck).toBeUndefined();
+  });
+
+  it("les busts d'affilée qui faisaient redescendre : la rature disparaît aussi", () => {
+    const g = game([[500, 1400], [1000]]);
+    g.players[0].blankTurns = 2;
+    play(g, 0, "bust"); // troisième bust : Marie redescend à 500
+    expect(scores(g)[0]).toBe(500);
+
+    undoLastTurn(g);
+    expect(scores(g)[0]).toBe(1400);
+    expect(g.players[0].blankTurns).toBe(2);
+  });
+
+  it("l'objectif atteint pendant la partie : la riposte est annulée", () => {
+    const g = game([[4500], [1000], [2000]]);
+    play(g, 700); // Marie atteint 5 000 : les autres ripostent
+    expect(g.finishedBy).toBe(0);
+    expect(g.toPlay).toEqual([1, 2]);
+
+    undoLastTurn(g);
+    expect(g.finishedBy).toBeUndefined();
+    expect(g.toPlay).toBeUndefined();
+    expect(g.arrivals).toBeUndefined();
+  });
+
+  it("un seul tour en arrière : le tour suivant remplace le précédent", () => {
+    const g = game([[500], [1000]]);
+    play(g, 300); // Marie
+    play(g, 400); // Julien
+    undoLastTurn(g); // reprend le tour de Julien
+    expect(scores(g)).toEqual([800, 1000]);
+    expect(g.currentPlayerIndex).toBe(1);
+    expect(undoLastTurn(g)).toBe(false); // celui de Marie ne se reprend plus
+  });
+
+  it("la main revient avec un tour vierge, même si le suivant avait commencé le sien", () => {
+    const g = game([[500], [1000]]);
+    play(g, 300);
+    startTurn(g); // Julien commence
+    g.turn.pot = 450;
+    undoLastTurn(g);
+    expect(g.currentPlayerIndex).toBe(0);
+    expect(g.turn).toEqual({ pot: 0, diceLeft: 5, openDigits: [], rolls: 0 });
+  });
+
+  it("plus rien à reprendre une fois la partie finie", () => {
+    const g = game([[4500], [1000]]);
+    play(g, 700); // Marie atteint l'objectif
+    expect(play(g, 0, "bust").ended).toBe(true); // Julien rate sa riposte
+    expect(canUndoLastTurn(g)).toBe(false);
+    expect(undoLastTurn(g)).toBe(false);
+  });
+
+  it("l'instantané ne s'emboîte pas : il ne garde pas le tour d'avant", () => {
+    const g = game([[500], [1000]]);
+    play(g, 300);
+    play(g, 400);
+    expect(g.previous?.previous).toBeUndefined();
+    expect(g.previous?.lastTurn).toBeUndefined();
   });
 });

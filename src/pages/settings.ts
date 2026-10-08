@@ -26,6 +26,7 @@ import { setupYamsHallAdmin } from "./settings/yamsHallAdmin";
 import { setupBackupPanel } from "./settings/backupPanel";
 import { setupG5000Panel } from "./settings/g5000Panel";
 import { setupG5000RecordsAdmin } from "./settings/g5000RecordsAdmin";
+import { applyGameTheme } from "./gameTheme";
 
 bootstrap();
 
@@ -89,6 +90,16 @@ function hideForeignPanels(visible: Panel[]): void {
   }
 }
 
+// Les palmarès de la section « Joueurs et scores » : tous depuis le menu des
+// jeux, celui du seul jeu d'où l'on vient sinon (demande de Paul, 08/10). Les
+// joueurs, eux, sont communs : leur liste reste.
+function hideForeignScores(game: GameDef | undefined): void {
+  if (!game) return;
+  for (const group of document.querySelectorAll<HTMLElement>("#panel-data [data-game]")) {
+    group.hidden = group.dataset.game !== game.id;
+  }
+}
+
 function setupPanels(panels: Panel[]): void {
   const tabs = panels.map((p) => requireEl<HTMLButtonElement>(p.tab));
   const body = document.querySelector<HTMLElement>(".screen-body");
@@ -137,13 +148,20 @@ const openedFrom = gameById(new URLSearchParams(location.search).get("game"));
 const visiblePanels = panelsFor(openedFrom);
 
 requireEl("app-version").textContent = `v${__APP_VERSION__}`;
-requireEl("settings-title").textContent = openedFrom
-  ? `⚙️ Paramètres · ${openedFrom.title}`
-  : "⚙️ Paramètres";
+// Venu d'un jeu : « PARAMÈTRES » en surtitre, le nom du jeu en titre, à son
+// encre. Depuis le menu : « CORNET » au-dessus de « PARAMÈTRES ».
+if (openedFrom) {
+  requireEl("settings-eyebrow").textContent = "Paramètres";
+  requireEl("settings-title").textContent = openedFrom.title;
+  const settingsScreen = requireEl("settings-screen");
+  applyGameTheme(settingsScreen, openedFrom);
+  settingsScreen.style.setProperty("--title-color", openedFrom.accent);
+}
 
 setupBackLink(openedFrom);
 setupMessageDialog();
 hideForeignPanels(visiblePanels);
+hideForeignScores(openedFrom);
 setupPanels(visiblePanels);
 // Un panneau ne se prépare que s'il est à l'écran : inutile de lire les règles
 // du Yams quand on vient du 5000.

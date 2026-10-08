@@ -111,7 +111,7 @@ describe("le document complet", () => {
 
   it("décrit les quatre variantes", () => {
     const variants = yamsRulesDoc(rules()).find((s) => s.title === "Les variantes");
-    const text = (variants?.body ?? []).join(" ");
+    const text = (variants?.items ?? []).map((i) => `${i.title} ${i.text}`).join(" ");
     for (const name of ["Classique", "Montante", "Descendante", "One Shot"]) {
       expect(text).toContain(name);
     }
@@ -123,5 +123,30 @@ describe("le document complet", () => {
       expect(section.title.length).toBeGreaterThan(0);
       expect((section.body?.length ?? 0) + (section.table ? 1 : 0)).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("exemples en vrais dés", () => {
+  const examplesOf = (rules: GameRules, title: string) =>
+    yamsRulesDoc(rules).find((s) => s.title === title)?.examples ?? [];
+
+  it("les combinaisons sont comptées par le barème en vigueur", () => {
+    expect(examplesOf(DEFAULT_RULES, "Les combinaisons").map((e) => e.result)).toEqual([
+      "Brelan → 18 points",
+      "Full → 25 points",
+      "Yams → 50 points",
+    ]);
+  });
+
+  it("en « dés de la combinaison », seuls les trois dés du brelan comptent", () => {
+    const rules = { ...DEFAULT_RULES, brelan: { type: "dice" } } as GameRules;
+    const brelan = examplesOf(rules, "Les combinaisons")[0];
+    expect(brelan.result).toBe("Brelan → 15 points");
+    expect(brelan.counted).toEqual([0, 1, 2]);
+  });
+
+  it("la section des chiffres montre trois 4 sur la ligne des 4", () => {
+    const [example] = examplesOf(DEFAULT_RULES, "La section des chiffres");
+    expect(example.dice.filter((_, i) => example.counted?.includes(i))).toEqual([4, 4, 4]);
   });
 });

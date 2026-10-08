@@ -46,7 +46,7 @@ describe("« Quitter » de fin de partie", () => {
   it.each(["yams-end.html", "5000-end.html"])("est bleu dans %s", async (file) => {
     const { readFileSync } = await import("node:fs");
     const html = readFileSync(file, "utf-8");
-    expect(html).toMatch(/id="quit-btn"[^>]*class="btn btn-secondary"/);
+    expect(html).toMatch(/id="quit-btn"[^>]*class="btn btn-secondary[ "]/);
   });
 });
 
@@ -75,14 +75,33 @@ describe("sélecteur de jeu", () => {
 describe("même vocabulaire et icônes distinctes d'un jeu à l'autre", () => {
   it.each(["yamsHome", "g5000Home"] as const)("%s : le bouton dit « Palmarès »", async (page) => {
     await openPage(page);
-    expect(el(".action-bar .btn-gold").textContent).toBe("🏆 Palmarès");
+    expect(el(".action-bar .btn-gold").textContent?.trim()).toBe("Palmarès");
   });
 
   it("dans le sélecteur, chaque ligne a sa propre icône", async () => {
     await openPage("yamsHome");
-    const icons = [...document.querySelectorAll("#game-switcher .switcher-icon")].map(
-      (icon) => icon.textContent,
+    const icons = [...document.querySelectorAll("#game-switcher .switcher-icon svg")].map(
+      (icon) => icon.getAttribute("data-icon"),
     );
-    expect(icons).toEqual(["🍀", "💰", "🎲"]); // Yams, 5000, Tous les jeux
+    expect(icons).toEqual(["clover", "bag", "die"]); // Yams, 5000, Tous les jeux
+  });
+});
+
+describe("Paramètres › Joueurs et scores", () => {
+  const scores = (game: string): HTMLElement => el(`#panel-data [data-game="${game}"]`);
+
+  it("depuis le menu : les palmarès des deux jeux", async () => {
+    await openPage("settings");
+    expect(scores("yams").hidden).toBe(false);
+    expect(scores("g5000").hidden).toBe(false);
+  });
+
+  it.each([
+    ["yams", "g5000"],
+    ["g5000", "yams"],
+  ])("depuis %s : son seul palmarès", async (own, other) => {
+    await openPage("settings", `?game=${own}`);
+    expect(scores(own).hidden).toBe(false);
+    expect(scores(other).hidden).toBe(true);
   });
 });

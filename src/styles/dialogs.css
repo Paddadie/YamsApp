@@ -3,20 +3,38 @@
    sur le cadre par défaut du navigateur : bord carré, fond non assombri.
    Posé sur l'élément et non sur une liste d'id, qu'il fallait rallonger à la
    main à chaque ajout — deux dialogues y avaient déjà été oubliés. Les écarts
-   (fenêtre de jetons, feuille de score) sont déclarés près de leur écran. */
+   (fenêtre de valeurs, feuille de score) sont déclarés près de leur écran.
+   Une fenêtre est un feuillet détaché du bloc : bord perforé en haut. */
 dialog {
+  --hole: #84858a; /* le papier vu à travers le voile */
   border: none;
-  border-radius: 18px;
+  border-radius: var(--radius-s) var(--radius-s) var(--radius-xl) var(--radius-xl);
   width: min(23rem, 92vw);
   max-height: 90dvh;
   overflow-y: auto;
-  padding: 1.2em;
-  box-shadow: 0 20px 55px rgba(10, 20, 25, 0.4);
+  padding: 1.25em 1.1em 1.1em;
+  background: var(--sheet);
+  color: var(--ink);
+  box-shadow: 0 24px 50px -16px rgba(10, 16, 32, 0.6);
   animation: dialog-in 0.16s ease-out;
 }
 
+/* Les demi-trous du haut : la fenêtre (qui défile) rogne la moitié qui
+   dépasse, il reste les encoches. */
+dialog::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -5px;
+  height: 10px;
+  pointer-events: none;
+  background: radial-gradient(circle at 6px 5px, var(--hole) 2.6px, transparent 3.1px)
+    0 0 / 12px 10px repeat-x;
+}
+
 dialog::backdrop {
-  background: rgba(12, 22, 27, 0.55);
+  background: rgba(20, 26, 44, 0.5);
   animation: backdrop-in 0.16s ease-out;
 }
 
@@ -33,81 +51,110 @@ dialog::backdrop {
   }
 }
 
-/* La feuille de score détaillée va d'un bord à l'autre du dialogue. */
-#sheet-dialog {
-  padding: 0;
-}
-
-/* Titre des dialogues de confirmation. */
+/* Titre des dialogues de confirmation : grandes capitales étroites, sur un
+   trait d'encre. */
 .sheet-title {
-  margin: 0 0 0.8em;
-  font-weight: 800;
-  text-align: center;
+  margin: 0 0 0.85em;
+  padding-bottom: 0.45em;
+  border-bottom: 1.5px solid var(--ink);
+  font-size: 1.55rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  text-align: left;
 }
 
-/* --- Feuille de score détaillée : en-tête (joueur, variante, total) --- */
+/* La feuille de score détaillée (palmarès du Yams). */
+#sheet-dialog {
+  padding-bottom: 0.9em;
+}
+
+/* --- Feuille de score détaillée : en-tête (joueur, rang, variante, total) --- */
 .sheet-head {
-  padding: 0.8em 1.2em 0.7em;
-  text-align: center;
-  background: linear-gradient(180deg, #fafafa, #eceef1);
-  border-bottom: 1px solid #e3e3e6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "player total"
+    "rank total"
+    "meta total";
+  align-items: center;
+  column-gap: 0.8rem;
+  row-gap: 0.25rem;
+  padding-bottom: 0.65em;
+  margin-bottom: 0.4em;
+  border-bottom: 1.5px solid var(--ink);
 }
 
 .sheet-player {
+  grid-area: player;
   margin: 0;
-  font-size: 1.08rem;
-  font-weight: 800;
-  color: #1d2b31;
+  font-size: 1.9rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
-/* Puce de classement (2ᵉ meilleur score, etc.). */
+/* Rang dans le classement (« Record du téléphone », « 2ᵉ meilleur score »). */
 .sheet-rank {
-  display: inline-block;
-  margin: 0.3em 0 0;
-  padding: 0.15em 0.7em;
-  border-radius: 999px;
-  font-size: 0.72rem;
+  grid-area: rank;
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  font-size: 0.66rem;
   font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.sheet-rank .gommette {
+  width: 1.4rem;
+  height: 1.4rem;
+  font-size: 0.82rem;
+  letter-spacing: 0;
 }
 
 .sheet-rank--best {
-  background: #fbeecb;
-  color: #7a5b0c;
-  border: 1px solid #e6c268;
+  color: var(--gold-hover);
 }
 
 .sheet-rank--worst {
-  background: #eee0d3;
-  color: #6b4526;
-  border: 1px solid #cba985;
+  color: var(--danger-hover);
 }
 
 .sheet-meta {
+  grid-area: meta;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.4em;
-  margin: 0.28em 0 0;
+  margin: 0;
   font-size: 0.8rem;
-  color: #777;
+  color: var(--ink-soft);
 }
 
 .sheet-total {
-  margin: 0.35em 0 0;
-  font-size: 0.75rem;
-  color: #8a8a8a;
+  grid-area: total;
+  margin: 0;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
 }
 
 .sheet-total span {
   display: block;
-  font-size: 1.45rem;
-  font-weight: 800;
-  line-height: 1;
-  color: #1d2b31;
+  font-size: 2.6rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.9;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 
-/* --- Corps : lignes lisibles, valeurs alignées, totaux distingués --- */
-/* Feuille de score détaillée, commune au Hall of Fame et à la pop-up de
+/* --- Corps : lignes réglées, valeurs alignées, totaux sur fond de papier --- */
+/* Feuille de score détaillée, commune au palmarès et à la pop-up de
    suppression des Paramètres (cf. scoreSheet.ts). */
 .score-sheet {
   width: 100%;
@@ -115,17 +162,24 @@ dialog::backdrop {
 }
 
 .score-sheet td {
-  padding: 0.32em 1.2em;
-  border-bottom: 1px solid #eee;
+  padding: 0.3em 0.4em;
+  border-bottom: 1px solid var(--rule);
 }
 
 .score-sheet td:first-child {
-  color: #555;
+  color: var(--ink);
+}
+
+.score-sheet td:first-child .die {
+  width: 1.3em;
+  height: 1.3em;
 }
 
 .score-sheet td:last-child {
-  text-align: center;
-  font-weight: 700;
+  text-align: right;
+  font-size: 1.05em;
+  font-stretch: 75%;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
 
@@ -135,24 +189,20 @@ dialog::backdrop {
 
 /* Totaux calculés : en retrait des scores saisis. */
 .score-sheet tr.sheet-derived td {
-  background: #f5f6f8;
+  background: color-mix(in srgb, var(--paper) 60%, var(--sheet));
   font-weight: 700;
-  color: #2f3a40;
 }
 
 .sheet-actions {
-  padding: 0.6em 1.2em calc(0.6em + env(safe-area-inset-bottom));
+  padding-top: 0.8em;
 }
 
 #sheet-dialog .btn {
-  margin: 0 auto;
-  max-width: 14rem;
-  padding: 0.55em 1em;
-  font-size: 0.95rem;
+  max-width: none;
 }
 
 /* La feuille de la pop-up de suppression respire un peu moins que celle du
-   Hall of Fame : elle vient sous un récapitulatif, pas seule dans sa fenêtre. */
+   palmarès : elle vient sous un récapitulatif, pas seule dans sa fenêtre. */
 #delete-sheet {
   margin-bottom: 1em;
 }

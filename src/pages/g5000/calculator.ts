@@ -12,6 +12,7 @@
 
 import { makeDismissible, plural, requireEl, summaryRow } from "../../core/ui";
 import { dieFace } from "../../core/dice";
+import { icon } from "../../core/icons";
 import {
   combosOf,
   emptyCounts,
@@ -44,6 +45,8 @@ export interface CalculatorHooks {
   onChange(): void;
   // Écart vers le score des adversaires, redessiné à chaque étape.
   renderTargets(container: HTMLElement, pot: number): void;
+  // Où le pot mènerait le joueur : en hachuré sur la jauge du bandeau.
+  previewPot(pot: number): void;
   format(value: number): string;
 }
 
@@ -67,19 +70,19 @@ const freshStage = (): Stage => ({
 
 // Le bouton « Banquer » annonce la victoire quand ce pot la donne : tomber pile
 // sur l'objectif ne doit pas ressembler à un tour comme un autre (demande de
-// Paul). Partagé avec la saisie rapide.
+// Paul), trophée dessiné compris. Partagé avec la saisie rapide.
 export function bankLabel(
   game: G5000Game,
   pot: number,
   format: (n: number) => string,
-): string {
+): (Node | string)[] {
   switch (bankOutcome(game, pot)) {
     case "win":
-      return `🏆 Banquer ${format(pot)} — victoire !`;
+      return [icon("trophy"), `Banquer ${format(pot)} — victoire !`];
     case "reached":
-      return `Banquer ${format(pot)} — objectif atteint`;
+      return [`Banquer ${format(pot)} — objectif atteint`];
     default:
-      return pot > 0 ? `Banquer ${format(pot)}` : "Banquer";
+      return [pot > 0 ? `Banquer ${format(pot)}` : "Banquer"];
   }
 }
 
@@ -92,8 +95,32 @@ export function afterLine(
 ): { text: string; win: boolean } {
   const after = currentScore(game.players[game.currentPlayerIndex]) + pot;
   return bankOutcome(game, pot)
-    ? { text: `🏆 ${format(after)} : objectif atteint !`, win: true }
+    ? { text: `${format(after)} : objectif atteint !`, win: true }
     : { text: `si vous banquez : ${format(after)}`, win: false };
+}
+
+// La ligne sous le pot se replie quand la fenêtre est étroite, mais jamais au
+// milieu d'un nombre (« 4 / 300 » : le séparateur de milliers est une espace
+// ordinaire, cf. formatScore) ni devant une ponctuation double (« atteint /
+// ! »). Ces morceaux passent dans un `.keep` ; le texte, lui, ne change pas.
+// Le tout dans un seul élément : `.pot-after` est une boîte flex (pour le
+// trophée), où chaque morceau deviendrait un bloc à part.
+const UNBREAKABLE = /\d{1,3}(?: \d{3})*(?: [:!?])?|\S+ [:!?]/g;
+
+export function unbreakable(text: string): HTMLSpanElement {
+  const line = document.createElement("span");
+  let from = 0;
+  for (const match of text.matchAll(UNBREAKABLE)) {
+    const at = match.index ?? 0;
+    if (at > from) line.append(text.slice(from, at));
+    const keep = document.createElement("span");
+    keep.className = "keep";
+    keep.textContent = match[0];
+    line.append(keep);
+    from = at + match[0].length;
+  }
+  if (from < text.length) line.append(text.slice(from));
+  return line;
 }
 
 // Pourquoi ce pot ne peut pas être banqué tel quel, s'il y a une raison à
@@ -103,10 +130,16 @@ export function potWarning(
   game: G5000Game,
   pot: number,
   format: (n: number) => string,
+  hotDice = false,
 ): string | null {
   if (pot <= 0) return null;
   if (isOvershoot(game, pot)) {
     return `Au-delà de ${format(game.rules.target)} : ce serait un bust.`;
+  }
+  // La calculette ne le demande pas : sur une main pleine, son bouton dit
+  // déjà de relancer. La saisie rapide, elle, n'a que cette ligne pour le dire.
+  if (hotDice && !hasVariant(game.rules, "freeHotDice")) {
+    return "Main pleine : relancez les cinq dés avant de banquer.";
   }
   if (!hasOpened(game.players[game.currentPlayerIndex]) && pot < game.rules.openAt) {
     return `Il faut ${format(game.rules.openAt)} pour entrer en jeu.`;
@@ -220,6 +253,7 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     potValue.textContent = hooks.format(shownPot());
     renderAfter();
     hooks.renderTargets(targets, shownPot());
+    hooks.previewPot(shownPot());
 
     if (stage.validated) renderPick();
     else renderInput();
@@ -234,12 +268,13 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     }
     const warning = potWarning(game, pot, hooks.format);
     if (warning) {
-      potAfter.textContent = warning;
+      potAfter.replaceChildren(unbreakable(warning));
       potAfter.className = "pot-after is-warning";
       return;
     }
     const line = afterLine(game, pot, hooks.format);
-    potAfter.textContent = line.text;
+    const text = unbreakable(line.text);
+    potAfter.replaceChildren(...(line.win ? [icon("trophy"), text] : [text]));
     if (line.win) potAfter.className = "pot-after is-win";
   }
 
@@ -289,7 +324,7 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     // « Valider » reste toujours à la même place et ne s'active qu'une fois le
     // compte de dés atteint : un bouton qui apparaît et disparaît déplace tout
     // le bas de la fenêtre sous le doigt.
-    const confirm = button("✓ Valider ces dés", "btn-primary", validate);
+    const confirm = button([icon("check"), "Valider ces dés"], "btn-primary", validate);
     confirm.disabled = !complete();
     const row = document.createElement("div");
     row.className = "btn-row";
@@ -309,7 +344,8 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     dice.className = "combo-strip-dice";
     for (const face of digits) dice.appendChild(dieFace(face));
     strip.append(
-      `🔗 ${digits.length > 1 ? "Activés" : "Activé"} `,
+      icon("link"),
+      `${digits.length > 1 ? "Activés" : "Activé"} `,
       dice,
       " : +100 par dé",
     );
@@ -381,7 +417,7 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     const link = document.createElement("button");
     link.type = "button";
     link.className = "link-btn";
-    link.textContent = "← Corriger les dés";
+    link.append(icon("chevronLeft"), "Corriger les dés");
     link.addEventListener("click", () => {
       stage = { ...stage, validated: false, combos: [], picked: [] };
       render();
@@ -405,8 +441,27 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     list.className = "combos";
     for (const combo of stage.combos) list.appendChild(comboRow(combo));
 
-    body.replaceChildren(...comboStrip(), head, list);
+    body.replaceChildren(...comboStrip(), keptTray(), head, list);
     renderPickActions();
+  }
+
+  // Le lancer, en lecture seule pendant le choix : les dés que prennent les
+  // combinaisons retenues sont cerclés d'or, on voit ce qu'on met de côté et ce
+  // qu'on relancera.
+  function keptTray(): HTMLElement {
+    const kept = emptyCounts();
+    for (const die of stage.picked.flatMap((c) => c.dice)) kept[die]++;
+    const el = document.createElement("div");
+    el.className = "roll-tray roll-tray--pick";
+    for (const face of FACES) {
+      for (let k = 0; k < stage.counts[face]; k++) {
+        const die = document.createElement("span");
+        die.className = k < kept[face] ? "tray-die is-kept" : "tray-die";
+        die.appendChild(dieFace(face));
+        el.appendChild(die);
+      }
+    }
+    return el;
   }
 
   function comboRow(combo: Combo): HTMLButtonElement {
@@ -423,7 +478,24 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
 
     const label = document.createElement("span");
     label.className = "combo-label";
-    label.textContent = combo.boosted ? `🔗 ${combo.label}` : combo.label;
+    // Le libellé dans un <span> : retenu, c'est lui que le feutre surligne.
+    const labelText = document.createElement("span");
+    labelText.textContent = combo.label;
+    if (combo.boosted) label.appendChild(icon("link"));
+    label.appendChild(labelText);
+    // Incompatible avec ce qui est retenu : la toucher remplacera, on le dit
+    // avant le toucher (c'est au joueur de choisir, pas à la calculette).
+    if (!chosen) {
+      const replaced = stage.picked.filter(
+        (c) => !pickCombo(stage.picked, combo, stage.counts).includes(c),
+      );
+      if (replaced.length > 0) {
+        const swap = document.createElement("small");
+        swap.className = "combo-swap";
+        swap.textContent = `à la place de ${replaced.map((c) => c.label).join(", ")}`;
+        label.appendChild(swap);
+      }
+    }
 
     const points = document.createElement("span");
     points.className = "combo-points";
@@ -471,10 +543,16 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
       // zèle » permet aussi de banquer, la relance redevient l'action
       // secondaire, en contour.
       if (canBank(game, pot, true)) {
-        const again = button("🔥 Main pleine — relancer 5 dés", "btn-primary btn-outline", rollAgain);
+        const again = button(
+          [icon("flame"), "Main pleine — relancer 5 dés"],
+          "btn-primary btn-outline",
+          rollAgain,
+        );
         foot.replaceChildren(again, bank);
       } else {
-        foot.replaceChildren(button("🔥 Main pleine — relancer 5 dés", "btn-primary", rollAgain));
+        foot.replaceChildren(
+          button([icon("flame"), "Main pleine — relancer 5 dés"], "btn-primary", rollAgain),
+        );
       }
       return;
     }
@@ -491,16 +569,14 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     const box = document.createElement("div");
     box.className = "bust-msg";
 
-    const icon = document.createElement("span");
-    icon.className = "bust-icon";
-    icon.textContent = "💥";
+    const burst = icon("burst", "ic bust-icon");
 
     const text = document.createElement("p");
     text.textContent = overshoot
       ? `Aucun dé gardable sans dépasser ${hooks.format(game.rules.target)} : c'est un bust.`
       : `Aucun dé ne marque — vous perdez les ${hooks.format(game.turn.pot)} points du tour.`;
 
-    box.append(icon, text, correctionLink());
+    box.append(burst, text, correctionLink());
     body.replaceChildren(box);
     foot.replaceChildren(
       button("Passer la main", "btn-danger", () => {
@@ -510,11 +586,16 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     );
   }
 
-  function button(label: string, variant: string, onClick: () => void): HTMLButtonElement {
+  // `label` : un texte, ou un texte précédé de son pictogramme.
+  function button(
+    label: string | (Node | string)[],
+    variant: string,
+    onClick: () => void,
+  ): HTMLButtonElement {
     const el = document.createElement("button");
     el.type = "button";
     el.className = variant ? `btn ${variant}` : "btn";
-    el.textContent = label;
+    el.append(...(typeof label === "string" ? [label] : label));
     el.addEventListener("click", onClick);
     return el;
   }

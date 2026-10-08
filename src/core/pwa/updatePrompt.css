@@ -37,7 +37,7 @@
 
 .update-prompt-confirm {
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-l);
   background: #fff;
   color: #263238;
   font-size: 0.9em;

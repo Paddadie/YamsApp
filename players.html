@@ -6,37 +6,41 @@
     <!--@head-->
   </head>
   <body>
-    <div class="screen">
+    <div id="players-screen" class="screen">
+      <header class="page-head">
+        <!-- Le jeu visé, posé par src/pages/players.ts. -->
+        <p class="page-eyebrow" id="players-eyebrow">Nouvelle partie</p>
+        <h1 class="page-title">Autour de la table</h1>
+      </header>
       <div class="screen-body">
-        <h1>🪑 Autour de la table</h1>
-
+        <!-- 20 caractères au plus : un nom doit tenir sur l'onglet de la feuille
+             du 5000 et sur le podium. Même limite au renommage (settings.html). -->
         <form id="player-form">
           <input
             type="text"
             id="player-name"
             placeholder="Ajouter ou filtrer…"
             autocomplete="off"
+            maxlength="20"
           />
           <button type="submit">Ajouter</button>
         </form>
-
         <div id="roster-bar">
           <span id="roster-count"></span>
           <button id="reuse-btn" type="button" class="roster-tool" hidden>
-            ↺ Mêmes joueurs
+            <!--@icon:reset-->Mêmes joueurs
           </button>
           <button id="shuffle-btn" type="button" class="roster-tool" hidden>
-            🎲 Ordre aléatoire
+            <!--@icon:shuffle-->Ordre aléatoire
           </button>
         </div>
         <ul id="roster"></ul>
       </div>
-
-      <div class="action-bar">
-        <button id="start-game-btn" type="button" class="btn btn-primary" disabled>
-          🎲 Commencer la partie
+      <div class="action-bar action-bar--row">
+        <a id="back-btn" href="index.html" class="btn btn-secondary"><!--@icon:home-->Retour</a>
+        <button id="start-game-btn" type="button" class="btn btn-primary btn-grow" disabled>
+          <!--@icon:die-->Commencer la partie
         </button>
-        <a id="back-btn" href="index.html" class="btn btn-secondary">🏠 Retour</a>
       </div>
     </div>
 

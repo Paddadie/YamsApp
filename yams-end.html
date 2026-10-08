@@ -7,21 +7,26 @@
   </head>
   <body>
     <div id="end-screen" class="screen">
+      <header class="page-head">
+        <p class="page-eyebrow">Yams · fin de la partie</p>
+        <!-- « Bravo Alice ! » et les confettis : src/pages/endScreen.ts. -->
+        <h1 class="page-title end-title" id="end-title">Fin de la partie</h1>
+      </header>
       <div class="screen-body">
-        <h1>🎉 Fin de la partie&nbsp;!</h1>
         <div id="podium"></div>
-        <p id="record-banner" hidden></p>
+        <p id="record-banner" class="record-banner postit" hidden></p>
         <table id="ranking-table"></table>
         <p id="hof-legend" hidden></p>
       </div>
       <div class="action-bar">
         <a href="yams-game.html?review=1" class="btn btn-gold btn-outline">
-          📋 Revoir les feuilles de score
+          <!--@icon:sheet-->Revoir les feuilles de score
         </a>
-        <button id="quit-btn" type="button" class="btn btn-secondary">🏠 Quitter</button>
+        <button id="quit-btn" type="button" class="btn btn-secondary">
+          <!--@icon:home-->Quitter
+        </button>
       </div>
     </div>
-
     <script type="module" src="/src/pages/yams/end.ts"></script>
   </body>
 </html>

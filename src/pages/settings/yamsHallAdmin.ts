@@ -8,6 +8,8 @@
 // avant bootstrap() : il ne lit rien du stockage à son niveau module, tout est
 // dans setupYamsHallAdmin().
 
+import { formatDate } from "../../core/dates";
+import { icon } from "../../core/icons";
 import { makeDismissible, requireEl, summaryRow } from "../../core/ui";
 import { variantBadgeData } from "../../games/yams/variantBadge";
 import { scoreSheetBody } from "../../games/yams/scoreSheet";
@@ -41,7 +43,7 @@ function renderList(listId: string, store: ScoreList): void {
   list.replaceChildren();
 
   if (entries.length === 0) {
-    list.appendChild(emptyItem("Aucune entrée."));
+    list.appendChild(emptyItem("Le palmarès est encore vide."));
     return;
   }
 
@@ -65,13 +67,14 @@ function scoreRow(entry: ScoreEntry, index: number, store: ScoreList): HTMLLIEle
 
   const date = document.createElement("span");
   date.className = "score-admin-date";
-  date.textContent = entry.date;
+  // Même écriture que le palmarès : « il y a 6 jours », puis « 15 août 2026 ».
+  date.textContent = formatDate(entry.date);
 
   const del = document.createElement("button");
   del.type = "button";
   del.className = "score-admin-del";
   del.setAttribute("aria-label", `Supprimer ${entry.name}, ${entry.score} points`);
-  del.textContent = "🗑️";
+  del.appendChild(icon("trash"));
   del.addEventListener("click", () => openDeleteDialog(entry, index, store));
 
   li.append(name, score, date, del);
@@ -86,7 +89,7 @@ function openDeleteDialog(entry: ScoreEntry, index: number, store: ScoreList): v
   summary.replaceChildren();
   summaryRow(summary, "Joueur", entry.name);
   summaryRow(summary, "Score", `${entry.score} pts`);
-  if (entry.date) summaryRow(summary, "Date", entry.date);
+  if (entry.date) summaryRow(summary, "Date", formatDate(entry.date));
   // La pastille seule, sans le nom à côté : partout ailleurs dans l'appli la
   // variante se lit à son icône, et son nom reste dans l'infobulle.
   if (entry.variant) {

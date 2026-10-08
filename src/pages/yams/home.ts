@@ -7,8 +7,9 @@
 import { bootstrap } from "../../core/bootstrap";
 import { goTo } from "../../core/nav";
 import { VARIANTS } from "../../games/yams/variants";
+import { icon } from "../../core/icons";
 import { requireEl } from "../../core/ui";
-import { setupGameSwitcher } from "../gameSwitcher";
+import { setupGameHero, showResumeCard } from "../gameHero";
 import { hasSavedGame } from "../../games/yams/storage/savedGameRepo";
 import { getDraft, saveDraft } from "../../core/storage/draftRepo";
 import { YAMS, yamsConfigOf } from "../../games/yams/gameDef";
@@ -58,32 +59,40 @@ function renderVariantChips(): void {
       ? previouslyChosen.has(variant.value)
       : Boolean(variant.default);
 
-    const icon = document.createElement("span");
-    icon.className = "chip-icon";
-    icon.textContent = variant.icon;
-    icon.setAttribute("aria-hidden", "true");
+    const pictogram = document.createElement("span");
+    pictogram.className = "chip-icon";
+    pictogram.appendChild(icon(variant.icon));
 
     const label = document.createElement("span");
     label.className = "chip-label";
     label.textContent = variant.label;
 
-    chip.append(checkbox, icon, label);
+    // Ce qu'elle change, sous son nom, comme à l'accueil du 5000.
+    const hint = document.createElement("span");
+    hint.className = "chip-hint";
+    hint.textContent = variant.hint;
+
+    // La coche au feutre, affichée par le CSS quand la tuile est cochée.
+    const tick = document.createElement("span");
+    tick.className = "chip-tick";
+    tick.appendChild(icon("tick"));
+
+    chip.append(checkbox, pictogram, label, hint, tick);
     optionsContainer.appendChild(chip);
   }
 }
 
 /* ---------- Mise en route ---------- */
 
-setupGameSwitcher(YAMS.id);
+setupGameHero(YAMS.id);
 renderVariantChips();
 syncStartButton();
 optionsContainer.addEventListener("change", syncStartButton);
 
 if (hasSavedGame()) {
+  showResumeCard(YAMS.resume());
   resumeBtn.disabled = false;
   resumeBtn.addEventListener("click", () => goTo("yamsGame"));
-} else {
-  resumeBtn.hidden = true;
 }
 
 startBtn.addEventListener("click", () => {

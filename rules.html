@@ -7,18 +7,20 @@
   </head>
   <body>
     <div id="rules-screen" class="screen">
+      <header class="page-head">
+        <p class="page-eyebrow">Règles du jeu</p>
+        <!-- Le nom du jeu, à son encre : posé par src/pages/rules.ts. -->
+        <h1 class="page-title" id="rules-title">Règles</h1>
+      </header>
       <div class="screen-body">
-        <h1 id="rules-title">Règles</h1>
-        <!-- Sections générées par src/pages/rules.ts d'après le rulesDoc() du
-             jeu demandé (?game=…). -->
-        <div id="rules-content"></div>
+        <!-- Un seul feuillet, un dépliant. Sections générées par
+             src/pages/rules.ts d'après le rulesDoc() du jeu demandé (?game=…). -->
+        <div id="rules-content" class="sheet"></div>
       </div>
-
       <div class="action-bar">
-        <a id="back-btn" href="index.html" class="btn btn-secondary">🏠 Retour</a>
+        <a id="back-btn" href="index.html" class="btn btn-secondary btn-outline"><!--@icon:home-->Retour</a>
       </div>
     </div>
-
     <script type="module" src="/src/pages/rules.ts"></script>
   </body>
 </html>

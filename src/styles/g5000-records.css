@@ -1,49 +1,44 @@
 /* ========== 5000 — RECORDS ========== */
-/* Pas de tableau de scores : une carte par exploit, un seul détenteur chacune.
-   Les pires sont teintés, pour qu'on voie d'un coup d'œil qu'on n'y est pas
-   fier. */
+/* Pas de tableau de scores : une fiche par exploit, un seul détenteur
+   chacune, sur le papier de sa famille (jaune, rose, bleu ; paper.css). Le
+   pictogramme d'un record est posé sur une gommette de la couleur de sa
+   famille : on voit d'un coup d'œil ce dont on est fier et ce dont on rit. */
 
-.records-block {
-  width: 100%;
+#g5000-records-screen .screen-body {
+  justify-content: flex-start;
 }
 
-.records-block h2 {
-  margin: 0 0 0.6em;
-  text-align: left;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6b767d;
+.records-block .gommette--icon {
+  --gom: var(--family-ink);
+}
+
+.target-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .record-cards {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
 }
 
 .record-card {
   display: flex;
   align-items: flex-start;
-  gap: 0.8rem;
-  padding: 0.85rem 1rem;
-  border-radius: 14px;
-  background: var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
 }
 
-.records-block--worst .record-card {
-  background: #fff8f1;
+.record-card + .record-card {
+  border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
 .record-icon {
-  font-size: 1.6rem;
-  line-height: 1;
   flex: none;
+  display: grid;
+  place-items: center;
 }
 
 .record-body {
@@ -51,7 +46,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .record-head {
@@ -60,12 +55,12 @@
 }
 
 .record-title {
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .record-hint {
-  font-size: 0.78rem;
-  color: #7b858c;
+  font-size: 0.76rem;
+  color: color-mix(in srgb, var(--ink) 65%, var(--paper-color, var(--sheet)));
 }
 
 .record-main {
@@ -73,54 +68,54 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 0.6em;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
 }
 
 .record-holder {
-  font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  font-stretch: 75%;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .record-value {
+  font-size: 1.2rem;
+  font-stretch: 75%;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .record-meta {
-  font-size: 0.78rem;
-  color: #7b858c;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
 }
 
-/* Record jamais établi : la carte reste, discrète, pour dire ce qu'il y a à
+/* Record jamais établi : la fiche reste, discrète, pour dire ce qu'il y a à
    conquérir. */
 .record-card.is-vacant {
   opacity: 0.6;
-  box-shadow: inset 0 0 0 1px #e4e8ea;
 }
 
 .record-vacant {
   font-size: 0.85rem;
-  font-style: italic;
-  color: #8b959b;
+  color: var(--ink-faint);
 }
 
-/* Classement des victoires, sous les cartes. */
+/* Classement des victoires : comptées en bâtons, comme sur un bloc. */
 .wins-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-radius: 14px;
-  background: var(--white);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
 }
 
 .wins-row {
   display: flex;
-  justify-content: space-between;
-  padding: 0.65em 1em;
-  border-top: 1px solid #eef1f2;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6em 0.95em;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
 }
 
 .wins-row:first-child {
@@ -128,34 +123,60 @@
 }
 
 .wins-name {
+  flex: 1;
+  min-width: 0;
   font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wins-tally {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  color: var(--stats-ink);
+}
+
+.wins-tally svg {
+  width: 1.5rem;
+  height: 1.15rem;
 }
 
 .wins-count {
+  min-width: 1.6rem;
+  text-align: right;
+  font-size: 1.15rem;
+  font-stretch: 75%;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: #55616a;
 }
 
 /* ---------- Records battus, sur l'écran de fin ---------- */
+/* Sur un post-it (paper.css), un record par ligne, comme au Yams. */
 .records-broken {
   list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  margin: 0.4rem 0 0;
+  padding-block: 0.6rem 0.4rem;
 }
 
 .record-new {
-  padding: 0.6em 0.9em;
-  border-radius: var(--border-radius);
-  background: #fff4e0;
-  box-shadow: inset 0 0 0 1px #e8c48a;
-  font-size: 0.9rem;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.4em 0;
 }
 
-.record-new--worst {
-  background: #fdecea;
-  box-shadow: inset 0 0 0 1px #f0c6c6;
+.record-new + .record-new {
+  border-top: 1px dashed color-mix(in srgb, var(--ink) 20%, transparent);
+}
+
+.record-new--worst > .ic {
+  color: var(--worst-ink);
+}
+
+/* Victoire partagée : une note sous le classement. */
+#end-note {
+  text-align: center;
 }

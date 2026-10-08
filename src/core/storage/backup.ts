@@ -181,14 +181,16 @@ export function importAllData(backup: BackupData): void {
 
 /* ---------- Plomberie fichier (téléchargement / lecture) ---------- */
 
-export function downloadBackup(): void {
+// Renvoie le nom du fichier, que l'écran annonce.
+export function downloadBackup(): string {
   const blob = new Blob([JSON.stringify(exportAllData(), null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `cornet-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  const name = `cornet-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = name;
   // Ancre posée dans le document et URL libérée au tour suivant : Safari iOS
   // ignore un clic sur une ancre hors document, et annule le téléchargement si
   // l'URL du blob est révoquée dans la foulée.
@@ -197,6 +199,7 @@ export function downloadBackup(): void {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url));
+  return name;
 }
 
 // Lecture SANS écriture : l'écran des paramètres valide d'abord le fichier,

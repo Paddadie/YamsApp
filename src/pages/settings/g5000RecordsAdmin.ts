@@ -8,6 +8,7 @@
 // avant bootstrap() : il ne lit rien du stockage à son niveau module, tout est
 // dans setupG5000RecordsAdmin().
 
+import { icon, type IconName } from "../../core/icons";
 import { makeDismissible, plural, requireEl, summaryRow } from "../../core/ui";
 import { formatDate } from "../../core/dates";
 import { formatScore } from "../../core/format";
@@ -39,18 +40,21 @@ const ENTRY_KEYS = [...BEST_RECORDS, ...WORST_RECORDS].filter(
   (key): key is EntryKey => key !== "mostWins",
 );
 
+// `pictogram` : celui du record, devant le nom de son détenteur.
 function row(
   label: string,
   detail: string,
   onDelete: () => void,
   deleteLabel: string,
+  pictogram?: IconName,
 ): HTMLLIElement {
   const li = document.createElement("li");
   li.className = "score-admin-row";
 
   const name = document.createElement("span");
   name.className = "score-admin-name";
-  name.textContent = label;
+  if (pictogram) name.appendChild(icon(pictogram));
+  name.append(label);
 
   const value = document.createElement("span");
   value.className = "score-admin-score";
@@ -60,7 +64,7 @@ function row(
   del.type = "button";
   del.className = "score-admin-del";
   del.setAttribute("aria-label", deleteLabel);
-  del.textContent = "🗑️";
+  del.appendChild(icon("trash"));
   del.addEventListener("click", onDelete);
 
   li.append(name, value, del);
@@ -81,15 +85,16 @@ function render(): void {
       const label = RECORD_LABELS[key];
       list.appendChild(
         row(
-          `${label.icon} ${entry.name}`,
+          entry.name,
           `${label.format(entry.value)} · à ${formatScore(target)}`,
           () => ask({ kind: "record", target, key }),
           `Effacer le record « ${label.title} » à ${formatScore(target)} de ${entry.name}`,
+          label.icon,
         ),
       );
     }
   }
-  if (list.children.length === 0) list.appendChild(emptyItem("Aucun record établi."));
+  if (list.children.length === 0) list.appendChild(emptyItem("Aucun record pour l'instant."));
 
   const wins = requireEl("g5000-wins-admin");
   wins.replaceChildren();
@@ -104,7 +109,7 @@ function render(): void {
       ),
     );
   }
-  if (rows.length === 0) wins.appendChild(emptyItem("Aucune victoire."));
+  if (rows.length === 0) wins.appendChild(emptyItem("Aucune victoire pour l'instant."));
 }
 
 function ask(target: Pending): void {

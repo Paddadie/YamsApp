@@ -9,12 +9,14 @@
 // en bas (README, « Conventions »).
 
 import { bootstrap } from "../../core/bootstrap";
+import { YAMS } from "../../games/yams/gameDef";
+import { applyGameTheme } from "../gameTheme";
 import { goTo } from "../../core/nav";
-import { getVariantIcon, getVariantColor } from "../../games/yams/variants";
 import { variantBadge } from "../../games/yams/variantBadge";
 import { sheetOf } from "../../games/yams/players";
 import { makeDismissible, plural, requireEl, turnHintContent } from "../../core/ui";
 import { dieFace } from "../../core/dice";
+import { handCircle } from "../../core/icons";
 import { onHorizontalSwipe } from "../../core/swipe";
 import { keepScreenOn } from "../../core/wakeLock";
 import { getSavedGame, saveSavedGame } from "../../games/yams/storage/savedGameRepo";
@@ -32,8 +34,11 @@ import {
   DERIVED_LINES,
   FINAL_SCORE_LINE,
   LOWER_TOTAL_LINE,
+  PLAN_MAX_LINES,
+  UPPER_LINES,
   UPPER_TOTAL_LINE,
   lineLabel,
+  nextLine,
   type BonusPlan,
   type BonusPlanStep,
   type Derived,
@@ -97,6 +102,14 @@ let autoAdvance: ReturnType<typeof setTimeout> | undefined;
 // Posé par l'animation de fin de bonus : on repousse l'auto-avance le temps
 // de la voir en entier (remplissage + gonflement/tremblement + verdict).
 let bonusJustAnimated = false;
+// La case qu'on vient de remplir : seule elle s'écrit (et se barre, ou fête
+// son Yams). Les autres cases de la colonne sont redessinées sans animation.
+let justWritten: { variant: Variant; line: LineName } | null = null;
+// Posé quand un Yams vient d'être marqué : l'auto-avance attend la fin de la
+// fête, comme pour le bonus.
+let yamsJustCelebrated = false;
+const YAMS_LINE: LineName = "yams";
+const YAMS_CELEBRATION_MS = 1700;
 
 // Une case saisissable, redessinée après chaque saisie de sa colonne.
 interface ScoreControl {
@@ -105,6 +118,12 @@ interface ScoreControl {
 
 let controls = new Map<Variant, ScoreControl[]>();
 let derivedCells = new Map<Variant, Map<LineName, HTMLTableCellElement>>();
+// Les cases saisissables, par variante puis par ligne : le liseré de la
+// prochaine case (Montante / Descendante) s'y pose.
+let cells = new Map<Variant, Map<LineName, HTMLButtonElement>>();
+// Ce liseré, un par colonne, posé dans la feuille et non dans la case : c'est
+// lui qui glisse d'une case à la suivante.
+let nextMarkers = new Map<Variant, HTMLElement>();
 
 // Animation de fin de bonus, en deux temps : la barre se remplit jusqu'à sa
 // valeur finale, PUIS elle vire au vert/rouge et gonfle/tremble, PUIS il ne
@@ -183,8 +202,12 @@ function onPick(variant: Variant, lineName: LineName, value: number | undefined)
   else scores[lineName] = value;
 
   bonusJustAnimated = false;
+  yamsJustCelebrated = false;
+  justWritten = value === undefined ? null : { variant, line: lineName };
   writeDerived(scores, grid);
-  refreshColumn(variant); // peut lever bonusJustAnimated
+  refreshColumn(variant); // peut lever bonusJustAnimated et yamsJustCelebrated
+  justWritten = null;
+  placeNextMarkers(true);
   persist();
 
   // Effacer une valeur ne fait pas passer au joueur suivant : c'est qu'on va
@@ -192,7 +215,10 @@ function onPick(variant: Variant, lineName: LineName, value: number | undefined)
   clearTimeout(autoAdvance);
   if (value === undefined) return;
 
-  const delay = bonusJustAnimated ? BONUS_ANIM_MS + 900 : AUTO_ADVANCE_MS;
+  const delay = Math.max(
+    bonusJustAnimated ? BONUS_ANIM_MS + 900 : AUTO_ADVANCE_MS,
+    yamsJustCelebrated ? YAMS_CELEBRATION_MS : 0,
+  );
   autoAdvance = setTimeout(() => {
     if (isGameFinished(game.players, game.selectedVariants, grid)) {
       persist();
@@ -216,13 +242,14 @@ function renderPlayer(): void {
   renderTurnHint();
   gameScreen.style.backgroundColor = player.color;
   if (themeMeta) themeMeta.content = player.color;
-
-  // Repère des cases remplies : la teinte de la page, plus vive et à peine
-  // assombrie (surtout pas grisée : ça ferait "bouton désactivé").
-  gameScreen.style.setProperty("--filled-bg", richen(player.color));
+  // La couleur du joueur pour la feuille posée dessus : fond des cases
+  // remplies, perforation du haut (yams-game.css).
+  gameScreen.style.setProperty("--player-color", player.color);
 
   controls = new Map(game.selectedVariants.map((v) => [v, []]));
   derivedCells = new Map(game.selectedVariants.map((v) => [v, new Map()]));
+  cells = new Map(game.selectedVariants.map((v) => [v, new Map()]));
+  nextMarkers = new Map();
 
   const table = document.createElement("table");
   table.className = "score-table";
@@ -236,6 +263,44 @@ function renderPlayer(): void {
   for (const variant of game.selectedVariants) {
     fillDerived(variant);
     refreshControls(variant);
+  }
+  placeNextMarkers(false);
+}
+
+/* ---------- Prochaine case (Montante / Descendante) ---------- */
+// Les cases verrouillées sont grisées, mais celle à remplir ensuite ne se
+// distinguait pas des autres cases vides. Un liseré à l'encre du jeu la
+// cerne ; après une saisie, il glisse jusqu'à la suivante (`animate`). Au
+// changement de joueur, la grille est neuve : il s'y pose sans glisser.
+function placeNextMarkers(animate: boolean): void {
+  const wrapper = scoreTablesContainer.querySelector<HTMLElement>(".score-wrapper");
+  if (!wrapper || isReview) return;
+  const origin = wrapper.getBoundingClientRect();
+
+  for (const variant of game.selectedVariants) {
+    const line = nextLine(variant, sheetOf(currentPlayer(), variant), grid);
+    const cell = line === null ? undefined : cells.get(variant)?.get(line);
+    let marker = nextMarkers.get(variant);
+    if (!cell) {
+      if (marker) marker.hidden = true;
+      continue;
+    }
+    if (!marker) {
+      marker = document.createElement("span");
+      marker.className = "next-marker";
+      marker.setAttribute("aria-hidden", "true");
+      wrapper.appendChild(marker);
+      nextMarkers.set(variant, marker);
+      animate = false; // premier placement : rien d'où glisser
+    }
+    const box = cell.getBoundingClientRect();
+    marker.dataset.line = line ?? "";
+    marker.classList.toggle("is-instant", !animate || marker.hidden);
+    marker.hidden = false;
+    marker.style.top = `${box.top - origin.top}px`;
+    marker.style.left = `${box.left - origin.left}px`;
+    marker.style.width = `${box.width}px`;
+    marker.style.height = `${box.height}px`;
   }
 }
 
@@ -345,6 +410,7 @@ function buildControl(
   button.className = "score-cell";
   button.setAttribute("aria-label", label);
   td.appendChild(button);
+  cells.get(variant)?.set(lineName, button);
 
   if (isReview) {
     // La cellule n'ouvre rien : on la sort de l'ordre de tabulation. Pas
@@ -364,9 +430,15 @@ function buildControl(
     // Cellule vide : rien dans le texte, le repère "–" est tracé en CSS
     // (::before) pour un centrage net. Écrire le texte vide aussi la case de
     // son ancien indice : il est reposé juste après s'il y a lieu.
-    button.textContent = value !== undefined ? String(value) : "";
+    button.replaceChildren();
+    if (value !== undefined) button.appendChild(cellValue(lineName, value));
     button.classList.toggle("is-filled", value !== undefined);
     button.classList.toggle("is-empty", value === undefined);
+    // Un 0 est une case barrée : on le dit comme sur la feuille, d'un trait.
+    button.classList.toggle("is-zero", value === 0);
+    const fresh = justWritten?.variant === variant && justWritten.line === lineName;
+    button.classList.toggle("is-written", fresh);
+    if (fresh && lineName === YAMS_LINE && value) celebrateYams(button);
     button.disabled = !isLineEnabled(lineName, variant, scores, grid);
 
     const mine = plan?.host === lineName ? plan : null;
@@ -381,6 +453,49 @@ function buildControl(
   return { refresh };
 }
 
+// La valeur d'une case, dans son propre élément : c'est lui qui s'écrit (la
+// case garde son cadre et son indice). Un Yams marqué est entouré, comme le
+// 50 de l'extrait de feuille du menu.
+function cellValue(lineName: LineName, value: number): HTMLElement {
+  const span = document.createElement("span");
+  span.className = "cell-value";
+  span.textContent = String(value);
+  if (lineName === YAMS_LINE && value > 0) {
+    span.classList.add("circled");
+    span.appendChild(handCircle());
+  }
+  return span;
+}
+
+// Un Yams vient d'être marqué : le cercle se trace (CSS), quelques confettis
+// partent de la case et un tampon « YAMS ! » s'y pose, puis disparaissent.
+function celebrateYams(button: HTMLButtonElement): void {
+  yamsJustCelebrated = true;
+  const burst = document.createElement("span");
+  burst.className = "yams-burst";
+  burst.setAttribute("aria-hidden", "true");
+  const BITS = 14;
+  for (let i = 0; i < BITS; i++) {
+    const angle = (i / BITS) * Math.PI * 2;
+    const reach = 2.4 + (i % 3) * 0.8; // en em
+    const bit = document.createElement("i");
+    bit.style.setProperty("--x", `${(Math.cos(angle) * reach).toFixed(2)}em`);
+    bit.style.setProperty("--y", `${(Math.sin(angle) * reach * 0.7).toFixed(2)}em`);
+    bit.style.setProperty("--turn", `${(i * 67) % 360}deg`);
+    bit.style.setProperty("--d", `${0.35 + (i % 4) * 0.03}s`);
+    burst.appendChild(bit);
+  }
+  const stamp = document.createElement("span");
+  stamp.className = "yams-stamp";
+  stamp.setAttribute("aria-hidden", "true");
+  stamp.textContent = "Yams !";
+  button.append(burst, stamp);
+  window.setTimeout(() => {
+    burst.remove();
+    stamp.remove();
+  }, YAMS_CELEBRATION_MS + 400);
+}
+
 function refreshColumn(variant: Variant): void {
   fillDerived(variant, true);
   refreshControls(variant);
@@ -391,11 +506,16 @@ function refreshControls(variant: Variant): void {
   for (const control of controls.get(variant) ?? []) control.refresh(plan);
 }
 
-// Comme la jauge de bonus : à plusieurs variantes les colonnes tombent sous les
-// 60 px, l'indice n'y tiendrait pas.
+// À une variante, dès deux cases remplies (4 chiffres libres). À deux
+// variantes, à partir de trois (3 chiffres libres) : la colonne est deux fois
+// plus étroite, l'indice doit être plus court pour y tenir (demande de Paul,
+// 08/10). Au-delà de deux, les colonnes tombent sous les 60 px : pas d'indice.
+const PLAN_LINES_BY_VARIANTS: Record<number, number> = { 1: PLAN_MAX_LINES, 2: 3 };
+
 function planFor(variant: Variant): BonusPlan | null {
-  if (!showBonusHint || game.selectedVariants.length > 1) return null;
-  return bonusPlan(sheetOf(currentPlayer(), variant), grid);
+  const maxLines = PLAN_LINES_BY_VARIANTS[game.selectedVariants.length];
+  if (!showBonusHint || !maxLines) return null;
+  return bonusPlan(sheetOf(currentPlayer(), variant), grid, maxLines);
 }
 
 function planLabel(plan: BonusPlan): string {
@@ -500,6 +620,14 @@ function animateBonusOutcome(
     fill.style.background = ""; // la couleur vient alors du CSS
     gauge.classList.add(won ? "bonus-gauge--won" : "bonus-gauge--lost");
     label.textContent = won ? `+${grid.bonusPoints}` : "0";
+    // Bonus décroché : « +35 » s'envole au-dessus de la jauge.
+    if (won) {
+      const gain = document.createElement("span");
+      gain.className = "bonus-float";
+      gain.setAttribute("aria-hidden", "true");
+      gain.textContent = `+${grid.bonusPoints}`;
+      cell.appendChild(gain);
+    }
   }, BONUS_FILL_MS);
 
   // 3) il ne reste que le verdict.
@@ -507,8 +635,13 @@ function animateBonusOutcome(
 }
 
 function setBonusResult(cell: HTMLTableCellElement, won: boolean): void {
-  cell.replaceChildren();
-  cell.textContent = won ? `+${grid.bonusPoints}` : "0";
+  // Le « +35 » qui s'envole survit au verdict : il finit sa course, puis s'en va.
+  // Il reste dans la case (le retirer puis le remettre relancerait son
+  // animation depuis le début).
+  const gain = cell.querySelector(".bonus-float");
+  for (const child of [...cell.childNodes]) if (child !== gain) child.remove();
+  cell.prepend(won ? `+${grid.bonusPoints}` : "0");
+  gain?.addEventListener("animationend", () => gain.remove(), { once: true });
   cell.classList.add("bonus-result");
   cell.classList.toggle("bonus-result--won", won);
   cell.classList.toggle("bonus-result--lost", !won);
@@ -529,18 +662,6 @@ function ensureGauge(cell: HTMLTableCellElement): HTMLElement {
   gauge.append(track, label);
   cell.replaceChildren(gauge);
   return gauge;
-}
-
-// Même teinte, en plus vif : on écarte les canaux de leur moyenne (saturation)
-// puis on assombrit très légèrement. Garde la couleur, évite le virage au gris.
-function richen(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-  const mean = (rgb[0] + rgb[1] + rgb[2]) / 3;
-  const out = rgb.map((v) =>
-    Math.max(0, Math.min(255, Math.round((mean + (v - mean) * 1.7) * 0.9))),
-  );
-  return `rgb(${out[0]}, ${out[1]}, ${out[2]})`;
 }
 
 // Version foncée mais colorée d'un pastel #rrggbb, en [r, g, b] : on retire la
@@ -566,17 +687,26 @@ function deepen(hex: string): [number, number, number] {
 // case d'une ligne mais parle des autres, et ce sont les dés de la première
 // colonne que l'œil retrouve. Un "2×⚂" renvoie à sa ligne sans qu'on ait à
 // lire quoi que ce soit.
+//
+// À deux variantes, "3× 2× 1×" côte à côte débordait de la colonne et
+// chevauchait la voisine : le nombre passe au-dessus de son dé, sans le "×".
+// Chaque étape ne prend plus que la largeur d'un dé, et la hauteur gagnée tient
+// sous celle de la case.
 
 function buildHint(steps: BonusPlanStep[]): HTMLElement {
+  const stacked = game.selectedVariants.length > 1;
   const hint = document.createElement("span");
-  hint.className = "cell-hint";
+  hint.className = stacked ? "cell-hint cell-hint--stacked" : "cell-hint";
   // Le texte équivalent est porté par l'aria-label du bouton : annoncer en plus
   // six dés dessinés ne ferait que bavarder.
   hint.setAttribute("aria-hidden", "true");
   for (const { line, dice } of steps) {
     const step = document.createElement("span");
     step.className = "hint-step";
-    step.append(`${dice}×`, dieFace(line));
+    const count = document.createElement("span");
+    count.className = "hint-count";
+    count.textContent = stacked ? String(dice) : `${dice}×`;
+    step.append(count, dieFace(line));
     hint.appendChild(step);
   }
   return hint;
@@ -589,17 +719,33 @@ function openPicker(
   variant: Variant,
   onPickValue: OnPick,
 ): void {
-  picker.style.setProperty("--pv", getVariantColor(variant));
-  pickerVariant.textContent = getVariantIcon(variant);
-  pickerVariant.title = variant;
+  pickerVariant.replaceChildren(variantBadge(variant));
   pickerLine.textContent = lineLabel(lineName, game.rules);
+
+  // Lignes des chiffres : chaque valeur dit combien de dés elle représente
+  // (8 sur la ligne des 4 = « 2 × ⚃ ») — c'est ce qu'on a sous les yeux sur
+  // la table, pas le total.
+  const face = UPPER_LINES.includes(lineName) ? Number(lineName) : null;
+  pickerValues.classList.toggle("picker-values--dice", face !== null);
 
   const frag = document.createDocumentFragment();
   for (const v of values) {
     const chip = document.createElement("button");
     chip.type = "button";
     chip.className = v === current ? "picker-value current" : "picker-value";
-    chip.textContent = String(v);
+    chip.classList.toggle("is-zero", v === 0);
+    const num = document.createElement("span");
+    num.className = "picker-num";
+    num.textContent = String(v);
+    chip.appendChild(num);
+    if (face !== null) {
+      const dice = document.createElement("span");
+      dice.className = "picker-dice";
+      if (v === 0) dice.textContent = "aucun";
+      else dice.append(`${v / face}×`, dieFace(face));
+      chip.appendChild(dice);
+      chip.setAttribute("aria-label", v === 0 ? "0" : `${v}, ${v / face} dés`);
+    }
     chip.addEventListener("click", () => {
       picker.close();
       onPickValue(v);
@@ -624,15 +770,12 @@ function openPicker(
 
 /* ---------- Mise en route ---------- */
 
-// blur() : sinon la flèche garde le focus (et sa pastille) collé après un tap.
-prevPlayerBtn.addEventListener("click", () => {
-  prevPlayerBtn.blur();
-  changePlayer(-1);
-});
-nextPlayerBtn.addEventListener("click", () => {
-  nextPlayerBtn.blur();
-  changePlayer(1);
-});
+applyGameTheme(gameScreen, YAMS);
+
+// La flèche garde le focus : au clavier, on enchaîne les joueurs sans perdre
+// sa place. Au doigt, aucun anneau (:focus-visible, cf. yams-game.css).
+prevPlayerBtn.addEventListener("click", () => changePlayer(-1));
+nextPlayerBtn.addEventListener("click", () => changePlayer(1));
 
 // Changer de joueur au doigt (core/swipe.ts) : même effet que les flèches.
 onHorizontalSwipe(gameScreen, changePlayer);
@@ -656,6 +799,11 @@ turnHint.addEventListener("click", () => {
 });
 
 makeDismissible(picker);
+
+// Le liseré est placé en pixels : il suit la grille quand elle change de
+// taille (rotation, police chargée après le premier rendu).
+window.addEventListener("resize", () => placeNextMarkers(false));
+void document.fonts?.ready.then(() => placeNextMarkers(false));
 
 renderPlayer();
 if (!isReview) keepScreenOn();

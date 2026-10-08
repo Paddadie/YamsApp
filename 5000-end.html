@@ -7,19 +7,32 @@
   </head>
   <body>
     <div id="g5000-end-screen" class="screen">
+      <header class="page-head">
+        <!-- L'objectif de la partie, posé par src/pages/g5000/end.ts. -->
+        <p class="page-eyebrow" id="end-eyebrow">5000</p>
+        <!-- « Bravo Alice ! » et les confettis : src/pages/endScreen.ts. -->
+        <h1 class="page-title end-title" id="end-title">Fin de la partie</h1>
+      </header>
       <div class="screen-body">
-        <h1>🎉 Fin de la partie&nbsp;!</h1>
         <div id="podium"></div>
-        <ul id="records-broken" class="records-broken" hidden></ul>
+        <ul id="records-broken" class="records-broken postit" hidden></ul>
         <table id="ranking-table"></table>
         <p id="end-note" class="hall-note" hidden></p>
       </div>
+      <!-- La feuille de la partie, comme « Revoir les feuilles de score » au
+           Yams, au-dessus de la rangée [Palmarès | Quitter]. -->
       <div class="action-bar">
-        <a href="5000-records.html?from=end" class="btn btn-gold">🏆 Palmarès</a>
-        <button id="quit-btn" type="button" class="btn btn-secondary">🏠 Quitter</button>
+        <a href="5000-game.html?review=1" class="btn btn-gold btn-outline">
+          <!--@icon:sheet-->Revoir la feuille
+        </a>
+        <div class="action-pair">
+          <a href="5000-records.html?from=end" class="btn btn-gold btn-outline"><!--@icon:trophy-->Palmarès</a>
+          <button id="quit-btn" type="button" class="btn btn-secondary btn-grow">
+            <!--@icon:home-->Quitter
+          </button>
+        </div>
       </div>
     </div>
-
     <script type="module" src="/src/pages/g5000/end.ts"></script>
   </body>
 </html>

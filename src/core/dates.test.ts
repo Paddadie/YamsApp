@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatDate } from "./dates";
+import { dateStamp, formatDate, isoFromFrench } from "./dates";
 
 const TODAY = new Date(2026, 6, 19); // 19 juillet 2026
 
@@ -48,5 +48,27 @@ describe("formatDate", () => {
 
   it("ne bascule pas en « il y a » pour une date future", () => {
     expect(formatDate("20/07/2026")).toBe("aujourd'hui");
+  });
+});
+
+describe("dateStamp", () => {
+  it("écrit l'heure LOCALE, à la minute", () => {
+    expect(dateStamp(new Date(2026, 9, 8, 0, 30))).toBe("2026-10-08T00:30");
+  });
+
+  it("se relit : aujourd'hui", () => {
+    expect(formatDate(dateStamp())).toBe("aujourd'hui");
+  });
+});
+
+describe("isoFromFrench", () => {
+  it("convertit jj/mm/aaaa, zéros ajoutés", () => {
+    expect(isoFromFrench("1/7/2026")).toBe("2026-07-01");
+    expect(isoFromFrench("19/07/2026")).toBe("2026-07-19");
+  });
+
+  it("rend tel quel ce qu'il ne sait pas lire", () => {
+    expect(isoFromFrench("2026-07-19")).toBe("2026-07-19");
+    expect(isoFromFrench("")).toBe("");
   });
 });

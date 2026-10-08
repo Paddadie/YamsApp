@@ -91,6 +91,15 @@ export function reroll(game: G5000Game): void {
   game.turn.rolls++;
 }
 
+// La saisie rapide annonce le tour d'un bloc : son total et ses mains pleines,
+// qui comptent pour le record de la série comme celles de la calculette. Il
+// remplace ce qu'une calculette ouverte puis fermée aurait laissé en cours.
+export function enterTurn(game: G5000Game, pot: number, fullHands: number): void {
+  startTurn(game);
+  game.turn.pot = pot;
+  game.turn.hotStreak = fullHands;
+}
+
 /* ---------- Mouvements de score ---------- */
 
 export type MoveKind =
@@ -334,6 +343,8 @@ export interface FinishedTurn {
 // (ce qu'on mesure avant endTurn, qui fait entrer le joueur en jeu), il n'a
 // pas à le connaître.
 export function finishTurn(game: G5000Game, how: TurnFinish): FinishedTurn {
+  // La partie d'avant ce tour, pour pouvoir le reprendre (undoLastTurn).
+  const before = snapshot(game);
   const index = game.currentPlayerIndex;
   const { pot, hotStreak = 0 } = game.turn;
   // Mesuré AVANT endTurn, qui fait entrer le joueur en jeu s'il a marqué.
@@ -357,7 +368,40 @@ export function finishTurn(game: G5000Game, how: TurnFinish): FinishedTurn {
     moves,
   });
 
+  game.previous = before;
+  game.lastTurn = { player: index, how, pot, moves };
   return { moves, ended: closeTurn(game) };
+}
+
+/* ---------- Corriger le dernier tour ---------- */
+// Une saisie fausse (650 au lieu de 600, « Bust » au lieu de « Banquer ») ne
+// se rattrapait pas une fois la main passée. Plutôt que de défaire un à un les
+// effets du tour (score, busts d'affilée, cascade Sniper, records), on garde la
+// partie telle qu'elle était juste avant lui, et on y revient.
+
+// La partie sans son propre retour en arrière : un seul tour se reprend, et
+// l'instantané ne s'emboîte pas dans le suivant.
+function snapshot(game: G5000Game): G5000Game {
+  const { previous: _previous, lastTurn: _lastTurn, ...rest } = game;
+  return structuredClone(rest);
+}
+
+// Le dernier tour peut-il être repris ? Pas une fois la partie finie : le
+// podium a déjà écrit les records.
+export const canUndoLastTurn = (game: G5000Game): boolean =>
+  game.previous !== undefined && !game.ended;
+
+// Revient à la partie d'avant le dernier tour : la main retourne à celui qui
+// l'a joué, avec un tour vierge, comme s'il n'avait pas encore joué. Renvoie
+// faux s'il n'y a rien à reprendre. Modifie `game` sur place : l'écran le
+// garde en main.
+export function undoLastTurn(game: G5000Game): boolean {
+  const previous = game.previous;
+  if (!previous || !canUndoLastTurn(game)) return false;
+  for (const key of Object.keys(game) as (keyof G5000Game)[]) delete game[key];
+  Object.assign(game, previous);
+  game.turn = emptyTurn();
+  return true;
 }
 
 // Clôt le tour qui vient d'être joué : soit la partie s'achève (et le reste,

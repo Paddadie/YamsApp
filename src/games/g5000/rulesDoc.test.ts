@@ -1,7 +1,7 @@
 // Ce que la page des règles du 5000 annonce doit être ce que le moteur calcule.
 
 import { describe, expect, it } from "vitest";
-import { g5000RulesDoc, scoringRows, type RulesScope } from "./rulesDoc";
+import { g5000RulesDoc, scoringExamples, scoringRows, type RulesScope } from "./rulesDoc";
 import { DEFAULT_RULES, bestValue, countsOf, groupValue } from "./rules";
 import { G5000_VARIANTS } from "./variants";
 import type { G5000Rules } from "./types";
@@ -17,7 +17,12 @@ const row = (r: G5000Rules, prefix: string): string | undefined =>
 
 const text = (r: G5000Rules, scope: RulesScope = "all"): string =>
   g5000RulesDoc(r, scope)
-    .flatMap((s) => [s.title, ...(s.body ?? []), ...(s.table?.rows.flat() ?? [])])
+    .flatMap((s) => [
+      s.title,
+      ...(s.body ?? []),
+      ...(s.table?.rows.flat() ?? []),
+      ...(s.items?.flatMap((i) => [i.title, i.text]) ?? []),
+    ])
     .join(" ");
 
 const pts = (n: number): string => `${formatScore(n)} points`;
@@ -119,15 +124,13 @@ describe("les variantes", () => {
   it("depuis le menu : toutes, même sans aucune cochée", () => {
     const section = variants(rules(), "all");
     for (const v of G5000_VARIANTS) {
-      expect(section?.body?.some((p) => p.startsWith(`${v.icon} ${v.label}`))).toBe(true);
+      expect(section?.items?.some((i) => i.title === v.label && i.icon === v.icon)).toBe(true);
     }
   });
 
   it("pendant une partie : seulement celles de la partie", () => {
     const section = variants(rules({ variants: ["sniper", "combo"] }), "game");
-    expect(section?.body).toHaveLength(2);
-    expect(section?.body?.[0]).toContain("Sniper");
-    expect(section?.body?.[1]).toContain("Combo");
+    expect(section?.items?.map((i) => i.title)).toEqual(["Sniper", "Combo"]);
   });
 
   it("pendant une partie sans variante : pas de section", () => {
@@ -145,5 +148,19 @@ describe("les variantes", () => {
     expect(doc).toContain(`un 1 vaut ${groupValue(1, 1, true, rules())}`);
     expect(doc).toContain(`un 5 vaut ${groupValue(5, 1, true, rules())}`);
     expect(doc).toContain(`un 3 vaut ${groupValue(3, 1, true, rules())}`);
+  });
+});
+
+describe("exemples en vrais dés", () => {
+  it("comptés par le moteur, et la suite seulement si elle rapporte", () => {
+    const examples = scoringExamples(DEFAULT_RULES);
+    const brelanEtCinq = bestValue(countsOf([1, 1, 1, 5]), [], DEFAULT_RULES);
+    expect(examples[0].result).toBe(
+      `Brelan de 1 et un 5 → ${formatScore(brelanEtCinq)} points`,
+    );
+    expect(examples[1].result).toBe("Rien ne rapporte → bust");
+    expect(examples.some((e) => e.result.startsWith("Suite"))).toBe(DEFAULT_RULES.runPoints > 0);
+    const noRun = scoringExamples({ ...DEFAULT_RULES, runPoints: 0 });
+    expect(noRun.some((e) => e.result.startsWith("Suite"))).toBe(false);
   });
 });

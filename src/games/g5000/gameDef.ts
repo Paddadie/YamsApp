@@ -9,6 +9,7 @@ import { PLAYER_COLORS } from "../../core/playerColors";
 import { STORAGE_KEYS } from "../../core/storage/keys";
 import { saveLastRoster } from "../../core/storage/draftRepo";
 import { createGame, currentScore } from "./engine";
+import type { G5000Player } from "./types";
 import { g5000RulesDoc } from "./rulesDoc";
 import {
   getRules,
@@ -31,12 +32,31 @@ import { plural } from "../../core/ui";
 
 export const G5000_ID = "g5000";
 
+// Qui mène, pour la carte « Partie en cours » : « Bob mène · 3 100 », ou
+// « Égalité en tête » quand plusieurs joueurs partagent le meilleur score.
+function leadLabel(players: G5000Player[], leader: number): string {
+  if (leader === 0) return "Personne n'est encore entré en jeu";
+  const first = players.filter((p) => currentScore(p) === leader);
+  const who = first.length === 1 ? `${first[0].name} mène` : "Égalité en tête";
+  return `${who} · ${formatScore(leader)}`;
+}
+
 export const G5000: GameDef = {
   id: G5000_ID,
   title: "5000",
-  icon: "💰",
-  accent: "#c9552f",
+  icon: "bag",
+  accent: "#bf4a26",
+  accentPaper: "#fbe7dc",
+  sceneDice: [1, 4, 1, 5, 1], // un brelan de 1 et un 5 : 1 050
   tagline: "Pousser sa chance, ou banquer à temps.",
+  // La colonne d'un joueur : chaque total sous le précédent, une rature, le
+  // score en vigueur surligné.
+  sample: [
+    { value: "500" },
+    { value: "1 350" },
+    { value: "2 000", mark: "strike" },
+    { value: "2 450", mark: "live" },
+  ],
 
   pages: {
     home: "5000.html",
@@ -74,7 +94,12 @@ export const G5000: GameDef = {
       });
     }
     rows.push({ term: "Meilleur score", value: formatScore(leader) });
-    return { playerNames: saved.players.map((p) => p.name), rows };
+    return {
+      playerNames: saved.players.map((p) => p.name),
+      playerColors: saved.players.map((p) => p.color),
+      rows,
+      progress: { label: leadLabel(saved.players, leader), ratio: Math.min(1, leader / saved.rules.target) },
+    };
   },
 
   startGame(draft, colorOf) {

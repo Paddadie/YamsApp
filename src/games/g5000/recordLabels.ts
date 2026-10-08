@@ -3,10 +3,11 @@
 // partout de la même façon. Aucun accès au DOM.
 
 import { formatScore } from "../../core/format";
+import type { IconName } from "../../core/iconPaths";
 import type { RecordKey } from "./records";
 
 export interface RecordLabel {
-  icon: string;
+  icon: IconName;
   title: string;
   // Une ligne sous le titre : ce que le record mesure au juste.
   hint: string;
@@ -24,56 +25,56 @@ const count = (n: number, one: string, many = `${one}s`): string =>
 
 export const RECORD_LABELS: Record<RecordKey, RecordLabel> = {
   fastestWin: {
-    icon: "🏁",
+    icon: "flag",
     title: "Victoire la plus rapide",
     hint: "le moins de tours joués pour gagner",
     worst: false,
     format: (n) => count(n, "tour"),
   },
   biggestBank: {
-    icon: "💥",
+    icon: "pot",
     title: "Plus gros tour banqué",
     hint: "en un seul tour",
     worst: false,
     format: points,
   },
   longestHotStreak: {
-    icon: "🔥",
+    icon: "flame",
     title: "Plus de mains pleines en un tour",
-    hint: "enchaînées sans s'arrêter — comptées par la calculette",
+    hint: "enchaînées sans s'arrêter",
     worst: false,
     format: (n) => count(n, "main pleine", "mains pleines"),
   },
   mostWins: {
-    icon: "🏆",
+    icon: "trophy",
     title: "Plus grand nombre de victoires",
     hint: "tous objectifs confondus, victoires partagées comprises",
     worst: false,
     format: (n) => count(n, "victoire"),
   },
   biggestBust: {
-    icon: "💩",
+    icon: "burst",
     title: "Plus gros pot perdu sur un bust",
     hint: "tout ce qu'il y avait, parti d'un lancer",
     worst: true,
     format: points,
   },
   biggestFall: {
-    icon: "😵",
+    icon: "fall",
     title: "Plus grosse chute subie",
     hint: "rattrapé ou pénalisé",
     worst: true,
     format: points,
   },
   slowestOpening: {
-    icon: "🚪",
+    icon: "door",
     title: "Plus long temps d'entrée en jeu",
     hint: "tours ratés d'affilée avant d'entrer",
     worst: true,
     format: (n) => count(n, "tour"),
   },
   longestGame: {
-    icon: "🐌",
+    icon: "hourglass",
     title: "Partie la plus longue",
     hint: "en tours de table",
     worst: true,

@@ -20,38 +20,41 @@ npm test            # vitest (logique sans DOM : jeux, records, stockage)
 npm run test:pages  # vitest + jsdom (écrans : chargement, gardes, parcours)
 npm run build       # tsc -b + vite build -> dist/
 npm run preview     # sert le dist/ compilé (avec service worker)
+npm run check       # tsc -b + les deux suites de tests : à lancer avant de livrer
 ```
 
-⚠️ Les tests ne vérifient pas les types : une erreur de typage ne sort qu'au
-`npm run build` (`tsc -b`, qui vérifie aussi les tests de pages). Lancer les
-trois.
+⚠️ Les tests ne vérifient pas les types : une erreur de typage ne sort qu'à
+`tsc -b` (`npm run build`, qui vérifie aussi les tests de pages). `npm run
+check` enchaîne les trois.
 
 ## Les pages
 
 | Fichier | Écran | Entrée TS |
 |---|---|---|
-| `index.html` | Menu des jeux : une tuile par jeu, reprise d'une partie en cours, ⚙️ | `src/pages/home.ts` |
+| `index.html` | Menu des jeux : une carte par jeu (avec un extrait de sa feuille), reprise d'une partie en cours, Paramètres | `src/pages/home.ts` |
 | `players.html` | Joueurs de la partie, **commun aux jeux** (liste à cocher, ordre en faisant glisser un joueur coché, mélange) | `src/pages/players.ts` |
 | `rules.html?game=…[&from=play]` | « ⓘ Règles » du jeu, générées depuis ses réglages | `src/pages/rules.ts` |
 | `settings.html[?game=…]` | Paramètres : communs, plus ceux du jeu d'où l'on vient | `src/pages/settings.ts` |
-| `yams.html` | Accueil du Yams : variantes, reprise, Hall of Fame | `src/pages/yams/home.ts` |
+| `yams.html` | Accueil du Yams : variantes, partie en cours, palmarès | `src/pages/yams/home.ts` |
 | `yams-game.html[?review=1]` | Grille du joueur courant (ou consultation en fin de partie) | `src/pages/yams/game.ts` |
-| `yams-end.html` | Podium, classement, impact sur le Hall of Fame | `src/pages/yams/end.ts` |
+| `yams-end.html` | Podium, classement, impact sur le palmarès | `src/pages/yams/end.ts` |
 | `yams-hall.html` | Meilleurs / pires scores (feuilles détaillées) et statistiques | `src/pages/yams/hall.ts` |
-| `5000.html` | Accueil du 5000 : objectif, variantes, reprise, records | `src/pages/g5000/home.ts` |
-| `5000-game.html` | Feuille de progression, calculette, saisie rapide | `src/pages/g5000/game.ts` |
-| `5000-end.html` | Podium, classement, records battus | `src/pages/g5000/end.ts` |
+| `5000.html` | Accueil du 5000 : objectif, variantes, partie en cours, palmarès | `src/pages/g5000/home.ts` |
+| `5000-game.html[?review=1]` | Feuille de progression, calculette, saisie rapide, dernier tour à corriger (ou consultation de la feuille en fin de partie) | `src/pages/g5000/game.ts` |
+| `5000-end.html` | Podium, classement, records battus, « Revoir la feuille » | `src/pages/g5000/end.ts` |
 | `5000-records.html[?from=end]` | Records du 5000 par objectif, classement des victoires | `src/pages/g5000/records.ts` |
 
 ## Architecture
 
 ```
-htmlFragments.ts  <head> commun et pictogrammes, injectés au build
+htmlFragments.ts  <head> commun et pictogrammes (<!--@icon:nom-->), injectés au build
 src/
 ├── core/        commun, ne connaît aucun jeu
 │   ├── bootstrap · nav · ui · playerName · playerColors · dates · dice
+│   │   illustrations (cornet du menu, dés des accueils)
+│   │   iconPaths (tracés, sans DOM) · icons (SVG, tampons de rang)
 │   │   format · ranking · swipe · wakeLock · storageAlert · pwa/
-│   └── storage/ localStore · keys · migrate · backup · persist
+│   └── storage/ localStore · keys · migrate · backup · persist · lastWinRepo
 │                knownPlayersRepo · playerGamesRepo · draftRepo
 ├── games/
 │   ├── registry.ts     LA liste des jeux
@@ -61,8 +64,12 @@ src/
 │   │                   scoreSheet · players · rulesDoc · gameDef · types
 │   │                   legacyLines · storage/
 │   └── g5000/          rules · engine · records · recordLabels · rulesDoc
-│                       variants · gameDef · repo · types
-├── pages/       un module par écran (câblage DOM), + settings/ et gameSwitcher
+│                       variants · gameDef · repo · types · tape
+├── pages/       un module par écran (câblage DOM), + settings/, gameSwitcher,
+│                gameTheme (encre et papier du jeu sur ses pages), g5000/
+│                calculator et quickEntry (les deux saisies du 5000),
+│                gameHero (en-tête d'un accueil, extrait de feuille), targetOption
+│                et endScreen (« Bravo … ! », confettis, lignes de record)
 ├── styles/      la feuille de style, par domaine (cf. Conventions)
 └── test/        setup.ts (localStorage en mémoire) · pages/ (harnais jsdom)
 ```
@@ -77,11 +84,16 @@ par nature connaître tous les formats.
 **Le catalogue des jeux est abstrait, les jeux ne le sont pas.** `GameDef`
 (`games/types.ts`) ne décrit que ce dont les écrans communs ont besoin :
 
-- présentation (titre, icône, couleur, phrase d'accroche) et pages d'accueil /
-  de partie ;
+- présentation (titre, emblème dessiné, encre du jeu, phrase d'accroche,
+  extrait de feuille pour sa carte du menu) et pages d'accueil / de partie ;
 - `rulesDoc({ inGame })` : les règles en données, construites depuis les réglages en
-  vigueur (ceux de la partie en cours quand `inGame`) ;
-- `resume()`, `startGame()`, `clearSaved()` : partie en cours ;
+  vigueur (ceux de la partie en cours quand `inGame`) ; une section peut porter
+  des **exemples en vrais dés** (`RulesExample`), dont le résultat est calculé
+  par le barème du jeu (`handScore` au Yams, `bestValue` au 5000) ;
+- `resume()`, `startGame()`, `clearSaved()` : partie en cours ; `resume()`
+  donne aussi où elle en est (`progress` : « Tour 6 sur 13 », « Bob mène ·
+  3 100 », et une jauge), affiché sur la carte « Partie en cours » du menu et
+  de l'accueil ;
 - `renamePlayer()`, `removePlayer()`, `playerNames()`, `describePlayer()` :
   administration des joueurs, partie en cours comprise. Les récapitulatifs
   sont des **données** (texte ou rangée de pastilles, `SummaryValue` de
@@ -115,8 +127,11 @@ progression ouverte du 5000 n'ont rien à partager.
 ## Le Yams
 
 - **Variantes** Classique, Montante, Descendante, One Shot, jouables ensemble
-  (une colonne chacune, classement sur le total). Montante / Descendante
-  verrouillent l'ordre de remplissage (`isLineEnabled`).
+  (une colonne chacune, classement sur le total) ; sur l'accueil, une phrase
+  sous chacune dit ce qu'elle change (`VariantConfig.hint`). Montante /
+  Descendante verrouillent l'ordre de remplissage (`isLineEnabled`) ; un
+  liseré à l'encre du jeu cerne la prochaine case (`nextLine`) et glisse
+  jusqu'à la suivante après une saisie.
 - **Barème réglable** (`scoring.ts`) : `buildGrid(rules)` produit la grille —
   sections et valeurs saisissables. `computeDerived` (pur) donne bonus, totaux
   et score final ; `writeDerived` les recopie dans la feuille.
@@ -144,6 +159,12 @@ progression ouverte du 5000 n'ont rien à partager.
   Les lignes 1 à 6 portent une face de dé dessinée en SVG. En haut, la même
   barre qu'au 5000 : ⓘ Règles et la pause (retour à l'accueil du Yams, partie
   gardée), hors de la ligne des flèches pour ne pas s'y confondre.
+- **Saisie** : sur les lignes 1 à 6, chaque valeur de la fenêtre dit son nombre
+  de dés (8 sur la ligne des 4 = « 2× ⚃ »). La valeur choisie s'écrit dans sa
+  case (seule la case qu'on vient de remplir s'anime), un 0 se barre. Un Yams
+  marqué reste entouré ; à la saisie, confettis et tampon « YAMS ! »
+  (`celebrateYams`), et l'avance automatique attend la fin de la fête. Bonus
+  décroché : « +35 » s'envole au-dessus de la jauge.
 - **À qui de jouer** : chacun remplit une case par tour, dans l'ordre de la
   table — le joueur qui doit jouer est le premier à avoir rempli le moins de
   cases (`playerToPlay`). Déduit des feuilles, pas mémorisé : c'est lui qu'on
@@ -153,9 +174,11 @@ progression ouverte du 5000 n'ont rien à partager.
   barre du haut le rappelle et y ramène d'un toucher — dans la barre, pour ne
   rien prendre à la grille. Sur un écran étroit, « C'est à » saute et le nom
   reste.
-- **Indice de bonus** (désactivable) : à quatre chiffres restants ou moins, la
-  case du plus grand chiffre libre montre la combinaison la plus probable pour
-  atteindre 63 (`bonusPlan`). Les plans sont classés par `DICE_ODDS`, la
+- **Indice de bonus** (désactivable) : à une variante, à quatre chiffres
+  restants ou moins ; à deux variantes, à trois ou moins (colonnes plus
+  étroites) ; au-delà, jamais. La case du plus grand chiffre libre montre la
+  combinaison la plus probable pour atteindre 63 (`bonusPlan`). La ligne du
+  bonus affiche sa valeur réglée, « Bonus (35) », comme « Full (25) ». Les plans sont classés par `DICE_ODDS`, la
   probabilité d'obtenir au moins *k* dés d'un chiffre en un tour
   (`B(5, 1 − (5/6)³)`) ; à probabilité égale, le moins de dés ; à effort égal,
   le plus de points. Ce dernier départage n'est pas cosmétique : sans lui, deux
@@ -217,7 +240,7 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   - 🏹 **Dans le mille** — il faut l'objectif exactement ; un tour qui le
     dépasse est un **bust** (il compte dans les busts d'affilée).
   - ⭕ **Sans demi-mesure** — un pot qui finit par 50 ne se banque pas
-    (`isUnround`) : pas de jeton +50 en saisie rapide, bouton « Banquer » grisé
+    (`isUnround`) : pas de touche +50 en saisie rapide, bouton « Banquer » grisé
     dans la calculette.
   - 😌 **Pas de zèle** — une main pleine peut se banquer.
   - 🔗 **Combo** — un brelan (ou mieux) active son chiffre pour le reste du
@@ -246,6 +269,16 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   ceux assis après lui. La fin de partie est un fait enregistré
   (`G5000Game.ended`) : les pages de jeu et de fin se redirigent l'une vers
   l'autre selon lui.
+- **Corriger le dernier tour** : `finishTurn` garde la partie telle qu'elle
+  était juste avant le tour (`G5000Game.previous`) et ce que le tour a écrit
+  (`lastTurn`). La ligne « Dernier tour » de l'écran le rappelle (« Bob +650 →
+  2 050 · Alice redescend », « Bob : bust, 350 perdus ») ; « Corriger » montre
+  ce qui sera défait, puis `undoLastTurn` revient à cet état — feuilles, busts
+  d'affilée, cascades Sniper, statistiques des records, riposte — et rend la
+  main au joueur, tour vierge. Un seul tour en arrière (le tour suivant remplace
+  l'instantané), et plus rien une fois la partie finie (les records sont
+  écrits au podium). Renommer un joueur fait suivre l'instantané
+  (`renameInSavedGame`), sinon l'ancien nom reviendrait.
 - **Choisir qui joue** : toucher un nom en tête de la feuille, ou glisser vers
   la gauche / la droite, donne la main à ce joueur et l'ordre repart de lui
   (`choosePlayer`). Un tour entamé demande confirmation avant d'être abandonné.
@@ -260,25 +293,43 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
     pavé, et toucher un dé saisi le retire. Rien ne se passe tant que le joueur
     n'a pas **validé** ses dés (bouton toujours présent, actif une fois le
     compte atteint) ; « Corriger les dés » y ramène depuis le choix des
-    combinaisons ou un bust. Toucher une combinaison la retient et lâche celles
-    qui partagent ses dés (`pickCombo`) : on ne garde jamais un dé deux fois
-    (`canKeep`).
+    combinaisons ou un bust. Rien n'est retenu d'office : c'est le joueur qui
+    choisit. Toucher une combinaison la retient et lâche celles qui partagent
+    ses dés (`pickCombo`) : on ne garde jamais un dé deux fois (`canKeep`). Une
+    combinaison incompatible l'annonce avant le toucher (« à la place de
+    Brelan de 5 »), et le lancer, rappelé au-dessus, cercle d'or les dés
+    retenus.
   - Dans le mille : dès que les dés retenus font dépasser la cible, relancer
     n'a plus de sens (`canReroll`). La calculette propose « Bust — passer la
     main » au lieu de faire relancer jusqu'au bust ; le joueur peut encore
     toucher une combinaison plus petite avant.
   - La ligne sous le pot dit pourquoi on ne peut pas banquer (`potWarning` :
     dépassement, entrée en jeu, compte pas rond).
-  - Saisie rapide : trois gros jetons (+100, +500, +1 000), puis +50 (sauf
-    Sans demi-mesure) et « effacer » — de quoi composer tout multiple de 50.
+  - Saisie rapide (`pages/g5000/quickEntry.ts`) : une « addition posée ».
+    Touches +50 | +100, +500 | +1 000 — de quoi composer tout multiple de 50 —
+    puis « Main pleine » et « Effacer … », dont le libellé dit ce qu'il défait.
+    Les montants de la main en cours s'écrivent sur une ligne ; une main pleine
+    monte au-dessus du trait avec son total (trois visibles, les autres
+    repliées), le total du tour sous un double trait. Juste après une main
+    pleine, on ne banque pas (sauf Pas de zèle). Le calcul (`slipOf`) est dans
+    `games/g5000/tape.ts`. Le brouillon survit à une fenêtre refermée par
+    erreur, jusqu'à la fin du tour.
+  - Pendant la saisie, la jauge du bandeau montre en hachuré où le pot mènerait
+    (`previewPot`). Banquer remplit la jauge du joueur et fait s'envoler le gain
+    (`showBank`) avant de passer la main ; les deux boutons de saisie attendent
+    la fin de l'animation, pour qu'un toucher rapide n'ouvre pas la saisie du
+    suivant sous le nom de celui qui vient de banquer.
   - Avec Sniper, les deux affichent un tableau de **tous ceux qui sont devant**
     (hors joueurs arrivés à l'objectif, à l'abri), du plus proche au plus loin :
     l'écart exact pour tomber pile sur leur score, où ils retomberaient
     (`TieTarget.fallsTo`) et ce qu'ils perdraient. Ceux que le pot a déjà
     dépassés passent à la fin, grisés. Au-delà de quatre, le tableau défile.
-  - Un pot qui atteint l'objectif change le bouton : « 🏆 Banquer 300 —
-    victoire ! » (ou « objectif atteint » derrière un joueur arrivé avant avec
-    autant ou plus), selon `bankOutcome`.
+    Quand le pot tombe pile sur l'un d'eux, sa ligne s'allume (une fois,
+    `.is-hit-new`). Sans Sniper, une égalité ne fait rien : de simples
+    pastilles disent où en sont ceux de devant (`renderAhead`).
+  - Un pot qui atteint l'objectif change le bouton : « Banquer 300 —
+    victoire ! », trophée dessiné devant (ou « objectif atteint » derrière un
+    joueur arrivé avant avec autant ou plus), selon `bankOutcome`.
 - **Règles (ⓘ)** : depuis l'accueil, la page décrit les réglages actuels et
   **toutes** les variantes ; ouverte pendant une partie (`?from=play`), les
   réglages de la partie et **ses seules** variantes (`GameDef.rulesDoc({ inGame })`).
@@ -294,7 +345,11 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   10 000) ; seules les victoires se comptent tous objectifs confondus. Les
   records d'avant cette séparation sont rangés sous 5 000.
 - **Écran de fin** : la colonne « Tours » compte les tours joués, busts
-  compris (`stats.turns`), pas les lignes de la feuille.
+  compris (`stats.turns`), pas les lignes de la feuille. « Revoir la feuille »
+  ouvre `5000-game.html?review=1` : la feuille en lecture seule, sans bandeau ni
+  saisie (paramètre ignoré tant que la partie n'est pas finie). Le podium et sa
+  mise en scène sont ceux du Yams (`pages/endScreen.ts` : marches une à une,
+  score du vainqueur qui défile, classement du dernier au premier).
 
 ## Joueurs
 
@@ -316,16 +371,28 @@ pas à quel jeu elles appartiennent** (`yams-player-names` est commun,
 renommés — renommer, c'est copier puis supprimer, donc risquer les données de
 tout le monde. Les commentaires de `keys.ts` font foi.
 
+La **dernière victoire** (`app-last-win`, `core/storage/lastWinRepo.ts`),
+tous jeux confondus, alimente le post-it du menu. Écrite une fois par partie
+par les écrans de fin, elle suit les renommages et suppressions de joueurs
+(`games/playerAdmin.ts`) ; elle n'est pas sauvegardée (un rappel, pas une
+donnée).
+
 Toutes les lectures passent par un contrôle de forme (`readJson(key, guard)`)
 ou une normalisation tolérante : un contenu abîmé est ignoré au lieu de faire
 planter une page.
 
 `migrate.ts` met les données d'anciennes versions au format courant, **une
-fois par version** (marqueur `yams-schema-version`, actuellement 7). Elle est
+fois par version** (marqueur `yams-schema-version`, actuellement 8). Elle est
 **non destructive** : elle complète et répare, elle ne supprime que du JSON
 illisible. Un nouveau format ⇒ incrémenter `SCHEMA_VERSION` et ajouter la
 migration, avec son test. (Les records du 5000 se normalisent à la lecture,
-`normalizeRecords`, sans passer par là.)
+`normalizeRecords` ; seules leurs dates passent par la migration.)
+
+**Dates** : écrites en ISO local à la minute (`dateStamp()`, `core/dates.ts` :
+`2026-10-08T21:14`), jamais en UTC — une partie finie à 0 h 30 est du jour
+même. Avant la v8, c'était le texte d'affichage `jj/mm/aaaa` ; la migration
+les convertit (palmarès du Yams, records du 5000, dernière victoire) et
+`formatDate` (« il y a 6 jours », « 15 août 2026 ») lit les deux formats.
 
 Au démarrage, l'application demande au navigateur un **stockage persistant**
 (`core/storage/persist.ts`) : sans ça, Safari efface les données d'un site non
@@ -336,7 +403,8 @@ ou refusé), un bandeau rouge **« Impossible d'enregistrer »** le dit
 ## Sauvegarde et restauration
 
 Les Paramètres exportent toutes les données dans un fichier JSON et savent le
-relire. Le fichier (version 5) transporte un dictionnaire indexé par clé : les
+relire ; une ligne sous « Exporter » confirme le téléchargement et nomme le
+fichier (sur iPhone, il part sans bruit dans Fichiers). Le fichier (version 5) transporte un dictionnaire indexé par clé : les
 clés communes sont listées dans `backup.ts`, celles de chaque jeu viennent de
 `GameDef.storageKeys` — un jeu ajouté est sauvegardé sans toucher à ce
 fichier. Les fichiers plus anciens restent lisibles.
@@ -358,17 +426,55 @@ suivant.
 - **Un module importé est évalué avant celui qui l'importe**, donc avant
   `bootstrap()` et la migration : les panneaux des Paramètres ne lisent rien du
   stockage à leur niveau module, tout est dans leur `setup…()`.
-- **Une page = exactement un `<h1>`**, puis `h2`/`h3` sans saut. Seul le menu
-  des jeux l'affiche en grand.
+- **Une page = exactement un `<h1>`**, puis `h2`/`h3` sans saut : le titre de
+  l'en-tête (`.page-title`), le nom du jeu (sélecteur) sur son accueil, le nom
+  du joueur à l'écran de jeu du Yams.
 - Les fragments communs sont injectés au build par le plugin `sharedHead` de
   `vite.config.ts`, depuis `htmlFragments.ts` : **une nouvelle page pose
   `<!--@head-->`** et se déclare dans `build.rollupOptions.input` ; un
-  pictogramme ⓘ ou pause s'écrit `<!--@icon:info-->` / `<!--@icon:pause-->`
-  (un marqueur inconnu fait échouer le build).
+  pictogramme s'écrit `<!--@icon:nom-->` (`home`, `trophy`, `info`… : les noms
+  de `core/iconPaths.ts` ; un marqueur inconnu fait échouer le build).
 - **La feuille de style est découpée par domaine** (`src/styles/`, importés
-  par `src/style.css`). L'ordre des imports est celui de l'ancienne feuille
-  unique et il compte : des règles de même spécificité se départagent par leur
-  position. Un déplacement se vérifie en comparant le CSS compilé.
+  par `src/style.css`, la police Archivo en premier). L'ordre des imports
+  compte : des règles de même spécificité se départagent par leur position.
+- **Direction visuelle « Bloc de score »** (octobre 2026) : Cornet remplace la
+  feuille de score, l'identité part de là. Le fond est un **papier quadrillé**
+  (`body`), le contenu est posé dessus en **feuillets** blancs (`.sheet`, bord
+  perforé `.perf-top`) — deux niveaux seulement, pas de feuillet dans un
+  feuillet. **Une seule police**, Archivo à largeur variable, embarquée
+  (`@fontsource-variable/archivo`, mise en cache par le service worker) :
+  capitales étroites (`font-stretch: 62 %`) pour les titres, chiffres en
+  `.num`. Chaque écran hors partie a son **en-tête** (`.page-head` : surtitre
+  `.page-eyebrow`, titre `.page-title`) ; un écran de jeu, sa barre
+  (`.screen-bar`). Les intitulés de section sont des `.section-label`. Les
+  **états sont des gestes de marqueur** : surligné (`.hl`) = choisi ou en
+  vigueur, entouré (`handCircle()`) = l'objectif, barré = tombé, coché =
+  activé. Les rangs sont des **gommettes** (`gommette()`) or / argent / bronze,
+  blanches au-delà, chez les meilleurs comme chez les pires. Palmarès et fins de partie
+  ajoutent de la couleur : un **papier de couleur par famille** avec son
+  onglet (`.paper-block`, `.paper-tab` : meilleurs en jaune, pires en rose,
+  statistiques en bleu), le record sur un **post-it** (`.postit`), et à la fin
+  « Bravo Alice ! » avec des confettis (`pages/endScreen.ts`), dans un en-tête
+  à la couleur de partie du vainqueur.
+  **Illustrations** (`core/illustrations.ts`, des dessins et non des
+  pictogrammes) : le cornet renversé à côté du nom au menu, cinq dés lancés au
+  bas de l'en-tête de chaque accueil (`GameDef.sceneDice` : un Yams de 6, un
+  brelan de 1 et un 5), masqués sur un écran bas. **Passage d'un écran à
+  l'autre** : View Transitions entre documents, en CSS seul (`animations.css`) —
+  l'en-tête se fond sur place (`view-transition-name: app-header`, donc UN seul
+  en-tête par page), le contenu arrive en glissant ; sans effet sur Firefox.
+  **États vides** : une phrase plutôt que « Aucune entrée » (palmarès vides,
+  podium à prendre en gommettes pointillées, « nouveau » pour un joueur sans
+  partie).
+  Le papier est ivoire, le quadrillage bleu de cahier, les ombres brunes
+  (« La table de jeu », octobre 2026) ; les traits et ombres translucides
+  passent par `rgba(var(--ink-rgb), …)` et `rgba(var(--shade-rgb), …)`.
+  Chaque jeu a son encre (`GameDef.accent` : titres, entourés, surlignés) et son
+  papier (`GameDef.accentPaper` : fond des en-têtes de ses pages et du haut de
+  sa carte au menu), posés sur l'écran par `applyGameTheme()`
+  (`pages/gameTheme.ts`) — à appeler sur toute nouvelle page d'un jeu. Seule la
+  couleur d'un joueur colore le fond d'un écran de partie. Jetons et
+  composants : `base.css` et `paper.css`.
 - **Dialogues** : rien à déclarer en CSS, le gabarit est sur l'élément
   `dialog`. `makeDismissible(dialog, boutonId?)` ajoute la fermeture au clic sur
   le fond. Une action qui doit suivre une fermeture écoute l'événement `close`
@@ -385,27 +491,37 @@ suivant.
   lisible (≥ 4,5:1).
 - **`[hidden]` est imposé globalement** en CSS : ne pas écrire de règle
   `.machin[hidden]`.
-- **Pas de caractère de police pour un pictogramme** (⚀, ⓘ, ⏸, ⌫, ⌄, ⠿…) :
-  leur rendu varie d'un appareil à l'autre, jusqu'à ne pas s'afficher du tout.
-  Faces de dé (`core/dice.ts`), ⓘ et pause (`htmlFragments.ts`), chevron,
-  « effacer » et poignée des joueurs sont en SVG. Les emoji couleur (⚙️, ➡️,
-  🗑️) s'affichent partout et restent.
+- **Ni emoji ni caractère de police pour un pictogramme** (⚀, ⓘ, ⏸, ⌫, 🏆,
+  🍀…) : leur rendu varie d'un appareil à l'autre, jusqu'à ne pas s'afficher
+  du tout, et cinq styles d'icônes se côtoyaient. Tous sont tracés au trait
+  dans `core/iconPaths.ts` : `<!--@icon:nom-->` dans une page,
+  `icon(nom)` (`core/icons.ts`) dans un écran. Faces de dé : `core/dice.ts`.
+  Un jeu, une variante, un record déclare le **nom** de son pictogramme
+  (`IconName`), jamais un caractère.
 - **Un bouton qui n'est pas un `.btn` pose sa couleur de texte et, s'il est rond
   ou de taille fixe, `padding: 0`** : la règle globale `button` écrit en blanc
   et ajoute une marge latérale. Il n'y a pas de survol global (`button:hover`) :
   sur tactile il restait collé après un toucher.
 - **Les nombres affichés passent par `formatScore`** : la locale insère selon le
   navigateur une espace insécable fine ou ordinaire comme séparateur de milliers.
+- **Rayons d'angle : l'échelle de `base.css`** (`--radius-xs` 2 px, `-s` 4,
+  `-m` 6, `-l` 8, `-xl` 10, `-pill`), pas de valeur en dur ; les ronds gardent
+  `50%`.
+- **Accessibilité** : un anneau de focus au clavier seulement
+  (`:focus-visible`), jamais de `blur()` pour le cacher au doigt ; une zone
+  touchable de 44 px pour les pictogrammes de la barre du haut ; le joueur qui
+  prend la main est annoncé (`aria-live`).
 - **Commentaires en français, qui expliquent le pourquoi.**
 
 ### Navigation
 
 - Une navigation **sans effet de bord** est un simple `<a href>` dans le HTML ;
   `goTo(page)` (`core/nav.ts`) ne sert qu'**après une écriture**.
-- Quatre écrans lisent un paramètre d'URL : `settings.html?game=`,
+- Cinq écrans lisent un paramètre d'URL : `settings.html?game=`,
   `rules.html?game=` (et `&from=play` : ouvertes depuis une partie, « Retour »
-  y ramène), `yams-game.html?review=` et `5000-records.html?from=end`
-  (« Retour » ramène au podium). Le service worker **ignore tous les
+  y ramène), `yams-game.html?review=`, `5000-game.html?review=` (consultation
+  depuis la fin) et `5000-records.html?from=end` (« Retour » ramène au
+  podium). Le service worker **ignore tous les
   paramètres** (`ignoreURLParametersMatching` dans `vite.config.ts`) : sinon
   ces adresses ne sont pas trouvées dans le précache, et l'application
   installée affiche le menu des jeux à leur place. Invisible en développement.
@@ -447,8 +563,13 @@ communs compris), fixe l'URL, importe le module d'entrée à neuf et note les
 navigations (`goTo` est bouchonné) ; `fixtures.ts` écrit les données de départ
 avec les vrais dépôts. Il attrape ce que ni `tsc` ni la logique ne voient :
 constante en zone morte, `id` manquant, garde de redirection cassée, parcours
-(saisie, calculette, fin de partie, retours). jsdom reste en version 25 : la
-27 exige Node ≥ 22.12.
+(saisie, calculette, fin de partie, retours) et l'habillage (`look.test.ts` :
+couleurs posées, illustrations, états vides), le glisser-déposer des joueurs
+(`players.test.ts`) et les Paramètres (`settings.test.ts`). jsdom reste en
+version 25 : la 27 exige Node ≥ 22.12. Il n'a ni `PointerEvent` (le harnais
+fournit `pointer(cible, type, { x, y, id })`) ni `File.text()`, ne calcule
+aucune mise en page (`getBoundingClientRect` à fixer dans le scénario qui
+mesure), et `showModal()` est bouchonné (`setup.ts`).
 
 Ce qui relève d'une règle (fin de tour, main pleine, renommage…) reste dans
 les modules testés sans DOM : **une règle de jeu ne s'écrit pas dans
@@ -461,9 +582,15 @@ les modules testés sans DOM : **une règle de jeu ne s'écrit pas dans
 2. Une ligne dans `games/registry.ts`, ses clés dans `core/storage/keys.ts`.
 3. Ses pages (`<!--@head-->`, entrée dans `vite.config.ts`, `core/nav.ts` si on
    y navigue par `goTo`), et son panneau dans `settings.html` et
-   `pages/settings.ts`. Son accueil reprend la barre du haut des autres
-   (`.screen-bar-start` : le `<h1>` avec le bouton `game-switch`, et la liste
-   `game-switcher` À CÔTÉ du titre ; `<!--@icon:info-->` pour les règles).
+   `pages/settings.ts`. Son accueil reprend l'en-tête des autres
+   (`header.game-hero` : `.screen-bar-start` avec le `<h1>` et le bouton
+   `game-switch`, la liste `game-switcher` À CÔTÉ du titre, puis
+   `#game-tagline` et éventuellement `#game-sample`, remplis par
+   `setupGameHero()` ; `<!--@icon:info-->` pour les règles). Son `gameDef`
+   déclare son emblème (`icon`), son encre (`accent`), son papier
+   (`accentPaper`, l'encre très éclaircie), son extrait de feuille (`sample`)
+   et les dés de l'illustration de son accueil (`sceneDice`). Chacune de ses
+   pages appelle `applyGameTheme()`.
 4. Si ses données changent un jour de forme : une migration dans
    `core/storage/migrate.ts` (ou une normalisation à la lecture), avec son
    test. Ses pages entrent dans le harnais de `src/test/pages/`.

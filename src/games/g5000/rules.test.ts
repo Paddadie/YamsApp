@@ -171,26 +171,37 @@ describe("invariant des multiples de 50", () => {
     const dice: Face[] = [1, 1, 1, 1, 1];
     let checked = 0;
 
+    // Les 16 barèmes essayés, construits une fois : les refaire pour chacun des
+    // 7 776 lancers, et un `expect` par essai, menait ce test au bord de sa
+    // limite de 5 s (il a échoué sur une machine chargée, 08/10). Les écarts
+    // sont rassemblés et vérifiés d'un coup : même couverture.
+    const rulesSets = (
+      [[], ["combo"]] as G5000Variant[][]
+    ).flatMap((variants) =>
+      (["classic", "custom"] as const).flatMap((tripleKind) =>
+        (["double", "half"] as const).flatMap((fourKind) =>
+          (["doubleFour", "doubleThree"] as const).map((fiveKind) =>
+            normalizeRules({
+              variants,
+              tripleKind,
+              fourKind,
+              fiveKind,
+              customTriples: [250, 150, 350, 450, 550, 650],
+            }),
+          ),
+        ),
+      ),
+    );
+    const offStep: string[] = [];
+
     const walk = (i: number): void => {
       if (i === 5) {
         checked++;
         const counts = countsOf(dice);
         for (const open of [[], [1], [5], [2, 6]] as Face[][]) {
-          for (const variants of [[], ["combo"]] as G5000Variant[][]) {
-            for (const tripleKind of ["classic", "custom"] as const) {
-              for (const fourKind of ["double", "half"] as const) {
-                for (const fiveKind of ["doubleFour", "doubleThree"] as const) {
-                  const r = normalizeRules({
-                    variants,
-                    tripleKind,
-                    fourKind,
-                    fiveKind,
-                    customTriples: [250, 150, 350, 450, 550, 650],
-                  });
-                  expect(bestValue(counts, open, r) % SCORE_STEP).toBe(0);
-                }
-              }
-            }
+          for (const r of rulesSets) {
+            const value = bestValue(counts, open, r);
+            if (value % SCORE_STEP !== 0) offStep.push(`${dice.join("")} → ${value}`);
           }
         }
         return;
@@ -201,7 +212,9 @@ describe("invariant des multiples de 50", () => {
       }
     };
     walk(0);
+    expect(rulesSets).toHaveLength(16);
     expect(checked).toBe(6 ** 5);
+    expect(offStep).toEqual([]);
   });
 });
 
@@ -291,7 +304,7 @@ describe("normalizeRules", () => {
         hotDiceMustReroll: false,
         openDigits: true,
       }).variants,
-    ).toEqual(["freeHotDice", "combo"]);
+    ).toEqual(["combo", "freeHotDice"]);
   });
 });
 

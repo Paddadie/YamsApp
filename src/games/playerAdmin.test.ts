@@ -5,6 +5,7 @@ import { STORAGE_KEYS } from "../core/storage/keys";
 import { getKnownNames } from "../core/storage/knownPlayersRepo";
 import { getPlayerGames } from "../core/storage/playerGamesRepo";
 import { getDraft } from "../core/storage/draftRepo";
+import { getLastWin, saveLastWin } from "../core/storage/lastWinRepo";
 import { getSavedGame as getYamsGame } from "./yams/storage/savedGameRepo";
 import {
   getPlayerStats,
@@ -145,5 +146,28 @@ describe("describePlayer", () => {
     expect(text).toContain("Palmarès du 5000: 1 record");
     expect(text).toContain("Victoires au 5000: 2");
     expect(text).toContain("Partie de 5000 en cours: sera abandonnée");
+  });
+});
+
+describe("dernière victoire (post-it du menu)", () => {
+  beforeEach(() => {
+    saveLastWin({ gameId: "yams", winners: ["Jean", "Marie"], score: 240, date: "01/09/2026" });
+  });
+
+  it("suit un renommage", () => {
+    renamePlayer("jean", "Jeannot");
+    expect(getLastWin()?.winners).toEqual(["Jeannot", "Marie"]);
+  });
+
+  it("perd un vainqueur supprimé, et disparaît avec le dernier", () => {
+    removePlayer("Jean");
+    expect(getLastWin()?.winners).toEqual(["Marie"]);
+    removePlayer("Marie");
+    expect(getLastWin()).toBeNull();
+  });
+
+  it("ses noms comptent parmi les traces d'un joueur", () => {
+    saveLastWin({ gameId: "yams", winners: ["Paul"], score: 300, date: "01/09/2026" });
+    expect(allPlayerNames()).toContain("Paul");
   });
 });

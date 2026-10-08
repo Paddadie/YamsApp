@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BONUS_LINE,
   BONUS_MAX,
   BONUS_THRESHOLD,
   DEFAULT_RULES,
@@ -12,9 +13,11 @@ import {
   isLineEnabled,
   lineLabel,
   lineValues,
+  nextLine,
   normalizeRules,
   writeDerived,
   playerToPlay,
+  turnProgress,
 } from "./scoring";
 import type { GameRules, LineName, Player, Variant } from "./types";
 
@@ -120,6 +123,8 @@ describe("lineLabel", () => {
   it("laisse les chiffres tels quels et nomme les lignes calculées", () => {
     expect(lineLabel("4", DEFAULT_RULES)).toBe("4");
     expect(lineLabel(FINAL_SCORE_LINE, DEFAULT_RULES)).toBe("Score Final");
+    expect(lineLabel(BONUS_LINE, DEFAULT_RULES)).toBe("Bonus (35)");
+    expect(lineLabel(BONUS_LINE, { ...DEFAULT_RULES, bonus: 50 })).toBe("Bonus (50)");
   });
 });
 
@@ -265,6 +270,32 @@ describe("isLineEnabled", () => {
   });
 });
 
+describe("nextLine", () => {
+  it("rien à signaler en Classique ni en One Shot : tout est ouvert", () => {
+    expect(nextLine("Classique", {}, grid)).toBeNull();
+    expect(nextLine("One Shot", {}, grid)).toBeNull();
+  });
+
+  it("en Descendante, la première case vide dans l'ordre, 0 compris comme rempli", () => {
+    expect(nextLine("Descendante", {}, grid)).toBe("1");
+    expect(nextLine("Descendante", { "1": 0 }, grid)).toBe("2");
+  });
+
+  it("en Montante, du Yams vers les chiffres", () => {
+    expect(nextLine("Montante", {}, grid)).toBe("yams");
+    expect(nextLine("Montante", { yams: 50 }, grid)).toBe("chance");
+  });
+
+  it("une case effacée redevient la prochaine", () => {
+    expect(nextLine("Descendante", { "2": 4, "3": 6 }, grid)).toBe("1");
+  });
+
+  it("plus rien une fois la colonne remplie", () => {
+    const full = Object.fromEntries(grid.allScoringNames.map((k) => [k, 0]));
+    expect(nextLine("Montante", full, grid)).toBeNull();
+  });
+});
+
 describe("isGameFinished", () => {
   const variants: Variant[] = ["Classique"];
 
@@ -318,6 +349,11 @@ describe("bonusPlan", () => {
 
   it("apparaît dès qu'il ne reste que quatre chiffres", () => {
     expect(bonusPlan(scores({ 5: 3, 6: 3 }), grid)).not.toBeNull();
+  });
+
+  it("seuil resserré (deux variantes) : trois chiffres restants", () => {
+    expect(bonusPlan(scores({ 5: 3, 6: 3 }), grid, 3)).toBeNull();
+    expect(bonusPlan(scores({ 4: 3, 5: 3, 6: 3 }), grid, 3)).not.toBeNull();
   });
 
   it("se tait quand le bonus est déjà acquis", () => {
@@ -397,6 +433,25 @@ describe("playerToPlay", () => {
     // J0 : 2 + 1 cases, J1 : 1 + 1 → c'est à J1.
     const table = players([2, 1], [1, 1]);
     expect(playerToPlay(table, ["Classique", "Montante"], grid)).toBe(1);
+  });
+
+  describe("turnProgress", () => {
+    it("le tour est celui du joueur le moins avancé", () => {
+      // 13 lignes par défaut : J0 a rempli 5 cases, J1 4 → tour 5 sur 13.
+      const progress = turnProgress(players([5], [4]), ["Classique"], grid);
+      expect(progress).toEqual({ turn: 5, turns: 13, ratio: 9 / 26 });
+    });
+
+    it("une case par ligne ET par variante", () => {
+      const progress = turnProgress(players([2, 1], [1, 1]), ["Classique", "Montante"], grid);
+      expect(progress.turns).toBe(26);
+      expect(progress.turn).toBe(3);
+    });
+
+    it("grille pleine : borné au dernier tour", () => {
+      const progress = turnProgress(players([13], [13]), ["Classique"], grid);
+      expect(progress).toEqual({ turn: 13, turns: 13, ratio: 1 });
+    });
   });
 });
 

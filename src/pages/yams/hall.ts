@@ -5,8 +5,10 @@
 // en bas (README, « Conventions »).
 
 import { bootstrap } from "../../core/bootstrap";
+import { YAMS } from "../../games/yams/gameDef";
+import { applyGameTheme } from "../gameTheme";
+import { gommette, icon } from "../../core/icons";
 import {
-  MEDALS,
   makeActivatable,
   makeDismissible,
   plural,
@@ -49,17 +51,17 @@ function renderRecordCard(): void {
   }
   card.hidden = false;
 
-  const crown = document.createElement("span");
-  crown.className = "record-crown";
-  crown.textContent = "👑";
+  // Un post-it scotché : la gommette d'or, le nom en capitales, le score en
+  // très grand à droite.
+  const crown = gommette(1, { big: true });
 
   const label = document.createElement("span");
   label.className = "record-label";
   label.textContent = "Record du téléphone";
 
-  const main = document.createElement("span");
-  main.className = "record-main";
-  main.append(strongText(top.name), ` · ${top.score} pts`);
+  const name = document.createElement("span");
+  name.className = "record-name";
+  name.textContent = top.name;
 
   const meta = document.createElement("span");
   meta.className = "record-meta";
@@ -68,13 +70,23 @@ function renderRecordCard(): void {
 
   const body = document.createElement("div");
   body.className = "record-body";
-  body.append(label, main, meta);
+  body.append(label, name, meta);
 
-  card.replaceChildren(crown, body);
+  const score = document.createElement("span");
+  score.className = "record-score";
+  const points = document.createElement("span");
+  points.textContent = "points";
+  score.append(strongText(String(top.score)), points);
+
+  card.replaceChildren(crown, body, score);
 
   // Cliquable vers la feuille détaillée, comme les lignes des tableaux.
   if (top.sheet && top.lineOrder) {
     card.classList.add("clickable");
+    const go = document.createElement("span");
+    go.className = "record-go";
+    go.appendChild(icon("chevronRight"));
+    card.appendChild(go);
     makeActivatable(card, `Voir la feuille de ${top.name}`, () =>
       openSheet(top, { kind: "best", position: 1 }),
     );
@@ -89,20 +101,28 @@ function renderScoreTable(
   kind: SheetRank["kind"],
   showVariant = false,
 ): void {
-  const tbody = requireEl(tableId).querySelector("tbody");
+  const table = requireEl(tableId);
+  const tbody = table.querySelector("tbody");
   if (!tbody) return;
   tbody.replaceChildren();
 
-  const columns = showVariant ? 4 : 3;
+  const columns = showVariant ? 5 : 4;
 
+  // Vide : pas d'en-têtes de colonnes au-dessus de rien (CSS), une phrase à
+  // la place.
+  table.classList.toggle("is-empty", entries.length === 0);
   if (entries.length === 0) {
-    tbody.appendChild(emptyRow("Aucune partie terminée pour l'instant.", columns));
+    tbody.appendChild(emptyRow(emptyContent(kind), columns));
     return;
   }
 
   entries.forEach((entry, i) => {
     const tr = document.createElement("tr");
-    tr.append(cell(entry.name));
+    // Le rang, en gommette : or / argent / bronze, puis blanche.
+    const rank = document.createElement("td");
+    rank.className = "cell-rank";
+    rank.appendChild(gommette(i + 1));
+    tr.append(rank, cell(entry.name));
     if (showVariant) tr.append(variantCell(entry.variant));
     tr.append(cell(formatDate(entry.date)), cell(String(entry.score), true));
     if (entry.sheet && entry.lineOrder) {
@@ -115,14 +135,35 @@ function renderScoreTable(
   });
 }
 
-function emptyRow(text: string, colSpan = 3): HTMLTableRowElement {
+function emptyRow(content: string | Node[], colSpan = 3): HTMLTableRowElement {
   const tr = document.createElement("tr");
   const td = document.createElement("td");
   td.colSpan = colSpan;
   td.className = "hall-empty";
-  td.textContent = text;
+  td.append(...(typeof content === "string" ? [content] : content));
   tr.appendChild(td);
   return tr;
+}
+
+// Textes des tableaux vides (choisis par Paul, 08/10). Les meilleurs scores
+// montrent le podium à prendre : trois gommettes en pointillés.
+function emptyContent(kind: SheetRank["kind"]): Node[] {
+  if (kind !== "best") {
+    return [document.createTextNode("Les plus petits scores des parties classiques viendront ici.")];
+  }
+  const podium = document.createElement("span");
+  podium.className = "empty-podium";
+  for (const rank of [1, 2, 3]) {
+    const spot = gommette(rank);
+    spot.classList.add("gommette--empty");
+    podium.appendChild(spot);
+  }
+  const title = document.createElement("strong");
+  title.className = "hall-empty-title";
+  title.textContent = "Trois places à prendre";
+  const text = document.createElement("span");
+  text.textContent = "La première partie terminée inscrit ses joueurs ici.";
+  return [podium, title, text];
 }
 
 // `–` pour les entrées d'avant les variantes.
@@ -142,19 +183,16 @@ function cell(text: string, strong = false): HTMLTableCellElement {
 
 /* ---------- Feuille de score détaillée ---------- */
 
-function rankChip(rank: SheetRank): { label: string; cls: string } {
+// Le rang de la partie dans son classement : la gommette or / argent / bronze
+// des trois premières places, chez les meilleurs comme chez les pires.
+function rankChip(rank: SheetRank): { content: (Node | string)[]; cls: string } {
   const noun = rank.kind === "best" ? "meilleur score" : "pire score";
   const superlative =
     rank.kind === "best" ? "Record du téléphone" : "Pire score du téléphone";
   const text = rank.position === 1 ? superlative : `${rank.position}ᵉ ${noun}`;
-  const icon =
-    rank.kind === "best"
-      ? (MEDALS[rank.position - 1] ?? "")
-      : rank.position <= 3
-        ? "💩"
-        : "";
+  const mark = rank.position <= 3 ? gommette(rank.position) : null;
   return {
-    label: icon ? `${icon} ${text}` : text,
+    content: mark ? [mark, text] : [text],
     cls: rank.kind === "best" ? "sheet-rank--best" : "sheet-rank--worst",
   };
 }
@@ -163,10 +201,10 @@ function openSheet(entry: ScoreEntry, rank?: SheetRank): void {
   sheetTitle.textContent = entry.name;
 
   if (rank) {
-    const { label, cls } = rankChip(rank);
+    const { content, cls } = rankChip(rank);
     sheetRank.hidden = false;
     sheetRank.className = `sheet-rank ${cls}`;
-    sheetRank.textContent = label;
+    sheetRank.replaceChildren(...content);
   } else {
     sheetRank.hidden = true;
   }
@@ -202,7 +240,7 @@ function renderStats(): void {
   if (rows.length === 0) {
     const li = document.createElement("li");
     li.className = "hall-empty";
-    li.textContent = "Aucune partie classique terminée pour l'instant.";
+    li.textContent = "Les moyennes arrivent après la première partie classique.";
     list.appendChild(li);
     return;
   }
@@ -217,7 +255,9 @@ function renderStats(): void {
 
     const avgEl = document.createElement("span");
     avgEl.className = "stats-avg";
-    avgEl.textContent = `moy. ${Math.round(avg(stat))}`;
+    const avgLabel = document.createElement("small");
+    avgLabel.textContent = "moy.";
+    avgEl.append(avgLabel, String(Math.round(avg(stat))));
 
     const main = document.createElement("div");
     main.className = "stats-main";
@@ -294,12 +334,14 @@ function buildCreditCard(): HTMLElement {
 function spark(): HTMLElement {
   const s = document.createElement("span");
   s.className = "credit-spark";
-  s.textContent = "✨";
+  s.appendChild(icon("sparkle"));
   s.setAttribute("aria-hidden", "true");
   return s;
 }
 
 /* ---------- Mise en route ---------- */
+
+applyGameTheme(requireEl("hall-screen"), YAMS);
 
 makeDismissible(sheetDialog, "sheet-close");
 renderRecordCard();

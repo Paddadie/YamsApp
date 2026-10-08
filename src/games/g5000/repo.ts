@@ -104,6 +104,15 @@ export function getSavedGame(): G5000Game | null {
   // remettre en forme au cas où ils viendraient d'une version antérieure.
   game.rules = normalizeRules(game.rules);
   game.players = game.players.map(upgradePlayer);
+  // La partie d'avant le dernier tour (« Corriger ») : abîmée, on la laisse
+  // tomber — le tour ne se corrigera pas, mais la partie continue.
+  if (game.previous && isG5000Game(game.previous)) {
+    game.previous.rules = game.rules;
+    game.previous.players = game.previous.players.map(upgradePlayer);
+  } else {
+    delete game.previous;
+    delete game.lastTurn;
+  }
   return game;
 }
 
@@ -125,12 +134,17 @@ export function savedGameIncludes(name: string): boolean {
 
 // Renommage d'un joueur (Paramètres) : la partie en cours le suit, sinon elle
 // réécrirait l'ancien nom dans les records à la fin.
+// La partie d'avant le dernier tour suit aussi : sinon « Corriger » ferait
+// revenir l'ancien nom.
 export function renameInSavedGame(from: string, to: string): void {
   const game = getSavedGame();
   if (!game || !game.players.some((p) => sameName(p.name, from))) return;
+  const rename = (players: G5000Player[]): G5000Player[] =>
+    players.map((p) => (sameName(p.name, from) ? { ...p, name: to } : p));
   saveSavedGame({
     ...game,
-    players: game.players.map((p) => (sameName(p.name, from) ? { ...p, name: to } : p)),
+    players: rename(game.players),
+    ...(game.previous ? { previous: { ...game.previous, players: rename(game.previous.players) } } : {}),
   });
 }
 

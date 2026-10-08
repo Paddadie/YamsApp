@@ -1,12 +1,17 @@
 // Types partagés du domaine.
 
+import type { IconName } from "../../core/iconPaths";
+
 export type Variant = "Classique" | "Montante" | "Descendante" | "One Shot";
 
 export interface VariantConfig {
   value: Variant;
   label: string;
-  icon: string;
-  color: string; // couleur de la puce quand la variante est sélectionnée
+  icon: IconName;
+  color: string; // couleur de son pictogramme et de son surligné
+  // Ce qu'elle change, en quelques mots, sous son nom sur l'accueil (comme
+  // au 5000). Le détail est dans ⓘ Règles.
+  hint: string;
   default?: boolean;
 }
 

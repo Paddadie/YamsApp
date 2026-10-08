@@ -7,8 +7,9 @@
   </head>
   <body>
     <div id="home-screen" class="screen">
-      <header class="screen-bar">
-        <!-- Même barre qu'à l'accueil du Yams (voir yams.html). -->
+      <!-- Même en-tête qu'à l'accueil du Yams (voir yams.html). L'objectif s'y
+           choisit : c'est lui qui donne son nom au jeu. -->
+      <header class="game-hero">
         <div class="screen-bar-start">
           <h1 class="screen-bar-title">
             <button
@@ -27,39 +28,53 @@
             href="rules.html?game=g5000"
             aria-label="Règles du 5000"
             title="Règles du 5000"
+            ><!--@icon:info--></a
           >
-            <!--@icon:info-->
-          </a>
           <a
             class="screen-bar-action"
             href="settings.html?game=g5000"
             aria-label="Réglages du 5000"
             title="Réglages du 5000"
-            >⚙️</a
+            ><!--@icon:gear--></a
           >
         </div>
+        <p class="game-hero-tagline" id="game-tagline"></p>
+        <section class="game-hero-choice">
+          <h2 class="section-label">Objectif de la partie</h2>
+          <!-- Objectifs générés par src/pages/g5000/home.ts -->
+          <div class="target-seg" id="target-options"></div>
+        </section>
+        <!-- Les dés lancés du jeu (gameHero.ts) : la place libre devient une scène. -->
+        <div class="game-hero-scene" id="game-scene"></div>
       </header>
 
       <div class="screen-body">
-        <div class="home-choices">
-          <!-- Puces générées par src/pages/g5000/home.ts -->
-          <section class="variants">
-            <h2>Objectif de la partie :</h2>
-            <div class="variant-options chip-flow chip-flow--targets" id="target-options"></div>
-          </section>
-          <section class="variants">
-            <h2>Variantes :</h2>
-            <div class="variant-options chip-flow" id="g5000-variant-options"></div>
-          </section>
-        </div>
+        <section class="resume-card sheet" id="resume-card" hidden>
+          <div class="resume-text">
+            <h2 class="section-label">Partie en cours</h2>
+            <span class="resume-who" id="resume-who"></span>
+          </div>
+          <button
+            id="resume-btn"
+            type="button"
+            class="btn btn-primary btn-outline btn-small"
+            disabled
+          >
+            <!--@icon:play-->Reprendre
+          </button>
+        </section>
+        <section class="variants">
+          <h2 class="section-label">Variantes</h2>
+          <!-- Lignes générées par src/pages/g5000/home.ts -->
+          <div class="variant-list sheet" id="g5000-variant-options"></div>
+        </section>
       </div>
 
-      <div class="action-bar">
-        <button id="resume-btn" type="button" class="btn btn-primary btn-outline" disabled>
-          ▶ Reprendre la partie
+      <div class="action-bar action-bar--row">
+        <a href="5000-records.html" class="btn btn-gold btn-outline"><!--@icon:trophy-->Palmarès</a>
+        <button id="start-btn" type="button" class="btn btn-primary btn-grow">
+          <!--@icon:die-->Commencer
         </button>
-        <button id="start-btn" type="button" class="btn btn-primary">🎲 Commencer</button>
-        <a href="5000-records.html" class="btn btn-gold">🏆 Palmarès</a>
       </div>
     </div>
 

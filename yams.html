@@ -7,11 +7,12 @@
   </head>
   <body>
     <div id="home-screen" class="screen">
-      <header class="screen-bar">
-        <!-- Le titre de l'écran EST le sélecteur de jeu : son contenu est posé
-             par src/pages/gameSwitcher.ts d'après src/games/registry.ts. La
-             liste est À CÔTÉ du <h1>, pas dedans : un titre ne contient pas de
-             liste, et un lecteur d'écran lirait tout le menu comme titre. -->
+      <!-- L'en-tête de l'accueil : le nom du jeu (c'est le sélecteur de jeu),
+           son accroche et un extrait de sa feuille, posés par
+           src/pages/gameHero.ts d'après src/games/registry.ts. -->
+      <header class="game-hero">
+        <!-- La liste est À CÔTÉ du <h1>, pas dedans : un titre ne contient pas
+             de liste, et un lecteur d'écran lirait tout le menu comme titre. -->
         <div class="screen-bar-start">
           <h1 class="screen-bar-title">
             <button
@@ -25,40 +26,55 @@
           <ul id="game-switcher" class="switcher-menu" hidden></ul>
         </div>
         <div class="screen-bar-actions">
-          <!-- Pictogramme dessiné et non le caractère « ⓘ » (voir
-               htmlFragments.ts). -->
           <a
             class="screen-bar-action"
             href="rules.html?game=yams"
             aria-label="Règles du Yams"
             title="Règles du Yams"
+            ><!--@icon:info--></a
           >
-            <!--@icon:info-->
-          </a>
           <a
             class="screen-bar-action"
             href="settings.html?game=yams"
             aria-label="Barème du Yams"
             title="Barème du Yams"
-            >⚙️</a
+            ><!--@icon:gear--></a
           >
         </div>
+        <p class="game-hero-tagline" id="game-tagline"></p>
+        <div class="game-hero-sample" id="game-sample" aria-hidden="true"></div>
+        <!-- Les dés lancés du jeu (gameHero.ts) : la place libre devient une scène. -->
+        <div class="game-hero-scene" id="game-scene"></div>
       </header>
 
       <div class="screen-body">
+        <!-- Présente seulement quand une partie est en cours (home.ts). -->
+        <section class="resume-card sheet" id="resume-card" hidden>
+          <div class="resume-text">
+            <h2 class="section-label">Partie en cours</h2>
+            <span class="resume-who" id="resume-who"></span>
+          </div>
+          <button
+            id="resume-btn"
+            type="button"
+            class="btn btn-primary btn-outline btn-small"
+            disabled
+          >
+            <!--@icon:play-->Reprendre
+          </button>
+        </section>
         <section class="variants">
-          <h2>Choisissez les variantes :</h2>
-          <!-- Cases à cocher générées par src/pages/yams/home.ts d'après src/games/yams/variants.ts -->
+          <h2 class="section-label">Choisissez les variantes</h2>
+          <!-- Tuiles générées par src/pages/yams/home.ts d'après src/games/yams/variants.ts -->
           <div class="variant-options"></div>
         </section>
       </div>
 
-      <div class="action-bar">
-        <button id="resume-btn" type="button" class="btn btn-primary btn-outline" disabled>
-          ▶ Reprendre la partie
+      <div class="action-bar action-bar--row">
+        <a href="yams-hall.html" class="btn btn-gold btn-outline"><!--@icon:trophy-->Palmarès</a>
+        <button id="start-btn" type="button" class="btn btn-primary btn-grow" disabled>
+          <!--@icon:die-->Commencer
         </button>
-        <button id="start-btn" type="button" class="btn btn-primary" disabled>🎲 Commencer</button>
-        <a href="yams-hall.html" class="btn btn-gold">🏆 Palmarès</a>
       </div>
     </div>
 

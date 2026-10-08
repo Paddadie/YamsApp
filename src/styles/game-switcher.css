@@ -1,22 +1,23 @@
 /* ---------- Menu déroulant « choisir un jeu » ---------- */
-/* Ancré sous le titre de la barre, pas au centre de l'écran : le chevron promet
-   un déroulé, et changer d'écran ne mérite pas d'assombrir la page.
+/* Ancré sous le titre de l'accueil, pas au centre de l'écran : le chevron
+   promet un déroulé, et changer d'écran ne mérite pas d'assombrir la page.
    `.screen` porte `overflow: hidden`, mais le menu reste dans ses limites — il
-   se pose simplement par-dessus le contenu, d'où le z-index. */
+   se pose simplement par-dessus le contenu, d'où le z-index. Un petit feuillet,
+   comme le reste. */
 .switcher-menu {
   position: absolute;
-  top: calc(100% + 0.3rem);
+  top: calc(100% + 0.35rem);
   left: 0;
   z-index: 20;
-  min-width: 13rem;
+  min-width: 14rem;
   max-width: min(20rem, 80vw);
   list-style: none;
   margin: 0;
-  padding: 0.35rem 0;
-  border-radius: 14px;
-  background: var(--white);
-  box-shadow: 0 10px 30px rgba(10, 20, 25, 0.22),
-    0 0 0 1px rgba(10, 20, 25, 0.06);
+  padding: 0.3rem 0;
+  border-radius: var(--radius-s) var(--radius-s) var(--radius-l) var(--radius-l);
+  background: var(--sheet);
+  box-shadow: 0 14px 30px -10px rgba(var(--shade-rgb), 0.45),
+    0 0 0 1px var(--rule);
   animation: switcher-in 0.12s ease-out;
 }
 
@@ -30,9 +31,9 @@
 .switcher-row {
   display: flex;
   align-items: center;
-  gap: 0.7em;
+  gap: 0.75em;
   padding: 0.7em 1em;
-  color: inherit;
+  color: var(--ink);
   text-decoration: none;
   font-size: 1rem;
   font-weight: 400;
@@ -40,7 +41,7 @@
 
 .switcher-row:active,
 .switcher-row:focus-visible {
-  background: #f1f4f5;
+  background: var(--paper);
 }
 
 .switcher-row:focus-visible {
@@ -48,28 +49,41 @@
   outline-offset: -2px;
 }
 
+/* L'emblème dessiné du jeu, à son encre. */
 .switcher-icon {
-  font-size: 1.35rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
   flex: none;
+  color: var(--row-accent, var(--ink));
+}
+
+.switcher-icon .ic {
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .switcher-label {
   flex: 1;
-  font-weight: 700;
-}
-
-.switcher-row.is-current {
-  color: var(--primary-hover);
-}
-
-.switcher-mark {
+  font-size: 1.15rem;
+  font-stretch: 75%;
   font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.switcher-row.is-current .switcher-label {
+  color: var(--row-accent, var(--ink));
+}
+
+.switcher-mark .ic {
+  width: 1.2rem;
+  height: 1.2rem;
+  stroke-width: 2.6;
 }
 
 /* Sépare les jeux du retour au menu : ce n'est pas un jeu de plus. */
 .switcher-separator {
   height: 1px;
   margin: 0.3em 1em;
-  background: #e4e8ea;
+  background: var(--rule);
 }

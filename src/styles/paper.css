@@ -1,0 +1,397 @@
+/* ========== PAPIER ET FEUILLETS ========== */
+/* Les pièces communes de la direction « Bloc de score ». Deux niveaux
+   seulement : le papier (fond, cf. body), puis les feuillets posés dessus. Pas
+   de feuillet dans un feuillet : à l'intérieur, on sépare par des traits. */
+
+/* Pictogramme dessiné (core/iconPaths.ts) : il suit la taille et la couleur
+   du texte qui le porte. */
+.ic {
+  display: inline-block;
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  vertical-align: -0.2em;
+}
+
+/* Chiffres : capitales étroites, chasse fixe pour qu'ils s'alignent en
+   colonne. Toutes les valeurs de l'appli (scores, pots, objectifs) les
+   portent, on les reconnaît d'un coup d'œil. */
+.num {
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Un feuillet : ce qu'on lit ou remplit. */
+.sheet {
+  background: var(--sheet);
+  border-radius: var(--radius-s) var(--radius-s) var(--radius-m) var(--radius-m);
+  box-shadow: var(--shadow-sheet);
+}
+
+/* Bord perforé, en haut ou en bas d'un feuillet : des demi-trous de la couleur
+   de ce qui est dessous (--hole). */
+.perf-top,
+.perf-bottom {
+  position: relative;
+}
+
+.perf-top::before,
+.perf-bottom::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  height: 10px;
+  pointer-events: none;
+  background: radial-gradient(circle at 6px 5px, var(--hole) 2.6px, transparent 3.1px)
+    0 0 / 12px 10px repeat-x;
+}
+
+.perf-top::before {
+  top: -5px;
+}
+
+.perf-bottom::after {
+  bottom: -5px;
+}
+
+/* ---------- En-tête d'un écran hors partie ---------- */
+/* Un feuillet en haut de l'écran : un surtitre (le jeu, la section), puis le
+   titre en grandes capitales étroites. Il ne défile pas. Le contenu qu'il
+   coiffe est aligné sur la même colonne (padding-inline). */
+.page-head {
+  flex: none;
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: calc(0.95rem + env(safe-area-inset-top, 0px))
+    max(var(--gutter), calc((100% - var(--content-max)) / 2)) 1.05rem;
+  /* Sur les pages d'un jeu, son papier teinté (pages/gameTheme.ts). */
+  background: var(--accent-paper, var(--sheet));
+  box-shadow: 0 10px 16px -16px rgba(var(--shade-rgb), 0.7);
+}
+
+.page-head::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 10px;
+  pointer-events: none;
+  background: radial-gradient(circle at 6px 5px, var(--hole) 2.6px, transparent 3.1px)
+    0 0 / 12px 10px repeat-x;
+}
+
+.page-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  margin: 0;
+  text-align: left;
+  font-size: clamp(2.2rem, 9vw, 2.9rem);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--title-color, var(--ink));
+}
+
+/* ---------- Intitulé de section ---------- */
+/* Petites capitales espacées, suivies d'un trait : celles de la grille du Yams
+   (« CHIFFRES », « COMBINAISONS »), reprises partout. */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  margin: 0;
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.section-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+/* ---------- Gestes du marqueur ---------- */
+/* Surligné : choisi, ou en vigueur. Un trait de feutre un peu de biais, posé
+   sous la moitié basse du texte. */
+.hl {
+  --hl-color: color-mix(in srgb, var(--accent, var(--primary-color)) 34%, transparent);
+  padding: 0 0.2em;
+  background: linear-gradient(
+      100deg,
+      transparent 3%,
+      var(--hl-color) 6%,
+      var(--hl-color) 94%,
+      transparent 97%
+    )
+    no-repeat 0 72% / 100% 62%;
+}
+
+/* Entouré : l'objectif choisi, le 50 du Yams. L'ellipse tracée à la main
+   (icons.ts, handCircle) s'étire sur ce qu'elle entoure. */
+.circled {
+  position: relative;
+  display: inline-block;
+}
+
+.hand-circle {
+  position: absolute;
+  left: -0.5em;
+  top: -0.4em;
+  width: calc(100% + 1em);
+  height: calc(100% + 0.8em);
+  overflow: visible;
+  color: var(--accent, var(--ink));
+  pointer-events: none;
+}
+
+/* ---------- Gommettes de rang ---------- */
+/* Le rang d'un classement sur une pastille ronde collée, un peu de travers :
+   or, argent, bronze, puis blanche (sans médaille). Les mêmes chez les
+   meilleurs et chez les pires. Même dessin au podium, dans les classements et
+   dans les palmarès. Remplace les médailles emoji. */
+.gommette {
+  --gom: var(--ink-soft);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: var(--gom);
+  color: var(--white);
+  font-size: 0.92rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), inset 0 -2px 0 rgba(0, 0, 0, 0.12),
+    inset 0 2px 0 rgba(255, 255, 255, 0.35);
+  transform: rotate(-8deg);
+}
+
+.gommette--1 {
+  --gom: var(--gom-gold);
+}
+
+.gommette--2 {
+  --gom: var(--gom-silver);
+}
+
+.gommette--3 {
+  --gom: var(--gom-bronze);
+}
+
+/* Au-delà du podium : une gommette blanche cerclée d'encre. Grise, elle se
+   confondait avec l'argent (vu par Paul aux 4ᵉ et 5ᵉ places). */
+.gommette--n {
+  --gom: var(--sheet);
+  color: var(--ink);
+  text-shadow: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2), inset 0 0 0 1.5px var(--rule-strong);
+}
+
+/* Une place à prendre : la gommette pas encore collée, son contour en
+   pointillés à la couleur du rang (palmarès vide). */
+.gommette--empty {
+  --gom: transparent;
+  color: var(--edge, var(--ink-soft));
+  text-shadow: none;
+  box-shadow: none;
+  border: 1.5px dashed var(--edge, var(--rule-strong));
+}
+
+.gommette--empty.gommette--1 {
+  --edge: var(--medal-1);
+}
+
+.gommette--empty.gommette--2 {
+  --edge: var(--medal-2);
+}
+
+.gommette--empty.gommette--3 {
+  --edge: var(--medal-3);
+}
+
+.gommette--big {
+  width: 2.4rem;
+  height: 2.4rem;
+  font-size: 1.35rem;
+}
+
+/* Un pictogramme sur la pastille, droit (fiches des records du 5000). */
+.gommette--icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  transform: none;
+}
+
+.gommette--icon .ic {
+  width: 1rem;
+  height: 1rem;
+  stroke-width: 2.3;
+  vertical-align: 0;
+}
+
+/* ---------- Papiers de couleur (résultats) ---------- */
+/* Un bloc de résultats est écrit sur un papier de sa couleur (--paper-color),
+   avec un onglet d'intercalaire (--tab-color) qui porte son titre. Meilleurs
+   en jaune, pires en rose, statistiques / victoires en bleu. */
+.paper-block {
+  position: relative;
+  margin-top: 1.3rem;
+  border-radius: var(--radius-xs) var(--radius-m) var(--radius-m) var(--radius-m);
+  background: var(--paper-color, var(--sheet));
+  box-shadow: var(--shadow-sheet);
+}
+
+.paper-block--best {
+  --paper-color: var(--best-paper);
+  --tab-color: var(--best-tab);
+  --family-ink: var(--best-ink);
+}
+
+.paper-block--worst {
+  --paper-color: var(--worst-paper);
+  --tab-color: var(--worst-tab);
+  --family-ink: var(--worst-ink);
+}
+
+.paper-block--stats {
+  --paper-color: var(--stats-paper);
+  --tab-color: var(--stats-tab);
+  --family-ink: var(--stats-ink);
+}
+
+/* L'onglet : collé au haut du papier, à gauche. Un <h2> le plus souvent. */
+.paper-tab {
+  position: absolute;
+  top: -1.2rem;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0.28rem 0.7rem 0.2rem 0.55rem;
+  border-radius: var(--radius-m) var(--radius-m) 0 0;
+  background: var(--tab-color, var(--paper));
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.paper-tab .ic {
+  width: 0.9rem;
+  height: 0.9rem;
+  vertical-align: 0;
+}
+
+/* ---------- Post-it ---------- */
+/* Le record du téléphone, un record battu : un post-it jaune scotché, un peu
+   de travers. */
+.postit {
+  position: relative;
+  padding: 1rem 0.9rem 0.8rem;
+  border-radius: var(--radius-xs);
+  background: var(--postit);
+  color: var(--ink);
+  transform: rotate(-1.2deg);
+  box-shadow: 0 10px 18px -12px rgba(120, 90, 0, 0.55);
+}
+
+.postit::before {
+  content: "";
+  position: absolute;
+  top: -0.55rem;
+  left: 50%;
+  width: 4rem;
+  height: 1.1rem;
+  margin-left: -2rem;
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+  transform: rotate(-3deg);
+}
+
+/* ---------- Confettis (fins de partie) ---------- */
+/* Des morceaux de papier de couleur qui tombent une fois dans l'en-tête puis
+   restent posés (positions et couleurs : icons.ts, confetti). */
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.confetti i {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 0.45rem;
+  height: 0.7rem;
+  border-radius: var(--radius-xs);
+  background: var(--c);
+  opacity: 0.9;
+  transform: rotate(var(--turn));
+  animation: confetti-fall 0.9s cubic-bezier(0.3, 0.6, 0.4, 1) var(--d, 0s) backwards;
+}
+
+.confetti i.round {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+@keyframes confetti-fall {
+  from {
+    opacity: 0;
+    transform: translateY(-3rem) rotate(calc(var(--turn) - 200deg));
+  }
+}
+
+/* ---------- Pastilles de couleur des joueurs ---------- */
+.player-dots {
+  display: inline-flex;
+  flex: none;
+}
+
+.player-dots i {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: var(--dot);
+  box-shadow: 0 0 0 2px var(--sheet), inset 0 0 0 1px rgba(var(--ink-rgb), 0.15);
+}
+
+.player-dots i + i {
+  margin-left: -0.25rem;
+}

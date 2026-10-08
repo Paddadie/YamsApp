@@ -45,9 +45,9 @@
 
 /* ========== MISE EN SCÈNE DE LA FIN DE PARTIE ========== */
 /* Jouée une seule fois par partie : les marches du podium sortent du sol de la
-   dernière vers la première, la médaille arrive une fois la marche posée, puis
-   le classement se remplit du dernier au premier. Le délai de chaque élément
-   est posé en JS dans --d (cf. src/pages/end.ts). */
+   dernière vers la première, le tampon de rang se pose une fois la marche en
+   place, puis le classement se remplit du dernier au premier. Le délai de
+   chaque élément est posé en JS dans --d (cf. pages/yams/end.ts). */
 .reveal {
   animation: reveal-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0s) backwards;
 }
@@ -71,14 +71,58 @@
   }
 }
 
-.podium-medal {
-  animation: medal-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
+/* La gommette se colle sur la marche : elle arrive d'un peu plus haut, plus
+   grosse, et se pose de travers. */
+.podium-step .gommette {
+  animation: gommette-stick 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)
     calc(var(--d, 0s) + 0.22s) backwards;
 }
 
-@keyframes medal-pop {
+@keyframes gommette-stick {
   from {
     opacity: 0;
-    transform: scale(0.2) rotate(-18deg);
+    transform: scale(1.8) rotate(-40deg);
+  }
+}
+
+/* ========== PASSAGE D'UN ÉCRAN À L'AUTRE ========== */
+/* Transitions entre documents (View Transitions) : l'appli est faite de pages
+   HTML séparées, chaque navigation était une coupe franche. L'en-tête (quel
+   qu'il soit) se fond sur place, le contenu arrive en glissant un peu. En CSS
+   seul, sans rien changer à la navigation : les navigateurs qui ne savent pas
+   le faire (Firefox à ce jour) gardent la coupe franche. */
+@view-transition {
+  navigation: auto;
+}
+
+.brand-bar,
+.page-head,
+.game-hero,
+.screen-bar {
+  view-transition-name: app-header;
+}
+
+::view-transition-group(app-header) {
+  animation-duration: 0.25s;
+}
+
+::view-transition-old(root) {
+  animation: screen-out 0.16s ease-in both;
+}
+
+::view-transition-new(root) {
+  animation: screen-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes screen-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
   }
 }

@@ -28,26 +28,28 @@ import { onHorizontalSwipe } from "../../core/swipe";
 import { keepScreenOn } from "../../core/wakeLock";
 import { getSavedGame, saveSavedGame } from "../../games/g5000/repo";
 import {
-  canBank,
   canPlay,
+  canUndoLastTurn,
   choosePlayer,
   currentScore,
   expectedPlayer,
   finishTurn,
   hasOpened,
   liveEntry,
-  startTurn,
   tieTargets,
   turnStarted,
+  undoLastTurn,
   type Move,
   type TurnFinish,
 } from "../../games/g5000/engine";
-import type { G5000Player, SheetEntry, Strike } from "../../games/g5000/types";
+import type { G5000Player, LastTurn, SheetEntry, Strike } from "../../games/g5000/types";
 import { formatScore } from "../../core/format";
-import { SCORE_STEP } from "../../games/g5000/rules";
-import { afterLine, bankLabel, createCalculator, potWarning } from "./calculator";
+import { createCalculator } from "./calculator";
+import { createQuickEntry } from "./quickEntry";
 import { hasVariant } from "../../games/g5000/variants";
 import { G5000 } from "../../games/g5000/gameDef";
+import { applyGameTheme } from "../gameTheme";
+import { icon } from "../../core/icons";
 
 bootstrap();
 
@@ -58,10 +60,15 @@ if (!saved) {
 }
 const game = saved; // alias non-null
 
+// `?review` : consultation depuis l'écran de fin — la feuille en lecture
+// seule, sans saisie ni joueur qui a la main. Seulement pour une partie finie.
+// `recorded` couvre les parties finies avant l'arrivée de `ended`.
+const finished = Boolean(game.ended || game.recorded);
+const isReview = finished && new URLSearchParams(location.search).has("review");
+
 // Une partie finie ne se rejoue pas : on y revient par le geste retour depuis
 // l'écran de fin, ou en rechargeant pendant l'annonce de la dernière cascade.
-// `recorded` couvre les parties finies avant l'arrivée de `ended`.
-if (game.ended || game.recorded) {
+if (finished && !isReview) {
   goTo("g5000End");
   throw new Error("Partie terminée : passage à l'écran de fin.");
 }
@@ -72,23 +79,10 @@ const banner = requireEl("turn-banner");
 const sheet = requireEl<HTMLTableElement>("score-sheet");
 const sheetScroll = requireEl("sheet-scroll");
 
-const quickDialog = requireEl<HTMLDialogElement>("quick-dialog");
-const quickPot = requireEl("quick-pot");
-const quickAfter = requireEl("quick-after");
-const quickTargets = requireEl("quick-targets");
-const quickChips = requireEl("quick-chips");
-const quickTape = requireEl("quick-tape");
-const quickBank = requireEl<HTMLButtonElement>("quick-bank");
-
 const cascadeDialog = requireEl<HTMLDialogElement>("cascade-dialog");
 const turnHint = requireEl<HTMLButtonElement>("turn-hint");
 const switchDialog = requireEl<HTMLDialogElement>("switch-dialog");
-
-// Jetons de la saisie rapide : peu nombreux et gros, pour qu'on ne rate pas sa
-// cible au doigt (dix jetons serrés, de 100 à 1 000, l'étaient trop). Tous les
-// scores du jeu sont des multiples de 50 : avec le +50 de la rangée du
-// dessous, tout montant se compose — 300 en trois appuis, 1 850 en six.
-const CHIP_VALUES = [100, 500, 1000];
+const undoDialog = requireEl<HTMLDialogElement>("undo-dialog");
 
 const fmt = formatScore;
 
@@ -96,11 +90,6 @@ const player = () => game.players[game.currentPlayerIndex];
 
 // Joueur à qui donner la main une fois le changement confirmé.
 let pendingSwitch: number | null = null;
-
-/* ---------- État de la saisie rapide ---------- */
-
-let pot = 0;
-let tape: number[] = [];
 
 function persist(): void {
   saveSavedGame(game);
@@ -121,9 +110,45 @@ function renderBanner(): void {
   requireEl("gauge-target").textContent = fmt(game.rules.target);
   requireEl("gauge-fill").style.width =
     `${Math.min(100, (score / game.rules.target) * 100)}%`;
+  // Une graduation tous les 1 000 points, comme sur une règle.
+  requireEl("gauge-fill").parentElement?.style.setProperty(
+    "--ticks",
+    String(Math.max(1, Math.round(game.rules.target / 1000))),
+  );
 
+  previewPot(0);
   renderBlankTurns();
   renderTurnHint();
+}
+
+// Pendant la saisie (calculette ou saisie rapide), la jauge montre en hachuré
+// où le pot mènerait le joueur. Effacé à la fermeture de la fenêtre.
+function previewPot(currentPot: number): void {
+  const reach = currentScore(player()) + currentPot;
+  requireEl("gauge-pot").style.width =
+    currentPot > 0 ? `${Math.min(100, (reach / game.rules.target) * 100)}%` : "0";
+}
+
+// Le temps de voir la jauge du joueur qui vient de banquer se remplir, avant
+// que le bandeau passe au joueur suivant.
+const BANK_ANIM_MS = 950;
+
+// Banquer : la jauge de celui qui banque (le bandeau le montre encore) se
+// remplit jusqu'à son nouveau score, et le gain s'envole au bout.
+function showBank(from: number, to: number): void {
+  const track = requireEl("gauge-fill").parentElement;
+  const ratio = Math.min(1, to / game.rules.target);
+  requireEl("gauge-pot").style.width = "0";
+  requireEl("gauge-score").textContent = fmt(to);
+  requireEl("gauge-fill").style.width = `${ratio * 100}%`;
+  if (!track) return;
+  const gain = document.createElement("span");
+  gain.className = "gauge-gain";
+  gain.setAttribute("aria-hidden", "true");
+  gain.textContent = `+${fmt(to - from)}`;
+  gain.style.left = `${track.offsetLeft + track.offsetWidth * ratio}px`;
+  gain.addEventListener("animationend", () => gain.remove(), { once: true });
+  track.parentElement?.appendChild(gain);
 }
 
 // « C'est à Marie › » quand la main a été donnée à un autre que celui dont
@@ -199,17 +224,11 @@ function renderSheet(changes: SheetChanges = {}): void {
     tab.className = "name-tab";
     tab.textContent = p.name;
     th.appendChild(tab);
-    const pips = blankTurnPips(p);
+    // En consultation, la partie est finie : ni busts en cours, ni main à
+    // donner — des onglets neutres.
+    const pips = isReview ? null : blankTurnPips(p);
     if (pips) th.appendChild(pips);
-    if (i === game.currentPlayerIndex) {
-      th.className = "is-current";
-      th.setAttribute("aria-current", "true");
-    } else if (canPlay(game, i)) {
-      th.classList.add("is-choosable");
-      makeActivatable(th, `Donner la main à ${p.name}`, () => requestPlayer(i));
-    } else {
-      th.classList.add("is-out");
-    }
+    if (!isReview) markTab(th, p, i);
     headRow.appendChild(th);
   });
   thead.appendChild(headRow);
@@ -256,6 +275,20 @@ function renderSheet(changes: SheetChanges = {}): void {
   if (widest > 0) sheet.style.setProperty("--tab-width", `${widest}px`);
 }
 
+// L'onglet d'un joueur pendant la partie : celui qui a la main, ceux à qui on
+// peut la donner, et en fin de partie ceux qui ne rejouent plus (grisés).
+function markTab(th: HTMLTableCellElement, p: G5000Player, i: number): void {
+  if (i === game.currentPlayerIndex) {
+    th.className = "is-current";
+    th.setAttribute("aria-current", "true");
+  } else if (canPlay(game, i)) {
+    th.classList.add("is-choosable");
+    makeActivatable(th, `Donner la main à ${p.name}`, () => requestPlayer(i));
+  } else {
+    th.classList.add("is-out");
+  }
+}
+
 // Largeur d'un onglet portant un prénom de huit lettres larges : la limite
 // d'élargissement des colonnes. Mesurée une fois, dans le style des onglets.
 let longNameWidthCache = 0;
@@ -277,7 +310,7 @@ function sheetRow(r: number, changes: SheetChanges): HTMLTableRowElement {
   for (const [i, p] of game.players.entries()) {
     const td = document.createElement("td");
     td.style.setProperty("--col", p.color);
-    if (i === game.currentPlayerIndex) td.className = "is-current";
+    if (i === game.currentPlayerIndex && !isReview) td.className = "is-current";
     if (r < p.sheet.length) {
       fillEntry(td, p, p.sheet[r], changes);
     } else if (r === p.sheet.length && !hasOpened(p)) {
@@ -408,21 +441,27 @@ function neighbour(direction: 1 | -1): number | null {
 // suppression de l'application.
 function requestPlayer(index: number): void {
   if (index === game.currentPlayerIndex || !canPlay(game, index)) return;
-  if (!turnStarted(game)) return switchTo(index);
+  // Un brouillon de saisie rapide est un tour entamé lui aussi.
+  const started = turnStarted(game);
+  const draft = quick.draftPot();
+  if (!started && draft === null) return switchTo(index);
 
   pendingSwitch = index;
   requireEl("switch-title").textContent = `Donner la main à ${game.players[index].name} ?`;
   const summary = requireEl("switch-summary");
   summary.replaceChildren();
   summaryRow(summary, "Tour entamé", player().name);
-  summaryRow(summary, "Points du tour", fmt(game.turn.pot));
-  summaryRow(summary, "Lancer", String(game.turn.rolls));
+  summaryRow(summary, "Points du tour", fmt(started ? game.turn.pot : (draft ?? 0)));
+  if (started) summaryRow(summary, "Lancer", String(game.turn.rolls));
   switchDialog.showModal();
 }
 
 function switchTo(index: number): void {
   const before = game.currentPlayerIndex;
   if (!choosePlayer(game, index)) return;
+  quick.clear();
+  replayOf = null;
+  renderLastTurn();
   persist();
   renderBanner();
   renderSheet();
@@ -441,12 +480,21 @@ function animateName(direction: "next" | "prev"): void {
 
 /* ---------- Cibles : la variante Sniper rendue jouable ---------- */
 
+// Les adversaires sur qui le pot tombait déjà pile au rendu précédent : le
+// tableau est redessiné à chaque touche, mais une ligne ne s'allume (rebond)
+// qu'au moment où elle DEVIENT pile.
+let hitBefore = new Set<number>();
+
 // Viser le score exact d'un adversaire est hors de portée de tête : c'est ce
 // que l'application apporte vraiment. L'écart se met à jour à chaque appui.
 function renderTargets(container: HTMLElement, currentPot: number): void {
   const rows = tieTargets(game, currentPot);
   container.replaceChildren();
-  if (rows.length === 0) return;
+  if (rows.length === 0) {
+    hitBefore = new Set();
+    if (!hasVariant(game.rules, "sniper")) renderAhead(container, currentPot);
+    return;
+  }
 
   // Tous ceux qui sont devant, du plus proche au plus loin : ce qu'il manque
   // pour tomber pile sur leur score, où ils retomberaient, et ce qu'ils y
@@ -465,10 +513,14 @@ function renderTargets(container: HTMLElement, currentPot: number): void {
   thead.appendChild(head);
 
   const tbody = document.createElement("tbody");
+  const hits = new Set(rows.filter((t) => t.needed === 0).map((t) => t.index));
   for (const target of rows) {
     const tr = document.createElement("tr");
     tr.className = "target-row";
-    if (target.needed === 0) tr.classList.add("is-hit");
+    if (target.needed === 0) {
+      tr.classList.add("is-hit");
+      if (!hitBefore.has(target.index)) tr.classList.add("is-hit-new");
+    }
     else if (target.needed < 0) tr.classList.add("is-passed");
     else if (target.needed <= 600) tr.classList.add("is-near");
 
@@ -483,12 +535,13 @@ function renderTargets(container: HTMLElement, currentPot: number): void {
 
     const gap = document.createElement("td");
     gap.className = "target-gap";
-    gap.textContent =
-      target.needed === 0
-        ? "🎯 pile !"
-        : target.needed > 0
-          ? `+${fmt(target.needed)}`
-          : "dépassé";
+    if (target.needed === 0) {
+      const hit = document.createElement("span");
+      hit.className = "target-hit";
+      hit.append(icon("crosshair"), "pile !");
+      gap.appendChild(hit);
+    }
+    else gap.textContent = target.needed > 0 ? `+${fmt(target.needed)}` : "dépassé";
 
     const fallsTo = document.createElement("td");
     fallsTo.className = "target-falls";
@@ -504,135 +557,69 @@ function renderTargets(container: HTMLElement, currentPot: number): void {
 
   table.append(thead, tbody);
   container.appendChild(table);
+  hitBefore = hits;
 }
 
-/* ---------- Saisie rapide ---------- */
+// Sans Sniper, une égalité ne fait rien : pas de tableau, seulement des
+// pastilles qui disent où en sont ceux de devant (demande de Paul, 08/10).
+// Celles que le pot dépasse s'effacent.
+function renderAhead(container: HTMLElement, currentPot: number): void {
+  const base = currentScore(player());
+  const ahead = game.players
+    .filter((p) => currentScore(p) > base && currentScore(p) < game.rules.target)
+    .sort((a, b) => currentScore(a) - currentScore(b));
+  if (ahead.length === 0) return;
 
-function buildChips(): void {
-  quickChips.replaceChildren();
-  for (const value of CHIP_VALUES) {
-    quickChips.appendChild(chip(String(value), `+${fmt(value)}`, () => add(value)));
+  const box = document.createElement("div");
+  box.className = "ahead";
+  const lead = document.createElement("span");
+  lead.className = "ahead-lead";
+  lead.textContent = "Devant vous";
+  box.appendChild(lead);
+  for (const p of ahead) {
+    const chip = document.createElement("span");
+    chip.className = "ahead-chip";
+    if (currentPot > currentScore(p) - base) chip.classList.add("is-passed");
+    chip.style.setProperty("--col", p.color);
+    const dot = document.createElement("i");
+    const score = document.createElement("b");
+    score.textContent = fmt(currentScore(p));
+    chip.append(dot, p.name, " ", score);
+    box.appendChild(chip);
   }
-  const row = document.createElement("div");
-  row.className = "chips-row";
-  // « Sans demi-mesure » : aucun tour ne se marque en finissant par 50, le
-  // jeton n'aurait servi qu'à composer un total refusé.
-  if (!hasVariant(game.rules, "noFifty")) {
-    row.append(chip("fifty", `+${SCORE_STEP}`, () => add(SCORE_STEP), "chip--fifty"));
-  }
-  row.append(chip("back", backspaceIcon(), undo, "chip--back", "Effacer le dernier jeton"));
-  quickChips.appendChild(row);
-}
-
-// `content` : un montant, ou un pictogramme dessiné — qui demande alors un
-// `ariaLabel`, sans quoi le bouton n'a pas de nom pour un lecteur d'écran.
-function chip(
-  id: string,
-  content: string | SVGSVGElement,
-  onPress: () => void,
-  extra = "",
-  ariaLabel?: string,
-): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = extra ? `chip ${extra}` : "chip";
-  button.dataset.chip = id;
-  button.append(content);
-  if (ariaLabel) button.setAttribute("aria-label", ariaLabel);
-  button.addEventListener("click", onPress);
-  return button;
-}
-
-// « Effacer » dessiné plutôt que le caractère ⌫ : rendu par la police de
-// l'appareil, il n'avait ni la taille ni le centrage des autres jetons.
-function backspaceIcon(): SVGSVGElement {
-  const ns = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("aria-hidden", "true");
-  const shapes: [string, Record<string, string>][] = [
-    ["path", { d: "M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z", "stroke-linejoin": "round" }],
-    ["path", { d: "M12 9.5l5 5M17 9.5l-5 5", "stroke-linecap": "round" }],
-  ];
-  for (const [tag, attrs] of shapes) {
-    const el = document.createElementNS(ns, tag);
-    el.setAttribute("fill", "none");
-    el.setAttribute("stroke", "currentColor");
-    el.setAttribute("stroke-width", "2");
-    for (const [name, value] of Object.entries(attrs)) el.setAttribute(name, value);
-    svg.appendChild(el);
-  }
-  return svg;
-}
-
-function add(value: number): void {
-  pot += value;
-  tape.push(value);
-  renderQuick();
-}
-
-function undo(): void {
-  pot -= tape.pop() ?? 0;
-  if (pot < 0) pot = 0;
-  renderQuick();
-}
-
-function renderQuick(): void {
-  const me = player();
-  requireEl("quick-title").textContent = `Tour de ${me.name}`;
-  quickPot.textContent = fmt(pot);
-
-  const warning = potWarning(game, pot, fmt);
-
-  quickAfter.replaceChildren();
-  if (warning) {
-    quickAfter.textContent = warning;
-    quickAfter.className = "pot-after is-warning";
-  } else if (pot > 0) {
-    const line = afterLine(game, pot, fmt);
-    quickAfter.textContent = line.text;
-    quickAfter.className = line.win ? "pot-after is-win" : "pot-after";
-  } else {
-    quickAfter.className = "pot-after";
-  }
-
-  quickTape.textContent =
-    tape.length > 1 ? tape.map((v) => `+${fmt(v)}`).join("  ") : "";
-
-  quickBank.textContent = bankLabel(game, pot, fmt);
-  requireEl("quick-bust").textContent =
-    pot > 0 ? `Bust — perdre ${fmt(pot)}` : "Bust — 0 pt";
-  quickBank.disabled = !canBank(game, pot, false);
-
-  renderTargets(quickTargets, pot);
-}
-
-function openQuick(): void {
-  pot = 0;
-  tape = [];
-  renderQuick();
-  quickDialog.showModal();
-}
-
-// La saisie rapide annonce le tour d'un bloc : il remplace ce qu'une
-// calculette ouverte puis fermée aurait laissé en cours (pot, série de mains
-// pleines), et son pot devient celui du tour — perdu sur « Bust », il compte
-// pour le record du pot perdu comme celui de la calculette.
-function finishQuick(how: "bank" | "bust"): void {
-  startTurn(game);
-  game.turn.pot = pot;
-  onTurnFinished(how);
+  container.appendChild(box);
 }
 
 /* ---------- Fin de tour ---------- */
 
 function onTurnFinished(how: TurnFinish): void {
   const before = snapshotSheets();
+  const banker = player();
+  const scoreBefore = currentScore(banker);
   const { moves, ended: over } = finishTurn(game, how);
   persist();
+  quick.clear();
+  replayOf = null;
+  renderLastTurn();
 
-  quickDialog.close();
-  renderBanner();
+  quick.close();
+  // A-t-il banqué ? Alors sa jauge se remplit d'abord, et le bandeau ne
+  // passe au joueur suivant qu'ensuite.
+  const scoreAfter = currentScore(banker);
+  const banked = scoreAfter > scoreBefore;
+  if (banked) {
+    showBank(scoreBefore, scoreAfter);
+    // La main est déjà passée, mais le bandeau montre encore le banquier : un
+    // toucher rapide ouvrirait la saisie du suivant sous son nom. Les deux
+    // portes d'entrée attendent que le bandeau ait changé.
+    setEntryEnabled(false);
+    window.setTimeout(() => {
+      renderBanner();
+      setEntryEnabled(true);
+    }, BANK_ANIM_MS);
+  } else {
+    renderBanner();
+  }
   // Les animations attendent que la cascade soit refermée (cf. CSS) : sous le
   // dialogue, personne ne verrait le score s'écrire ni le trait se tracer.
   renderSheet(sheetChanges(before));
@@ -643,15 +630,22 @@ function onTurnFinished(how: TurnFinish): void {
   // tout seul, sans explication, est incompréhensible à la table.
   const falls = moves.filter((m) => m.kind !== "bank" && m.kind !== "win");
   if (falls.length > 0) showCascade(moves);
-  else if (over) goTo("g5000End");
+  else if (over) window.setTimeout(() => goTo("g5000End"), banked ? BANK_ANIM_MS : 0);
+}
+
+function setEntryEnabled(enabled: boolean): void {
+  requireEl<HTMLButtonElement>("play-btn").disabled = !enabled;
+  requireEl<HTMLButtonElement>("quick-btn").disabled = !enabled;
 }
 
 function showCascade(moves: Move[]): void {
   const list = requireEl("cascade-list");
   const hasTie = moves.some((m) => m.kind === "tie");
-  requireEl("cascade-title").textContent = hasTie
-    ? "🎯 Sniper !"
-    : `${plural(game.rules.blankTurnsPenalty, "bust")} d'affilée`;
+  requireEl("cascade-title").replaceChildren(
+    ...(hasTie
+      ? [icon("crosshair"), "Sniper !"]
+      : [`${plural(game.rules.blankTurnsPenalty, "bust")} d'affilée`]),
+  );
 
   list.replaceChildren();
   let delay = 0;
@@ -708,29 +702,188 @@ function cascadeStep(move: Move, delay: number): HTMLElement {
 
 // La calculette tient l'état du tour (pot, dés restants, chiffres activés) et
 // nous rend la main à la fin du tour, comme la saisie rapide.
+// La saisie rapide aussi (quickEntry.ts) : elle garde le brouillon du tour.
+const quick = createQuickEntry(game, {
+  onFinish: onTurnFinished,
+  renderTargets,
+  previewPot,
+  format: fmt,
+});
+
 const calculator = createCalculator(game, {
   onFinish: onTurnFinished,
   onChange: persist,
   renderTargets,
+  previewPot,
   format: fmt,
 });
 
+/* ---------- Corriger le dernier tour ---------- */
+// Une saisie fausse (650 au lieu de 600, « Bust » au lieu de « Banquer ») ne
+// se rattrapait pas une fois la main passée. La ligne « Dernier tour » dit ce
+// qui vient d'être écrit ; « Corriger » ramène la partie à l'état d'avant ce
+// tour (undoLastTurn), et son joueur le rejoue. Un seul tour en arrière, et
+// pas une fois la partie finie (lot C de l'audit du 08/10).
+
+// Le joueur dont le tour vient d'être repris : la ligne le rappelle tant qu'il
+// n'a pas rejoué. En mémoire seulement.
+let replayOf: string | null = null;
+
+function renderLastTurn(): void {
+  const strip = requireEl("last-turn");
+  const text = requireEl("last-turn-text");
+  const fix = requireEl<HTMLButtonElement>("undo-btn");
+  const last = game.lastTurn;
+  if (isReview || (!replayOf && !(last && canUndoLastTurn(game)))) {
+    strip.hidden = true;
+    return;
+  }
+  strip.hidden = false;
+  if (replayOf) {
+    text.replaceChildren(`Tour de ${replayOf} repris : à rejouer.`);
+    fix.hidden = true;
+    return;
+  }
+  if (!last) return;
+  const name = game.players[last.player].name;
+  text.replaceChildren(...lastTurnText(last));
+  fix.hidden = false;
+  fix.setAttribute("aria-label", `Corriger le tour de ${name}`);
+}
+
+// « Bob +650 → 2 050 · Alice redescend », « Bob : bust, 350 perdus ».
+function lastTurnText(last: LastTurn): (Node | string)[] {
+  const p = game.players[last.player];
+  const dot = document.createElement("span");
+  dot.className = "last-turn-dot";
+  dot.style.background = p.color;
+  const strong = (t: string): HTMLElement => {
+    const b = document.createElement("b");
+    b.textContent = t;
+    return b;
+  };
+  const parts: (Node | string)[] = [dot, `${p.name} `];
+  const bank = last.moves.find((m) => m.kind === "bank" && m.player === last.player);
+  if (bank) {
+    parts.push(strong(`+${fmt(bank.to - bank.from)}`), " → ", strong(fmt(bank.to)));
+  } else {
+    parts.push(last.pot > 0 ? `: bust, ${fmt(last.pot)} perdus` : ": bust");
+  }
+  const fell = fallenPlayers(last);
+  if (fell.length > 0) {
+    const names = fell.map((m) => game.players[m.player].name);
+    const list = names.length > 1 ? `${names.slice(0, -1).join(", ")} et ${names.at(-1)}` : names[0];
+    parts.push(` · ${list} ${names.length > 1 ? "redescendent" : "redescend"}`);
+  }
+  const penalty = last.moves.find((m) => m.kind === "penalty");
+  if (penalty) parts.push(` · retombe à ${fmt(penalty.to)}`);
+  if (last.moves.some((m) => m.kind === "win")) parts.push(" · objectif atteint");
+  return parts;
+}
+
+// Les adversaires que ce tour a fait redescendre (Sniper), une fois chacun.
+function fallenPlayers(last: LastTurn): Move[] {
+  return last.moves.filter(
+    (m, i, all) => m.kind === "tie" && all.findIndex((o) => o.kind === "tie" && o.player === m.player) === i,
+  );
+}
+
+// Ce que la reprise va défaire, comme toute suppression de l'appli.
+function requestUndo(): void {
+  const last = game.lastTurn;
+  const previous = game.previous;
+  if (!last || !previous || !canUndoLastTurn(game)) return;
+  const name = game.players[last.player].name;
+  requireEl("undo-title").textContent = `Reprendre le tour de ${name} ?`;
+
+  const summary = requireEl("undo-summary");
+  summary.replaceChildren();
+  const bank = last.moves.find((m) => m.kind === "bank" && m.player === last.player);
+  summaryRow(
+    summary,
+    "Tour enregistré",
+    bank
+      ? `+${fmt(bank.to - bank.from)} (${fmt(bank.from)} → ${fmt(bank.to)})`
+      : last.pot > 0
+        ? `Bust (${fmt(last.pot)} perdus)`
+        : "Bust",
+  );
+  for (const move of fallenPlayers(last)) {
+    summaryRow(summary, game.players[move.player].name, `retrouve ${fmt(move.from)}`);
+  }
+  const penalty = last.moves.find((m) => m.kind === "penalty");
+  if (penalty) {
+    summaryRow(summary, "Busts d'affilée", `${name} retrouve ${fmt(penalty.from)}`);
+  } else if (!bank) {
+    const before = previous.players[last.player].blankTurns;
+    const after = game.players[last.player].blankTurns;
+    if (before !== after) summaryRow(summary, "Busts d'affilée", `${after} → ${before}`);
+  }
+  if (last.moves.some((m) => m.kind === "win")) {
+    summaryRow(summary, "Objectif", "plus atteint : la riposte est annulée");
+  }
+  // Le tour de celui qui a la main maintenant, s'il l'a commencé.
+  const started = turnStarted(game);
+  const draft = quick.draftPot();
+  if (started || draft !== null) {
+    summaryRow(
+      summary,
+      `Tour de ${player().name}`,
+      `entamé : ${fmt(started ? game.turn.pot : (draft ?? 0))}, sera perdu`,
+    );
+  }
+  requireEl("undo-warn").textContent =
+    `Le tour disparaît de la feuille, comme s'il n'avait pas été joué. ${name} le ressaisit ensuite.`;
+  undoDialog.showModal();
+}
+
+function confirmUndo(): void {
+  const last = game.lastTurn;
+  if (!last || !undoLastTurn(game)) return;
+  quick.clear();
+  replayOf = game.players[last.player].name;
+  persist();
+  renderBanner();
+  renderSheet();
+  scrollSheetToEnd();
+  centerCurrentColumn("smooth");
+  renderLastTurn();
+  animateName("prev");
+}
+
+/* ---------- Consultation ---------- */
+
+// Depuis l'écran de fin : la feuille seule. Plus de bandeau (personne n'a la
+// main), ni pause ni saisie ; la barre du bas ramène au classement.
+function showReview(): void {
+  screen.classList.add("review");
+  banner.hidden = true;
+  requireEl("pause-btn").hidden = true;
+  requireEl("entry-bar").hidden = true;
+  requireEl("review-bar").hidden = false;
+}
+
 /* ---------- Mise en route ---------- */
 
-requireEl("game-label").textContent = `${G5000.icon} 5000 · ${fmt(game.rules.target)} pts`;
+// « 5000 » à l'encre du jeu, l'objectif en plus petit derrière.
+const labelDetail = document.createElement("span");
+labelDetail.className = "game-label-detail";
+labelDetail.textContent = ` · ${fmt(game.rules.target)} pts`;
+requireEl("game-label").replaceChildren(G5000.title, labelDetail);
+applyGameTheme(screen, G5000);
+// Les fenêtres de saisie sont hors de l'écran : elles reçoivent aussi l'encre
+// du jeu (les « + » de l'addition posée et des touches).
+applyGameTheme(quick.dialog, G5000);
+applyGameTheme(requireEl("calc-dialog"), G5000);
 
-buildChips();
-renderBanner();
+if (isReview) showReview();
+else renderBanner();
 renderSheet();
 scrollSheetToEnd();
-centerCurrentColumn("instant");
+if (!isReview) centerCurrentColumn("instant");
 
 requireEl("play-btn").addEventListener("click", () => calculator.open());
-requireEl("quick-btn").addEventListener("click", openQuick);
-
-quickBank.addEventListener("click", () => finishQuick("bank"));
-requireEl("quick-bust").addEventListener("click", () => finishQuick("bust"));
-requireEl("quick-cancel").addEventListener("click", () => quickDialog.close());
+requireEl("quick-btn").addEventListener("click", () => quick.open());
 
 // Sur l'événement `close` et non sur le clic : Échap ou le geste retour ferment
 // aussi le dialogue, et une partie finie doit alors quand même mener au podium.
@@ -755,6 +908,14 @@ onHorizontalSwipe(
   },
 );
 
+requireEl("undo-btn").addEventListener("click", requestUndo);
+makeDismissible(undoDialog, "undo-cancel");
+requireEl("undo-confirm").addEventListener("click", () => {
+  undoDialog.close();
+  confirmUndo();
+});
+renderLastTurn();
+
 makeDismissible(switchDialog, "switch-cancel");
 switchDialog.addEventListener("close", () => {
   pendingSwitch = null;
@@ -775,6 +936,8 @@ requireEl("pause-btn").addEventListener("click", () => {
   goTo("g5000Home");
 });
 
-makeDismissible(quickDialog);
+// Calculette refermée sans banquer : plus de pot à montrer sur la jauge (la
+// saisie rapide s'en charge elle-même).
+requireEl("calc-dialog").addEventListener("close", () => previewPot(0));
 
-keepScreenOn();
+if (!isReview) keepScreenOn();

@@ -65,8 +65,8 @@ export default defineConfig({
         name: "Cornet — jeux de dés",
         short_name: "Cornet",
         description: "Feuilles de score pour jeux de dés : Yams et 5000.",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
+        theme_color: "#f3efe6",
+        background_color: "#f3efe6",
         display: "standalone",
         start_url: "/YamsApp/",
         scope: "/YamsApp/",
@@ -76,8 +76,11 @@ export default defineConfig({
         ],
       },
       workbox: {
-        // Précache toutes les pages + le JS/CSS produit.
-        globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
+        // Précache toutes les pages + le JS/CSS produit, et la police Archivo
+        // (alphabets latins seulement : le fichier vietnamien n'est jamais
+        // demandé par une page en français) — sans elle, hors ligne, tout
+        // retomberait sur la police du système.
+        globPatterns: ["**/*.{js,css,html,svg,png,ico}", "**/archivo-latin-*.woff2"],
         // Workbox compare l'URL complète, paramètres compris : une page appelée
         // avec un paramètre (`yams-game.html?review=1`, `settings.html?game=yams`,
         // `rules.html?game=g5000`) ne correspond à aucune entrée du précache, la

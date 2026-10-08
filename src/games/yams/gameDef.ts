@@ -32,6 +32,7 @@ import {
   renameInHallOfFame,
 } from "./hallOfFame";
 import { sameName } from "../../core/playerName";
+import { buildGrid, turnProgress } from "./scoring";
 import type { Variant } from "./types";
 
 // Ce que le Yams range dans `GameDraft.config` : les variantes cochées sur son
@@ -50,24 +51,42 @@ export function yamsConfigOf(draft: GameDraft): YamsConfig {
 export const YAMS: GameDef = {
   id: "yams",
   title: "Yams",
-  icon: "🍀",
-  accent: "#3d9142",
+  icon: "clover",
+  accent: "#17784a",
+  accentPaper: "#e5f1e8",
+  sceneDice: [6, 6, 6, 6, 6], // un Yams
   tagline: "Remplir sa grille, décrocher le bonus.",
+  sample: [
+    { label: "Brelan", die: 3, value: "18" },
+    { label: "Full", value: "25" },
+    { label: "Yams", value: "50", mark: "circle" },
+  ],
 
   pages: {
     home: "yams.html",
     play: "yams-game.html",
   },
 
-  // Lues au moment de l'affichage : la page des règles montre le barème tel
-  // qu'il est réglé maintenant, pas celui d'une partie passée.
-  rulesDoc: () => yamsRulesDoc(getRules()),
+  // Depuis une partie, le barème figé à son lancement : c'est lui qu'elle
+  // applique, et les Paramètres ont pu changer depuis. Sinon, le barème tel
+  // qu'il est réglé maintenant.
+  rulesDoc({ inGame }) {
+    const saved = inGame ? getSavedGame() : null;
+    return yamsRulesDoc(saved ? saved.rules : getRules());
+  },
 
   resume(): ResumeInfo | null {
     const saved = getSavedGame();
     if (!saved) return null;
+    const { turn, turns, ratio } = turnProgress(
+      saved.players,
+      saved.selectedVariants,
+      buildGrid(saved.rules),
+    );
     return {
       playerNames: saved.players.map((p) => p.name),
+      playerColors: saved.players.map((p) => p.color),
+      progress: { label: `Tour ${turn} sur ${turns}`, ratio },
       rows: [
         { term: "Joueurs", value: saved.players.map((p) => p.name).join(", ") },
         { term: "Variantes", value: { badges: saved.selectedVariants.map(variantBadgeData) } },

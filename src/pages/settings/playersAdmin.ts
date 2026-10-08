@@ -6,6 +6,7 @@
 // avant bootstrap() : il ne lit rien du stockage à son niveau module, tout est
 // dans setupPlayersAdmin().
 
+import { icon } from "../../core/icons";
 import {
   makeDismissible,
   plural,
@@ -57,21 +58,21 @@ function playerRow(name: string, games: number): HTMLLIElement {
   nameEl.textContent = name;
 
   const gamesEl = document.createElement("span");
-  gamesEl.className = "score-admin-games";
-  gamesEl.textContent = games === 0 ? "jamais joué" : plural(games, "partie");
+  gamesEl.className = games === 0 ? "score-admin-games is-new" : "score-admin-games";
+  gamesEl.textContent = games === 0 ? "nouveau" : plural(games, "partie");
 
   const edit = document.createElement("button");
   edit.type = "button";
   edit.className = "score-admin-edit";
   edit.setAttribute("aria-label", `Modifier le nom de ${name}`);
-  edit.textContent = "✏️";
+  edit.appendChild(icon("pen"));
   edit.addEventListener("click", () => openEdit(name));
 
   const del = document.createElement("button");
   del.type = "button";
   del.className = "score-admin-del";
   del.setAttribute("aria-label", `Supprimer ${name}`);
-  del.textContent = "🗑️";
+  del.appendChild(icon("trash"));
   del.addEventListener("click", () => openDelete(name));
 
   li.append(nameEl, gamesEl, edit, del);

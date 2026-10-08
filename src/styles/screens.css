@@ -1,132 +1,7 @@
-/* ========== VARIANTS (choix sur l'accueil) ========== */
-.variants {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-}
-
-.variants h2 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-/* Puces à bascule, en grille 2×2 (4 sur une ligne à partir de la tablette). */
-.variant-options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
-  width: 100%;
-}
-
-.variant-chip {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25em;
-  padding: 0.9em 0.6em;
-  border: 2px solid #d3d3d3;
-  border-radius: 12px;
-  background: var(--white);
-  color: inherit;
-  cursor: pointer;
-  user-select: none;
-  transition: background-color var(--transition), border-color var(--transition),
-    color var(--transition), box-shadow var(--transition);
-}
-
-.variant-chip input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
-.chip-icon {
-  font-size: 1.6em;
-  line-height: 1;
-}
-
-.chip-label {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.variant-chip:hover {
-  border-color: #b3b3b3;
-}
-
-/* Sélectionnée : couleur propre à la variante (--chip-color, posée par home.ts). */
-.variant-chip:has(input:checked) {
-  background: var(--chip-color, var(--primary-color));
-  border-color: var(--chip-color, var(--primary-color));
-  color: var(--white);
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.22);
-}
-
-.variant-chip:has(input:checked):hover {
-  filter: brightness(0.93);
-}
-
-.variant-chip:has(input:checked)::after {
-  content: "✓";
-  position: absolute;
-  top: 0.3em;
-  right: 0.5em;
-  font-size: 0.85em;
-  font-weight: 800;
-}
-
-/* Accessibilité clavier */
-.variant-chip:has(input:focus-visible) {
-  outline: 3px solid var(--secondary-color);
-  outline-offset: 2px;
-}
-
-/* Puces en ligne plutôt qu'en grille (accueil du 5000) : deux par ligne, et
-   une puce seule sur la dernière ligne est centrée au lieu de rester collée à
-   gauche (demande de Paul). Leur largeur est fixée par la base, pas par
-   l'étirement : c'est ce qui permet de centrer la dernière. */
-.chip-flow {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.chip-flow > .variant-chip {
-  flex: 0 0 calc((100% - 0.6rem) / 2);
-}
-
-/* Objectifs : deux par ligne partout (tablette comprise), la troisième
-   centrée dessous, et un peu plus grands que des puces de variante sans
-   pictogramme (essayés à trois sur une ligne, plus petits : refusé). */
-.chip-flow--targets > .variant-chip {
-  flex-basis: calc((100% - 0.6rem) / 2);
-  padding: 1.05em 0.6em;
-}
-
-.chip-flow--targets .chip-label {
-  font-size: 1.15rem;
-}
-
-/* Une phrase sous le nom d'une variante (accueil du 5000) : ce qu'elle
-   change, lisible sans ouvrir les règles. Hérite de la couleur de la puce,
-   blanche une fois cochée. */
-.chip-hint {
-  font-size: 0.74rem;
-  font-style: italic;
-  font-weight: 400;
-  line-height: 1.25;
-  opacity: 0.85;
-}
-
 /* ========== ÉCRANS ========== */
 /* MPA : chaque page a son unique <div id="…-screen" class="screen">.
-   Modèle unique : colonne verrouillée sur la hauteur visible, contenu qui
-   défile dans .screen-body, barre d'actions fixe en bas. */
+   Modèle unique : colonne verrouillée sur la hauteur visible, en-tête fixe,
+   contenu qui défile dans .screen-body, barre d'actions fixe en bas. */
 .screen {
   position: relative;
   display: flex;
@@ -144,8 +19,8 @@
   align-items: center;
   /* Espacements liés à la hauteur : se resserrent quand la place manque
      (tablette en paysage, petit écran) pour éviter un défilement. */
-  gap: clamp(0.75rem, 2.4vh, 1.5rem);
-  padding: clamp(0.85rem, 2.6vh, 1.5rem) clamp(1rem, 4vw, 2.5rem);
+  gap: clamp(0.75rem, 2.2vh, 1.25rem);
+  padding: clamp(1rem, 2.6vh, 1.5rem) var(--gutter);
 }
 
 .screen-body > * {
@@ -153,28 +28,534 @@
   max-width: var(--content-max);
 }
 
-/* ========== HOME SCREEN ========== */
-/* Le titre du jeu est dans la barre du haut (c'est le sélecteur de jeu) : il ne
-   reste ici que le choix des variantes, centré dans la hauteur disponible. */
+/* Les champs à cocher des puces, lignes et objectifs sont invisibles : c'est
+   l'élément qui les porte (un <label>) qui se coche. */
+.variant-chip input,
+.variant-row input,
+.target-opt input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ========== ACCUEIL D'UN JEU ========== */
+/* L'en-tête de l'accueil est un feuillet : le nom du jeu en grand (c'est le
+   sélecteur de jeu, cf. screen-bar.css), son accroche, et un extrait de sa
+   feuille. Au 5000, l'objectif y est choisi : c'est lui qui donne son nom au
+   jeu. */
 #home-screen .screen-body {
-  justify-content: flex-start;
-  gap: clamp(1rem, 3vh, 1.75rem);
-  padding-top: clamp(0.9rem, 2.5vh, 1.75rem);
+  gap: clamp(0.9rem, 2.4vh, 1.4rem);
 }
 
-#home-screen .variants {
-  margin-block: auto;
+/* La partie en cours et le choix d'une nouvelle partie sont deux choses : un
+   vrai blanc les sépare (collés, demande de Paul du 08/10). La carte reste
+   au-dessus des variantes, qui restent ainsi juste au-dessus de « Commencer ». */
+#home-screen .resume-card {
+  margin-bottom: clamp(0.6rem, 3vh, 1.9rem);
 }
 
-/* Plusieurs choix à poser (objectif et variantes du 5000) : centrés ensemble
-   dans la hauteur, pas répartis chacun dans un coin. */
-#home-screen .home-choices {
+/* Le contenu (partie en cours, variantes) est centré dans la hauteur
+   (demande de Paul, 08/10 : plaqué en haut, l'accueil du Yams faisait vide).
+   Par deux cales élastiques plutôt que `justify-content: center`, qui rognerait
+   le haut d'une liste trop longue pour l'écran au lieu de la faire défiler. */
+#home-screen .screen-body::before,
+#home-screen .screen-body::after {
+  content: "";
+  flex: 1 1 0;
+}
+
+.game-hero {
+  flex: none;
+  position: relative;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    "title actions"
+    "tagline sample"
+    "choice choice"
+    "scene scene";
+  align-items: start;
+  column-gap: 0.75rem;
+  padding: calc(0.55rem + env(safe-area-inset-top, 0px))
+    max(var(--gutter), calc((100% - var(--content-max)) / 2)) 1.35rem;
+  padding-right: max(0.5rem, calc((100% - var(--content-max)) / 2 - 0.5rem));
+  background: var(--accent-paper, var(--sheet));
+  box-shadow: 0 10px 18px -18px rgba(var(--shade-rgb), 0.6);
+}
+
+.game-hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -5px;
+  height: 10px;
+  pointer-events: none;
+  background: radial-gradient(circle at 6px 5px, var(--hole) 2.6px, transparent 3.1px)
+    0 0 / 12px 10px repeat-x;
+}
+
+.game-hero .screen-bar-start {
+  grid-area: title;
+  align-self: center;
+}
+
+/* Contre le bord droit, quelle que soit la largeur de la colonne : au Yams,
+   l'extrait de feuille, dessous, l'élargit, et les pictogrammes se
+   retrouvaient décalés par rapport au 5000. */
+.game-hero .screen-bar-actions {
+  grid-area: actions;
+  justify-self: end;
+}
+
+.game-hero-tagline {
+  grid-area: tagline;
+  margin: 0.35rem 0 0;
+  max-width: 15rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  color: var(--ink-soft);
+}
+
+.game-hero-sample {
+  grid-area: sample;
+  margin: 0.15rem 0.5rem 0 0;
+}
+
+.game-hero-choice {
+  grid-area: choice;
+  margin: 1rem 0.5rem 0 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(2rem, 5.5vh, 3rem);
-  margin-block: auto;
+  gap: 0.4rem;
 }
 
-#home-screen .home-choices .variants {
-  margin-block: 0;
+.game-hero-choice .section-label::after {
+  display: none;
+}
+
+/* Les dés lancés du jeu (core/illustrations.ts), au bas de l'en-tête : la
+   place libre de l'accueil devient une scène. Sur un écran bas, ils cèdent
+   la place au contenu. */
+.game-hero-scene {
+  grid-area: scene;
+  margin-right: 0.5rem;
+}
+
+.dice-scene {
+  position: relative;
+  height: clamp(4rem, 11vh, 6.2rem);
+  margin-top: 0.6rem;
+}
+
+.scene-die {
+  position: absolute;
+  width: clamp(2.1rem, 6vh, 2.9rem);
+  aspect-ratio: 1;
+  transform: rotate(var(--turn, 0deg));
+  filter: drop-shadow(0 3px 2px rgba(var(--shade-rgb), 0.28));
+}
+
+.scene-die .die {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Trait plus fin qu'en grille : à cette taille, celui de dice.ts alourdit. */
+.scene-die .die-face {
+  stroke-width: 5.5;
+}
+
+/* Le dé du milieu, à l'encre du jeu très éclaircie : un seul accent. */
+.scene-die:nth-child(3) .die-face {
+  fill: color-mix(in srgb, var(--accent, var(--ink)) 22%, var(--sheet));
+}
+
+/* Sur ordinateur, la colonne du jeu a toujours la place (tablet.css). */
+@media (max-height: 660px) and (max-width: 899px) {
+  .game-hero-scene {
+    display: none;
+  }
+}
+
+/* ---------- Extrait de feuille (cartes du menu, en-tête de l'accueil) ---------- */
+.sheet-sample {
+  width: 7rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+}
+
+/* Sur le papier teinté d'un en-tête ou d'une carte, l'extrait reste un bout
+   de feuillet blanc : c'est un morceau de la feuille de score. */
+.game-hero .sheet-sample,
+.game-link .sheet-sample {
+  box-sizing: content-box;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-xs);
+  background: var(--sheet);
+  box-shadow: 0 1px 3px rgba(var(--shade-rgb), 0.18);
+}
+
+.sample-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.45rem;
+  padding: 0 0.15rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sample-line:first-child {
+  border-top: 1px solid var(--rule);
+}
+
+.sample-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.sample-label .die {
+  width: 0.85rem;
+  height: 0.85rem;
+  filter: none;
+}
+
+.sample-value {
+  font-size: 0.95rem;
+  font-stretch: 75%;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+/* Colonne de cumuls (5000) : pas de libellé, les chiffres au milieu. */
+.sheet-sample--column {
+  width: 5.4rem;
+}
+
+.sheet-sample--column .sample-line {
+  grid-template-columns: 1fr;
+  justify-items: center;
+}
+
+.sample-value.is-struck {
+  color: var(--ink-faint);
+  text-decoration: line-through 2px var(--ink);
+}
+
+/* ---------- Partie en cours ---------- */
+.resume-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0.7rem 0.7rem 0.95rem;
+}
+
+.resume-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.resume-text .section-label::after {
+  display: none;
+}
+
+.resume-who {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.resume-names {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Où en est la partie (resumeProgress, gameHero.ts) : une phrase, une jauge
+   fine à l'encre du jeu. Menu et accueils. */
+.resume-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.resume-progress-label {
+  flex: none;
+  white-space: nowrap;
+}
+
+.resume-progress-track {
+  flex: 1;
+  min-width: 2.5rem;
+  max-width: 8rem;
+  height: 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--rule);
+  overflow: hidden;
+}
+
+.resume-progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent, var(--ink));
+}
+
+/* ========== VARIANTES (choix sur l'accueil) ========== */
+.variants {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Variantes du Yams : quatre tuiles, 2 × 2 (une ligne sur tablette). */
+.variant-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.variant-chip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 1rem 0.5rem 0.85rem;
+  border-radius: var(--radius-s);
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1px var(--rule), 0 8px 16px -14px rgba(var(--shade-rgb), 0.4);
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: box-shadow 0.15s ease;
+}
+
+/* Le pictogramme de la variante, à sa couleur (--chip-color, posée par
+   home.ts) : la même couleur que sa pastille dans la grille. */
+.chip-icon {
+  display: grid;
+  place-items: center;
+  color: var(--chip-color, var(--ink));
+}
+
+.variant-chip .chip-icon .ic {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.chip-label {
+  padding: 0 0.2em;
+  font-size: 1.05rem;
+  font-stretch: 75%;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* La coche au feutre, en haut à droite d'une tuile choisie. */
+.chip-tick {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.45rem;
+  display: none;
+  color: var(--ink);
+}
+
+.chip-tick .ic {
+  width: 1.2rem;
+  height: 1.2rem;
+  stroke-width: 2.6;
+}
+
+/* Choisie : cernée d'encre, son nom surligné à sa couleur, cochée. */
+.variant-chip:has(input:checked) {
+  box-shadow: inset 0 0 0 1.5px var(--ink), 0 8px 16px -14px rgba(var(--shade-rgb), 0.4);
+}
+
+.variant-chip:has(input:checked) .chip-tick {
+  display: block;
+}
+
+.variant-chip:has(input:checked) .chip-label,
+.variant-row:has(input:checked) .variant-name span {
+  background: linear-gradient(
+      100deg,
+      transparent 3%,
+      color-mix(in srgb, var(--chip-color) 36%, transparent) 6%,
+      color-mix(in srgb, var(--chip-color) 36%, transparent) 94%,
+      transparent 97%
+    )
+    no-repeat 0 72% / 100% 62%;
+}
+
+/* Accessibilité clavier */
+.variant-chip:has(input:focus-visible),
+.variant-row:has(input:focus-visible),
+.target-opt:has(input:focus-visible) {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+/* Variantes du 5000 : une liste, chacune avec la phrase qui dit ce qu'elle
+   change (lisible, à gauche) et sa case à cocher. Une variante de plus
+   s'ajoute sans laisser de tuile orpheline. */
+.variant-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.variant-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.6rem 0.85rem;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.variant-row + .variant-row {
+  border-top: 1px solid var(--rule);
+}
+
+.variant-row .chip-icon .ic {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.variant-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.variant-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.variant-name span {
+  padding: 0 0.15em;
+}
+
+/* Une phrase sous le nom d'une variante (accueils du Yams et du 5000) : ce
+   qu'elle change, lisible sans ouvrir les règles. */
+.chip-hint {
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+}
+
+/* Dans une tuile du Yams : centrée sous le nom, collée à lui. */
+.variant-chip .chip-hint {
+  margin-top: -0.3rem;
+  padding: 0 0.3rem;
+  text-align: center;
+}
+
+/* Case à cocher dessinée : une case de feuille de score. */
+.check-box {
+  position: relative;
+  flex: none;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: var(--radius-s);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+}
+
+.variant-row:has(input:checked) .check-box::after {
+  content: "";
+  position: absolute;
+  left: 0.3rem;
+  top: 0.32rem;
+  width: 0.8rem;
+  height: 0.4rem;
+  border-left: 2.6px solid var(--ink);
+  border-bottom: 2.6px solid var(--ink);
+  transform: rotate(-48deg);
+}
+
+/* ---------- Objectif (5000) ---------- */
+/* Trois grands chiffres réglés ; celui qui est choisi est entouré au feutre,
+   comme l'objectif atteint sur la feuille de partie. */
+.target-seg {
+  display: flex;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.target-opt {
+  position: relative;
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 0.75rem 0 0.6rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.target-opt + .target-opt {
+  border-left: 1px solid var(--rule);
+}
+
+.target-num {
+  font-size: 2rem;
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--ink) 38%, transparent);
+  transition: color 0.15s ease;
+}
+
+.target-opt .hand-circle {
+  display: none;
+}
+
+.target-opt:has(input:checked) .target-num {
+  color: var(--ink);
+}
+
+.target-opt:has(input:checked) .hand-circle {
+  display: block;
+}
+
+/* Le cercle se trace comme au feutre, d'un geste, à chaque objectif choisi
+   (demande de Paul, 08/10). Le tracé est ramené à une longueur de 1
+   (pathLength, icons.ts) : un seul tiret qui se déroule. */
+.target-opt:has(input:checked) .hand-circle path {
+  stroke-dasharray: 1;
+  animation: hand-draw 0.55s cubic-bezier(0.45, 0.05, 0.35, 1) both;
+}
+
+@keyframes hand-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }

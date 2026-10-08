@@ -39,6 +39,7 @@ import {
   getLastRoster,
 } from "../core/storage/draftRepo";
 import { gameById } from "../games/registry";
+import { applyGameTheme } from "./gameTheme";
 import type { ResumeInfo } from "../games/types";
 
 bootstrap();
@@ -201,7 +202,7 @@ function buildRow(
 ): HTMLLIElement {
   const isSelected = order >= 0;
   const gamesText =
-    gamesCount === 0 ? "jamais joué" : plural(gamesCount, "partie");
+    gamesCount === 0 ? "nouveau" : plural(gamesCount, "partie");
 
   const row = document.createElement("li");
   row.className = isSelected ? "roster-row selected" : "roster-row";
@@ -217,12 +218,19 @@ function buildRow(
   check.setAttribute("aria-hidden", "true");
   if (isSelected) check.textContent = String(order + 1);
 
+  // Le nom dans un <span> : sélectionné, c'est lui que le feutre de la
+  // couleur du joueur surligne.
   const nameEl = document.createElement("span");
   nameEl.className = "name";
-  nameEl.textContent = name;
+  const nameMark = document.createElement("span");
+  nameMark.className = "name-mark";
+  nameMark.textContent = name;
+  nameEl.appendChild(nameMark);
 
   const gamesEl = document.createElement("span");
-  gamesEl.className = "games";
+  // « nouveau », en italique pâle : « jamais joué » en gris, répété sur chaque
+  // ligne, faisait du bruit (choix de Paul, 08/10).
+  gamesEl.className = gamesCount === 0 ? "games is-new" : "games";
   gamesEl.textContent = gamesText;
 
   row.append(check, nameEl, gamesEl);
@@ -460,6 +468,8 @@ list.addEventListener("pointerdown", () => (dragJustEnded = false), true);
 
 // Page commune : son titre prend le nom du jeu qu'on prépare.
 document.title = `${target.title} — Joueurs`;
+requireEl("players-eyebrow").textContent = `${target.title} · nouvelle partie`;
+applyGameTheme(requireEl("players-screen"), target);
 
 // « Retour » ramène à l'accueil du jeu qu'on était en train de préparer, pas au
 // menu des jeux : on vient d'en sortir, on y revient.

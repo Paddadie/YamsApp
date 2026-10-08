@@ -2,15 +2,21 @@
 // ce qui est propre à l'un d'eux (pastille de variante du Yams…) vit sous
 // games/<jeu>/.
 
-export const MEDALS = ["🥇", "🥈", "🥉"];
+import { gommette, icon, type IconName } from "./icons";
 
 export type Cell =
   | string
   | number
   | { strong: string | number }
-  // `badge` posé hors flux (coin de la cellule) : n'affecte pas l'alignement
-  // vertical de `text` d'une ligne à l'autre.
-  | { text: string | number; badge: string };
+  // Le rang d'un classement, en gommette (cf. icons.ts).
+  | { rank: number }
+  // `badge` (un pictogramme, son sens dans `badgeLabel`) posé hors flux, dans
+  // le coin de la cellule : n'affecte pas l'alignement vertical de `text`
+  // d'une ligne à l'autre.
+  | { text: string | number; badge: IconName; badgeLabel: string };
+
+// En-tête de colonne : un texte, ou un élément (pastille de variante).
+export type HeaderCell = string | Node;
 
 export function requireEl<T extends HTMLElement = HTMLElement>(id: string): T {
   const el = document.getElementById(id);
@@ -48,6 +54,20 @@ export function makeActivatable(
   });
 }
 
+// Les couleurs des joueurs d'une partie, en pastilles qui se chevauchent
+// (reprise d'une partie). Décoratif : les noms sont écrits à côté.
+export function playerDots(colors: string[]): HTMLElement {
+  const dots = document.createElement("span");
+  dots.className = "player-dots";
+  dots.setAttribute("aria-hidden", "true");
+  for (const color of colors) {
+    const dot = document.createElement("i");
+    dot.style.setProperty("--dot", color);
+    dots.appendChild(dot);
+  }
+  return dots;
+}
+
 // Contenu de la pastille « C'est à Marie › » des écrans de jeu. « C'est à »
 // est à part : sur un téléphone étroit il disparaît (CSS), pour que la place
 // qui reste aille au nom plutôt qu'à la formule.
@@ -77,17 +97,21 @@ export function makeDismissible(
 // Décrite en données : un jeu peut en mettre dans un récapitulatif sans toucher
 // au DOM. Le libellé n'est que dans l'infobulle.
 export interface Badge {
-  icon: string;
+  icon: IconName;
   color: string;
   title: string;
 }
 
-export function badge({ icon, color, title }: Badge): HTMLElement {
+export function badge({ icon: name, color, title }: Badge): HTMLElement {
   const el = document.createElement("span");
   el.className = "badge";
   el.style.setProperty("--vc", color);
-  el.textContent = icon;
+  el.appendChild(icon(name));
   el.title = title;
+  // Le pictogramme est décoratif : sans ça, la pastille seule n'aurait pas de
+  // nom pour un lecteur d'écran.
+  el.setAttribute("role", "img");
+  el.setAttribute("aria-label", title);
   return el;
 }
 
@@ -124,11 +148,16 @@ function appendRows(tbody: HTMLElement, rows: Cell[][]): void {
         td.textContent = String(cell);
       } else if ("strong" in cell) {
         td.appendChild(strongText(String(cell.strong)));
+      } else if ("rank" in cell) {
+        td.className = "cell-rank";
+        td.appendChild(gommette(cell.rank));
       } else {
         td.classList.add("cell-badged");
         const mark = document.createElement("span");
-        mark.className = "cell-badge";
-        mark.textContent = cell.badge;
+        mark.className = `cell-badge cell-badge--${cell.badge}`;
+        mark.setAttribute("role", "img");
+        mark.setAttribute("aria-label", cell.badgeLabel);
+        mark.appendChild(icon(cell.badge));
         td.append(String(cell.text), mark);
       }
       tr.appendChild(td);
@@ -139,14 +168,14 @@ function appendRows(tbody: HTMLElement, rows: Cell[][]): void {
 
 export function renderTable(
   table: HTMLTableElement,
-  headers: string[],
+  headers: HeaderCell[],
   rows: Cell[][],
 ): void {
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
   for (const label of headers) {
     const th = document.createElement("th");
-    th.textContent = label;
+    th.append(label);
     headerRow.appendChild(th);
   }
   thead.appendChild(headerRow);

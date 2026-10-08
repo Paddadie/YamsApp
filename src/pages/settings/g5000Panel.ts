@@ -1,4 +1,4 @@
-// Panneau « Règles du 5000 » des Paramètres : le déroulement (entrée en jeu,
+// Panneau « Réglages du 5000 » des Paramètres : le déroulement (entrée en jeu,
 // busts d'affilée, riposte) et le barème (brelan, carré, quinte, suite).
 // L'objectif et les variantes ne sont pas ici : ils se choisissent à chaque
 // partie, sur l'accueil du jeu.

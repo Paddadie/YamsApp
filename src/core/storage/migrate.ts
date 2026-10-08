@@ -16,6 +16,7 @@
 // contentera de les enchaîner.
 
 import { compareNames, foldName } from "../playerName";
+import { isoFromFrench } from "../dates";
 import { STORAGE_KEYS } from "./keys";
 import { writeJson } from "./localStore";
 import { dedupePlayerGames, type PlayerGames } from "./playerGamesRepo";
@@ -48,7 +49,9 @@ import type {
 //      rangées sous un identifiant stable (« full ») et non plus sous leur
 //      libellé (« Full (25) ») ; les entrées du Hall of Fame gardent leur
 //      barème.
-const SCHEMA_VERSION = 7;
+// v8 : les dates (palmarès du Yams, records du 5000, dernière victoire) passent
+//      de `jj/mm/aaaa` à l'ISO (`aaaa-mm-jj`), cf. core/dates.ts.
+const SCHEMA_VERSION = 8;
 
 export function migrateStorage(): void {
   const done = Number(localStorage.getItem(STORAGE_KEYS.schemaVersion));
@@ -63,6 +66,8 @@ export function migrateStorage(): void {
   migrateScoreList(STORAGE_KEYS.worstScores, true);
   migrateKnownNames();
   migrateDraft();
+  // APRÈS migrateScoreList, qui réécrit les listes du palmarès.
+  migrateDates();
 
   localStorage.setItem(STORAGE_KEYS.schemaVersion, String(SCHEMA_VERSION));
 }
@@ -215,6 +220,45 @@ function sheetOf(e: Record<string, unknown>): Partial<ScoreEntry> {
       ? normalizeRules(e.rules)
       : rulesFromLabels(legacyOrder ?? Object.keys(legacySheet), legacySheet),
   };
+}
+
+// Dates : `jj/mm/aaaa` → ISO, partout où une donnée porte un champ `date`
+// (entrées du palmarès, records du 5000 par objectif, dernière victoire). Une
+// date illisible reste telle quelle ; `formatDate` lit les deux formats.
+const DATED_KEYS = [
+  STORAGE_KEYS.bestScores,
+  STORAGE_KEYS.worstScores,
+  STORAGE_KEYS.g5000Records,
+  STORAGE_KEYS.lastWin,
+];
+
+function migrateDates(): void {
+  for (const key of DATED_KEYS) {
+    const raw = parse(key);
+    if (raw === undefined) continue;
+    let changed = false;
+    const walk = (value: unknown): void => {
+      if (!value || typeof value !== "object") return;
+      if (Array.isArray(value)) {
+        value.forEach(walk);
+        return;
+      }
+      const obj = value as Record<string, unknown>;
+      for (const [field, inner] of Object.entries(obj)) {
+        if (field === "date" && typeof inner === "string") {
+          const iso = isoFromFrench(inner);
+          if (iso !== inner) {
+            obj[field] = iso;
+            changed = true;
+          }
+        } else {
+          walk(inner);
+        }
+      }
+    };
+    walk(raw);
+    if (changed) writeJson(key, raw);
+  }
 }
 
 // Joueurs connus : retire les doublons de casse/espaces accumulés par les

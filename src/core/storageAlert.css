@@ -28,7 +28,7 @@
 .storage-alert-close {
   flex-shrink: 0;
   border: none;
-  border-radius: var(--border-radius);
+  border-radius: var(--radius-l);
   background: #fff;
   color: var(--danger-hover);
   font-size: 0.9em;

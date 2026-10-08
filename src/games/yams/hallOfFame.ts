@@ -5,6 +5,7 @@
 import type { HallOfFameImpact, Player, ScoreEntry, Variant } from "./types";
 import { FINAL_SCORE_LINE, type Grid } from "./scoring";
 import { sameName } from "../../core/playerName";
+import { dateStamp } from "../../core/dates";
 import {
   getBestScores,
   getWorstScores,
@@ -26,7 +27,7 @@ function freshEntries(
   variants: Variant[],
   grid?: Grid,
 ): { entry: ScoreEntry; variant: Variant }[] {
-  const date = new Date().toLocaleDateString("fr-FR");
+  const date = dateStamp();
   const entries: { entry: ScoreEntry; variant: Variant }[] = [];
   for (const player of players) {
     for (const variant of variants) {

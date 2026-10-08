@@ -12,58 +12,44 @@
 // `setupGameSwitcher(sonId)`. Le contenu vient du registre, donc un jeu ajouté
 // apparaît ici sans qu'on touche à ce fichier.
 
+import { icon, type IconName } from "../core/icons";
 import { requireEl } from "../core/ui";
 import { GAMES } from "../games/registry";
 
-const SVG_NS = "http://www.w3.org/2000/svg";
+// Chevron, emblèmes et coche dessinés plutôt qu'écrits : les caractères de ce
+// genre (⌄, ▾, ✓, emoji) sont rendus par la police du système, donc de taille
+// et de dessin variables d'un appareil à l'autre — et parfois pas rendus du
+// tout. En SVG, ils suivent la taille du texte et restent posés au même
+// endroit partout.
 
-// Chevron dessiné plutôt qu'écrit : les caractères de ce genre (⌄, ▾, ⓘ) sont
-// rendus par la police emoji du système, donc de taille et de dessin variables
-// d'un appareil à l'autre — et parfois pas rendus du tout. En SVG, il suit la
-// taille du texte et reste posé au même endroit partout.
-function chevron(): SVGSVGElement {
-  const svg = document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("class", "game-switch-chevron");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("aria-hidden", "true");
-
-  const path = document.createElementNS(SVG_NS, "path");
-  path.setAttribute("d", "M5 9l7 7 7-7");
-  path.setAttribute("fill", "none");
-  path.setAttribute("stroke", "currentColor");
-  path.setAttribute("stroke-width", "2.5");
-  path.setAttribute("stroke-linecap", "round");
-  path.setAttribute("stroke-linejoin", "round");
-  svg.appendChild(path);
-  return svg;
-}
-
-function span(className: string, text: string, decorative = false): HTMLElement {
+function span(className: string, content: string | Node, decorative = false): HTMLElement {
   const el = document.createElement("span");
   el.className = className;
-  el.textContent = text;
+  el.append(content);
   if (decorative) el.setAttribute("aria-hidden", "true");
   return el;
 }
 
 function buildRow(
-  icon: string,
+  emblem: IconName,
   label: string,
   href: string,
   current: boolean,
+  accent?: string,
 ): HTMLAnchorElement {
   const row = document.createElement("a");
   row.className = current ? "switcher-row is-current" : "switcher-row";
   row.href = href;
+  if (accent) row.style.setProperty("--row-accent", accent);
   if (current) row.setAttribute("aria-current", "page");
 
   row.append(
-    span("switcher-icon", icon, true),
+    span("switcher-icon", icon(emblem), true),
     span("switcher-label", label),
   );
   // La coche dit où l'on est déjà ; la ligne reste cliquable (elle recharge le
   // même écran) plutôt que désactivée, ce qui la ferait paraître cassée.
-  if (current) row.appendChild(span("switcher-mark", "✓", true));
+  if (current) row.appendChild(span("switcher-mark", icon("tick"), true));
   return row;
 }
 
@@ -72,17 +58,18 @@ export function setupGameSwitcher(currentId: string): void {
   const menu = requireEl<HTMLUListElement>("game-switcher");
 
   const current = GAMES.find((g) => g.id === currentId);
+  // Le nom seul, en grand, à l'encre du jeu : l'emblème n'est que dans la
+  // liste, où il aide à distinguer les lignes.
   button.replaceChildren(
-    span("game-switch-icon", current?.icon ?? "🎲", true),
     span("game-switch-name", current?.title ?? "Jeu"),
-    chevron(),
+    icon("chevronDown", "game-switch-chevron"),
   );
 
   menu.replaceChildren();
   for (const game of GAMES) {
     const li = document.createElement("li");
     li.appendChild(
-      buildRow(game.icon, game.title, game.pages.home, game.id === currentId),
+      buildRow(game.icon, game.title, game.pages.home, game.id === currentId, game.accent),
     );
     menu.appendChild(li);
   }
@@ -91,7 +78,7 @@ export function setupGameSwitcher(currentId: string): void {
   menu.appendChild(separator);
 
   const allGames = document.createElement("li");
-  allGames.appendChild(buildRow("🎲", "Tous les jeux", "index.html", false));
+  allGames.appendChild(buildRow("die", "Tous les jeux", "index.html", false));
   menu.appendChild(allGames);
 
   // Les écouteurs posés à l'ouverture sont retirés à la fermeture par un

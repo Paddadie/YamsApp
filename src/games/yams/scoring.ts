@@ -165,6 +165,9 @@ function modeSuffix(line: LowerLine, mode: GroupMode): string {
 // Libellé affiché d'une ligne : « 3 » pour les chiffres (l'écran de jeu les
 // dessine en dés), « Full (25) », « Brelan (Σ3) », « Score Final ».
 export function lineLabel(line: LineName, rules: GameRules): string {
+  // Le bonus dit ce qu'il rapporte, comme les combinaisons fixes (« Full
+  // (25) ») : la valeur se règle, les joueurs ne la connaissent pas forcément.
+  if (line === BONUS_LINE) return `${DERIVED_LABELS[line]} (${rules.bonus})`;
   if (line in DERIVED_LABELS) return DERIVED_LABELS[line];
   if (line in LINE_BASE_LABELS) {
     const lower = line as LowerLine;
@@ -214,6 +217,22 @@ const QUALIFIES: Record<LowerLine, (counts: number[]) => boolean> = {
   chance: () => true,
   yams: (c) => faceWith(c, 5) > 0,
 };
+
+// Ce que rapporte une main donnée sur une ligne de combinaison, selon le
+// barème : 0 si elle ne remplit pas la combinaison. Sert aux exemples de la
+// page des règles (rulesDoc), qui ne peuvent donc pas contredire le barème.
+export function handScore(line: LowerLine, dice: number[], rules: GameRules): number {
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  for (const d of dice) counts[d]++;
+  if (!QUALIFIES[line](counts)) return 0;
+  const mode = modeOf(line, rules);
+  if (mode.type === "fixed") return mode.points;
+  if (mode.type === "dice") {
+    const size = GROUP_SIZE[line as GroupLine];
+    return size * faceWith(counts, size);
+  }
+  return handTotal(counts);
+}
 
 const valuesCache = new Map<string, LineValues>();
 
@@ -338,6 +357,14 @@ export function isLineEnabled(
   return scores[order[index - 1]] !== undefined;
 }
 
+// La case à remplir ensuite en Montante / Descendante : la première encore
+// vide dans l'ordre imposé. `null` ailleurs, où toutes les cases sont
+// ouvertes, et une fois la colonne remplie.
+export function nextLine(variant: Variant, scores: LineScores, grid: Grid): LineName | null {
+  if (!isLockedVariant(variant)) return null;
+  return fillOrder(variant, grid).find((line) => scores[line] === undefined) ?? null;
+}
+
 /* ---------- Valeurs dérivées (bonus, totaux, score final) ---------- */
 
 const sumLines = (scores: LineScores, names: string[]): number =>
@@ -413,8 +440,9 @@ export interface BonusPlan {
 }
 
 // Au-delà, l'indice serait du bruit : la section est encore trop ouverte pour
-// qu'un plan veuille dire quoi que ce soit.
-const PLAN_MAX_LINES = 4;
+// qu'un plan veuille dire quoi que ce soit. Valeur par défaut (une variante
+// jouée) ; l'écran la resserre quand les colonnes sont plus étroites.
+export const PLAN_MAX_LINES = 4;
 
 // Probabilité d'obtenir AU MOINS k dés d'un chiffre donné en un tour, en lui
 // consacrant les trois lancers et en gardant les bons dés. Chaque dé a donc
@@ -431,9 +459,15 @@ const DICE_ODDS = [1, 0.9351, 0.6989, 0.3548, 0.1044, 0.0133];
 // plan que la table exacte.
 const ODDS_SCALE = 1e9;
 
-export function bonusPlan(scores: LineScores, grid: Grid): BonusPlan | null {
+// `maxLines` : nombre de chiffres encore libres à partir duquel l'indice
+// apparaît (4 par défaut : dès deux cases remplies).
+export function bonusPlan(
+  scores: LineScores,
+  grid: Grid,
+  maxLines = PLAN_MAX_LINES,
+): BonusPlan | null {
   const remaining = grid.upperScoringNames.filter((k) => scores[k] === undefined);
-  if (remaining.length === 0 || remaining.length > PLAN_MAX_LINES) return null;
+  if (remaining.length === 0 || remaining.length > maxLines) return null;
 
   const need = BONUS_THRESHOLD - sumLines(scores, grid.upperScoringNames);
   if (need <= 0) return null; // bonus déjà acquis, l'indice n'a plus d'objet
@@ -536,15 +570,35 @@ export function playerToPlay(
   variants: Variant[],
   grid: Grid,
 ): number {
-  const filled = players.map((player) =>
-    variants.reduce(
-      (n, variant) =>
-        n +
-        grid.allScoringNames.filter((k) => player.scores[variant]?.[k] !== undefined)
-          .length,
-      0,
-    ),
-  );
+  const filled = players.map((player) => filledCells(player, variants, grid));
   return filled.indexOf(Math.min(...filled));
+}
+
+// Cases remplies par un joueur, toutes variantes confondues : un tour = une case.
+function filledCells(player: Player, variants: Variant[], grid: Grid): number {
+  return variants.reduce(
+    (n, variant) =>
+      n + grid.allScoringNames.filter((k) => player.scores[variant]?.[k] !== undefined).length,
+    0,
+  );
+}
+
+export interface TurnProgress {
+  turn: number; // le tour en cours, à partir de 1
+  turns: number; // tours d'une partie : une case par ligne et par variante
+  ratio: number; // part des cases remplies, tous joueurs confondus (0 à 1)
+}
+
+// Où en est la partie (carte « Partie en cours ») : le tour de celui qui doit
+// jouer — le moins avancé —, borné au dernier.
+export function turnProgress(players: Player[], variants: Variant[], grid: Grid): TurnProgress {
+  const turns = grid.allScoringNames.length * variants.length;
+  const filled = players.map((player) => filledCells(player, variants, grid));
+  const total = filled.reduce((a, b) => a + b, 0);
+  return {
+    turn: Math.min(Math.min(...filled) + 1, turns),
+    turns,
+    ratio: players.length && turns ? total / (players.length * turns) : 0,
+  };
 }
 
