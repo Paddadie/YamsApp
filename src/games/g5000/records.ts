@@ -40,7 +40,7 @@ export interface TurnReport {
   scored: boolean; // a-t-il marqué ?
   banked: number; // points banqués (0 si bust)
   // Pot accumulé puis perdu sur un bust. Connu de la calculette, et de la
-  // saisie rapide quand le joueur a tapé son pot avant d'appuyer sur « Bust ».
+  // saisie manuelle quand le joueur a choisi son score avant « Bust ».
   lost: number;
   hotStreak: number; // mains pleines enchaînées pendant ce tour
   moves: Move[]; // mouvements provoqués (redescentes)

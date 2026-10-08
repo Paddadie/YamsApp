@@ -1,319 +1,316 @@
-// La saisie rapide du 5000 : pour qui a déjà compté son tour. Une « addition
-// posée » — chaque touche écrit une ligne sur un petit papier ligné, une ligne
-// par main pleine, le total sous un double trait. Le calcul est dans
-// games/g5000/tape.ts ; ici, on ne fait que l'afficher et le transmettre.
+// La saisie manuelle du 5000 : « les paliers » (refonte du 08/10/2026). Pour
+// qui a déjà compté son tour : il ne compose plus son score, il le choisit —
+// le millier, puis la case. Deux touches au plus, une seule sous 1 000 (huit
+// tours sur dix). L'ancienne « addition posée » demandait de décomposer le
+// total (1 850 = 1 000 + 500 + 100 + 100 + 100 + 50) : de l'arithmétique à
+// rebours, au moment où l'on veut juste écrire un nombre.
 //
-// Sortie de game.ts le 08/10 (lot D de l'audit), sur le modèle de
-// calculator.ts : l'écran de partie la crée, lui donne de quoi finir le tour et
-// montrer les cibles, et lui demande son brouillon quand la main change.
+// Chaque case annonce ce qu'elle ferait : pile sur un adversaire (Sniper),
+// victoire, ou refusée (entrée en jeu, Sans demi-mesure, Dans le mille). Les
+// règles de la partie se voient au lieu d'arriver en message d'erreur. Elle ne
+// connaît pas les mains pleines : on entre son total final (décision de Paul).
+//
+// L'écran de partie la crée, lui donne de quoi finir le tour, et lui demande
+// son brouillon quand la main change.
 
-import { makeDismissible, requireEl } from "../../core/ui";
+import { requireEl } from "../../core/ui";
 import { icon } from "../../core/icons";
-import { canBank, enterTurn, type TurnFinish } from "../../games/g5000/engine";
-import { SCORE_STEP } from "../../games/g5000/rules";
 import {
-  canCloseHand,
-  endsOnFullHand,
-  slipOf,
-  subtotal,
-  type TapeEntry,
-} from "../../games/g5000/tape";
+  bankOutcome,
+  canBank,
+  enterTurn,
+  isOvershoot,
+  tieTargets,
+  type TurnFinish,
+} from "../../games/g5000/engine";
+import { highestThousand, SCORE_STEP } from "../../games/g5000/rules";
 import type { G5000Game } from "../../games/g5000/types";
 import { afterLine, bankLabel, potWarning, unbreakable } from "./calculator";
 
 export interface QuickEntryHooks {
   // Le tour se termine, sur le pot de `game.turn` (cf. finishTurn du moteur).
   onFinish(how: TurnFinish): void;
-  // Écart vers le score des adversaires, redessiné à chaque touche.
-  renderTargets(container: HTMLElement, pot: number): void;
   // Où le pot mènerait le joueur : en hachuré sur la jauge du bandeau.
   previewPot(pot: number): void;
   format(value: number): string;
 }
 
-// Touches : peu nombreuses et grandes, pour qu'on ne rate pas sa cible au
-// doigt (dix jetons serrés, de 100 à 1 000, l'étaient trop). Tous les scores du
-// jeu sont des multiples de 50 : avec le +50, tout montant se compose — 300 en
-// trois appuis, 1 850 en six. Rectangulaires, montants en grands chiffres : les
-// jetons ronds n'étaient pas assez lisibles (Paul, 08/10). Deux par rangée, du
-// plus petit au plus grand.
-const CHIP_VALUES = [SCORE_STEP, 100, 500, 1000];
+// Une grille par millier : vingt scores de 50 en 50, deux centaines par ligne
+// (x00, x50, y00, y50) — l'œil trouve les centaines, les « 50 » sont à côté.
+const THOUSAND = 1000;
+const OFFSETS = Array.from({ length: THOUSAND / SCORE_STEP }, (_, i) => i * SCORE_STEP);
 
-// Mains pleines visibles au-dessus du trait ; au-delà, « n plus haut ».
-const SLIP_HANDS = 3;
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// Le score choisi est entouré au feutre, comme l'objectif sur l'accueil.
+function handCircle(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", "pal-circle");
+  svg.setAttribute("viewBox", "0 0 100 60");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("pathLength", "1");
+  path.setAttribute(
+    "d",
+    "M58 6 C 84 5, 97 17, 95 31 C 93 47, 72 56, 47 55 C 21 54, 4 45, 5 29 C 6 15, 25 6, 52 6 C 60 6, 66 8, 70 10",
+  );
+  svg.appendChild(path);
+  return svg;
+}
 
 export function createQuickEntry(game: G5000Game, hooks: QuickEntryHooks) {
   const dialog = requireEl<HTMLDialogElement>("quick-dialog");
-  const potValue = requireEl("quick-pot");
+  const thousands = requireEl("quick-thousands");
+  const grid = requireEl("quick-grid");
   const after = requireEl("quick-after");
-  const targets = requireEl("quick-targets");
-  const chips = requireEl("quick-chips");
-  const lines = requireEl("quick-lines");
   const bank = requireEl<HTMLButtonElement>("quick-bank");
-  const bust = requireEl("quick-bust");
+  const bust = requireEl<HTMLButtonElement>("quick-bust");
   const fmt = hooks.format;
 
-  let tape: TapeEntry[] = [];
-  // Le brouillon survit à une fenêtre refermée par erreur (fond touché,
-  // Annuler) : il appartient à ce joueur jusqu'à la fin de son tour.
-  let tapeOwner: number | null = null;
-  // Ce qui vient d'être écrit s'anime, seul.
-  let justWritten: "tap" | "hand" | null = null;
+  // Le millier affiché, et la part choisie en dessous (0 à 950), ou rien.
+  let base = 0;
+  let picked: number | null = null;
+  // Le brouillon survit à une saisie refermée par erreur (la flèche du haut) :
+  // il appartient à ce joueur jusqu'à la fin de son tour.
+  let owner: number | null = null;
+  // Le cercle ne se trace qu'au moment du choix, pas à chaque rendu.
+  let justPicked = false;
 
-  /* ---------- Touches ---------- */
+  const value = (): number => (picked === null ? 0 : base + picked);
 
-  function buildChips(): void {
-    chips.replaceChildren();
-    // Le +50 reste avec « Sans demi-mesure » : une main pleine peut finir par
-    // 50, seul le total du tour doit être rond (Banquer le refuse sinon).
-    for (const value of CHIP_VALUES) {
-      const id = value === SCORE_STEP ? "fifty" : String(value);
-      chips.appendChild(key(id, amount(value), () => add(value)));
+  /* ---------- Les milliers ---------- */
+
+  // De « moins de 1 000 » au plus haut millier permis : la rangée défile, le
+  // suivant dépasse à moitié pour dire qu'il y a une suite.
+  function buildThousands(): void {
+    thousands.replaceChildren();
+    for (let b = 0; b <= highestThousand(game.rules.target); b += THOUSAND) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "pal-th";
+      button.dataset.thousand = String(b);
+      button.setAttribute("role", "radio");
+      const small = document.createElement("small");
+      if (b === 0) {
+        small.textContent = "moins de";
+        button.append(small, fmt(THOUSAND));
+      } else {
+        small.textContent = "et plus";
+        button.append(fmt(b), small);
+      }
+      button.addEventListener("click", () => pickThousand(b));
+      thousands.appendChild(button);
     }
-    // Les deux actions, sur une rangée plus fine que les montants. « Effacer »
-    // dessiné plutôt que le caractère ⌫ : rendu par la police de l'appareil, il
-    // n'avait ni la taille ni le centrage du reste. Son libellé dit ce qu'il va
-    // défaire (`renderKeys`).
-    chips.appendChild(
-      key("hand", keyLabel(icon("flame"), "Main pleine"), closeHand, "key--action key--hand"),
-    );
-    chips.appendChild(key("back", [], undo, "key--action key--erase"));
   }
 
-  // Le libellé dans son élément : c'est lui qui s'abrège (…) si la touche est
-  // trop étroite, jamais sur deux lignes.
-  function keyLabel(picto: SVGElement, text: string): (Node | string)[] {
+  // Le millier change, la case reste : 500 puis « 1 000 » donne 1 500.
+  function pickThousand(b: number): void {
+    if (b === base) return;
+    base = b;
+    if (picked !== null && value() === 0) picked = null;
+    justPicked = picked !== null;
+    grid.classList.remove("is-flip");
+    void grid.offsetWidth; // relance le petit tressautement de la grille
+    grid.classList.add("is-flip");
+    render();
+    showThousand("smooth");
+  }
+
+  // Le millier choisi reste en vue dans la rangée qui défile.
+  function showThousand(behavior: ScrollBehavior): void {
+    const button = thousands.querySelector<HTMLElement>(`[data-thousand="${base}"]`);
+    if (!button) return;
+    const left = button.offsetLeft - thousands.clientWidth / 2 + button.offsetWidth / 2;
+    thousands.scrollTo({ left: Math.max(0, left), behavior });
+  }
+
+  /* ---------- La grille ---------- */
+
+  function buildGrid(): void {
+    grid.replaceChildren();
+    for (const offset of OFFSETS) {
+      const tile = document.createElement("button");
+      tile.type = "button";
+      tile.dataset.offset = String(offset);
+      tile.setAttribute("role", "radio");
+      tile.addEventListener("click", () => pickTile(offset));
+      grid.appendChild(tile);
+    }
+  }
+
+  // Toucher la case choisie la relâche.
+  function pickTile(offset: number): void {
+    picked = picked === offset ? null : offset;
+    justPicked = picked !== null;
+    render();
+  }
+
+  // Ce que la case ferait, d'avance : sur qui elle tombe pile, si elle gagne,
+  // et pourquoi elle ne se banquerait pas.
+  function renderTile(tile: HTMLButtonElement): void {
+    const offset = Number(tile.dataset.offset);
+    const points = base + offset;
+    const chosen = picked === offset;
+    tile.className = offset % 100 ? "pal-tile is-half" : "pal-tile";
+    tile.replaceChildren();
+    tile.setAttribute("aria-checked", String(chosen));
+    // « 0 » sous 1 000 : pas un score, une case vide.
+    tile.disabled = points === 0;
+    if (points === 0) {
+      tile.removeAttribute("aria-label");
+      return;
+    }
+
     const label = document.createElement("span");
-    label.className = "key-label";
-    label.textContent = text;
-    return [picto, label];
-  }
+    label.className = "pal-v";
+    label.textContent = fmt(points);
+    tile.appendChild(label);
 
-  function chipKey(id: string): HTMLButtonElement {
-    const button = chips.querySelector<HTMLButtonElement>(`[data-chip="${id}"]`);
-    if (!button) throw new Error(`Touche absente : ${id}`);
-    return button;
-  }
+    const notes: string[] = [];
+    const marks = document.createElement("span");
+    marks.className = "pal-marks";
+    const hits = tieTargets(game, points).filter((t) => t.needed === 0);
+    if (hits.length > 0) {
+      tile.classList.add("is-aim");
+      for (const hit of hits) {
+        const dot = document.createElement("i");
+        dot.className = "pal-dot";
+        dot.style.background = game.players[hit.index].color;
+        marks.appendChild(dot);
+      }
+      notes.push(`pile sur ${hits.map((h) => h.name).join(" et ")}`);
+    }
+    const bankable = canBank(game, points, false);
+    if (bankable && bankOutcome(game, points)) {
+      tile.classList.add("is-win");
+      marks.appendChild(icon("trophy", "ic pal-trophy"));
+      notes.push("objectif atteint");
+    }
+    if (!bankable) {
+      tile.classList.add(isOvershoot(game, points) ? "is-over" : "is-blocked");
+      notes.push("ne se banque pas");
+    }
+    if (marks.childElementCount > 0) tile.appendChild(marks);
 
-  // « +1 000 » : le signe à l'encre du jeu, le montant en grands chiffres.
-  function amount(value: number): (Node | string)[] {
-    const plus = document.createElement("span");
-    plus.className = "key-plus";
-    plus.textContent = "+";
-    return [plus, fmt(value)];
-  }
-
-  function key(
-    id: string,
-    content: (Node | string)[],
-    onPress: () => void,
-    extra = "",
-  ): HTMLButtonElement {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = extra ? `key ${extra}` : "key";
-    button.dataset.chip = id;
-    button.append(...content);
-    button.addEventListener("click", onPress);
-    return button;
-  }
-
-  function add(value: number): void {
-    tape.push(value);
-    justWritten = "tap";
-    render();
-  }
-
-  // La main en cours passe au-dessus du trait, le compteur repart de zéro.
-  function closeHand(): void {
-    if (!canCloseHand(tape)) return;
-    tape.push("hand");
-    justWritten = "hand";
-    render();
-  }
-
-  // Défait la dernière entrée, quelle qu'elle soit : un montant, ou une main
-  // pleine, qui redescend alors sous le trait avec ses montants.
-  function undo(): void {
-    tape.pop();
-    render();
+    if (chosen) {
+      tile.classList.add("is-picked");
+      tile.appendChild(handCircle());
+      if (justPicked) tile.classList.add("is-drawing");
+    }
+    tile.setAttribute("aria-label", [`${fmt(points)} points`, ...notes].join(", "));
   }
 
   /* ---------- Rendu ---------- */
 
-  // L'addition posée : les mains pleines au-dessus du trait (les plus
-  // anciennes repliées en « n plus haut », pour que la fenêtre ne grandisse
-  // pas), la main en cours en dessous, sur une ligne.
-  function renderSlip(): void {
-    lines.replaceChildren();
-    if (tape.length === 0) {
-      const empty = document.createElement("li");
-      empty.className = "slip-empty";
-      empty.textContent = "Touchez les montants de votre tour.";
-      lines.appendChild(empty);
-      return;
-    }
-    const { hands, current } = slipOf(tape);
-    const hidden = hands.length > SLIP_HANDS ? hands.length - (SLIP_HANDS - 1) : 0;
-    if (hidden > 0) {
-      const more = document.createElement("li");
-      more.className = "slip-more";
-      // Au moins deux : une seule repliée prendrait la place qu'elle libère.
-      more.textContent = `${hidden} mains pleines plus haut`;
-      lines.appendChild(more);
-    }
-    hands.forEach((points, i) => {
-      if (i < hidden) return;
-      const line = slipLine("slip-hand", justWritten === "hand" && i === hands.length - 1);
-      const label = document.createElement("span");
-      label.className = "slip-label";
-      label.append(icon("flame"), `Main pleine ${i + 1}`);
-      line.append(label, slipNum(points));
-      lines.appendChild(line);
-    });
-    lines.appendChild(currentLine(current, hands.length > 0));
-  }
-
-  function slipLine(kind: string, isNew: boolean): HTMLLIElement {
-    const line = document.createElement("li");
-    line.className = `slip-line ${kind}`;
-    if (isNew) line.classList.add("is-new");
-    const plus = document.createElement("span");
-    plus.className = "slip-plus";
-    plus.textContent = "+";
-    line.appendChild(plus);
-    return line;
-  }
-
-  // Le montant dans son propre élément : c'est lui qui s'écrit (animer la ligne
-  // entière rognerait le « + » posé dans la marge).
-  function slipNum(points: number): HTMLSpanElement {
-    const num = document.createElement("span");
-    num.className = "slip-num";
-    num.textContent = fmt(points);
-    return num;
-  }
-
-  // La main en cours : ses montants à la suite (les plus anciens sortent par la
-  // gauche si la ligne déborde), et son sous-total s'il y a des mains au-dessus
-  // — sinon, c'est le total du tour, déjà écrit en gros.
-  function currentLine(current: number[], afterHands: boolean): HTMLLIElement {
-    const line = slipLine("slip-current", false);
-    if (afterHands) line.classList.add("is-after-hands");
-    const taps = document.createElement("span");
-    taps.className = "slip-taps";
-    if (current.length === 0) {
-      line.classList.add("is-empty");
-      taps.textContent = "Nouvelle main";
-    }
-    current.forEach((value, i) => {
-      if (i > 0) taps.append(" + ");
-      const tap = document.createElement("span");
-      tap.className = "slip-tap";
-      if (justWritten === "tap" && i === current.length - 1) tap.classList.add("is-new");
-      tap.textContent = fmt(value);
-      taps.appendChild(tap);
-    });
-    line.appendChild(taps);
-    if (afterHands && current.length > 0) line.appendChild(slipNum(subtotal(current)));
-    return line;
-  }
-
-  // « Effacer » dit ce qu'il va défaire ; « Main pleine » attend une main
-  // commencée.
-  function renderKeys(): void {
-    const last = tape.at(-1);
-    const erase = chipKey("back");
-    erase.disabled = last === undefined;
-    erase.replaceChildren(
-      ...keyLabel(
-        icon("erase"),
-        last === undefined ? "Effacer" : last === "hand" ? "Rouvrir la main" : `Effacer ${fmt(last)}`,
-      ),
-    );
-    chipKey("hand").disabled = !canCloseHand(tape);
-  }
-
   function render(): void {
     const me = game.players[game.currentPlayerIndex];
-    const { pot } = slipOf(tape);
-    const hot = endsOnFullHand(tape);
+    const pot = value();
     requireEl("quick-title").textContent = `Tour de ${me.name}`;
-    potValue.textContent = fmt(pot);
 
-    const warning = potWarning(game, pot, fmt, hot);
-    after.replaceChildren();
+    for (const button of thousands.querySelectorAll<HTMLButtonElement>(".pal-th")) {
+      const on = Number(button.dataset.thousand) === base;
+      button.classList.toggle("is-on", on);
+      button.setAttribute("aria-checked", String(on));
+    }
+    for (const tile of grid.querySelectorAll<HTMLButtonElement>("button")) renderTile(tile);
+    justPicked = false;
+
+    renderAfter(pot);
+    const bankable = pot > 0 && canBank(game, pot, false);
+    bank.replaceChildren(...bankLabel(game, pot, fmt));
+    bank.disabled = !bankable;
+    bust.textContent = pot > 0 ? `Bust · ${fmt(pot)}` : "Bust";
+    hooks.previewPot(pot);
+  }
+
+  // La ligne sous la grille : ce qui se passera si l'on banque, ou pourquoi on
+  // ne peut pas. Tomber pile sur quelqu'un s'annonce (Sniper).
+  function renderAfter(pot: number): void {
+    after.className = "pot-after";
+    if (pot === 0) {
+      after.replaceChildren("Touchez votre score.");
+      return;
+    }
+    const warning = potWarning(game, pot, fmt);
     if (warning) {
       after.replaceChildren(unbreakable(warning));
-      after.className = "pot-after is-warning";
-    } else if (pot > 0) {
-      const line = afterLine(game, pot, fmt);
-      const text = unbreakable(line.text);
-      after.replaceChildren(...(line.win ? [icon("trophy"), text] : [text]));
-      after.className = line.win ? "pot-after is-win" : "pot-after";
-    } else {
-      after.className = "pot-after";
+      after.classList.add("is-warning");
+      return;
     }
-
-    renderSlip();
-    renderKeys();
-    justWritten = null;
-
-    const bankable = canBank(game, pot, hot);
-    // Retenu par une main pleine, le bouton n'annonce pas de victoire : la
-    // ligne au-dessus dit qu'il faut d'abord relancer.
-    bank.replaceChildren(...(hot && !bankable ? [`Banquer ${fmt(pot)}`] : bankLabel(game, pot, fmt)));
-    bust.textContent = pot > 0 ? `Bust — perdre ${fmt(pot)}` : "Bust — 0 pt";
-    bank.disabled = !bankable;
-
-    hooks.renderTargets(targets, pot);
-    hooks.previewPot(pot);
+    const hits = tieTargets(game, pot).filter((t) => t.needed === 0);
+    if (hits.length > 0) {
+      const names = hits.map((h) => h.name).join(" et ");
+      after.replaceChildren(
+        icon("crosshair"),
+        unbreakable(`Pile sur ${names} : ${hits.length > 1 ? "ils redescendent" : "redescend"} !`),
+      );
+      after.classList.add("is-hit");
+      return;
+    }
+    const line = afterLine(game, pot, fmt);
+    const text = unbreakable(line.text);
+    after.replaceChildren(...(line.win ? [icon("trophy"), text] : [text]));
+    if (line.win) after.classList.add("is-win");
   }
 
   /* ---------- Ouvrir, finir ---------- */
 
   function open(): void {
     // Le brouillon d'un autre joueur ne se reprend pas.
-    if (tapeOwner !== game.currentPlayerIndex) clear();
-    tapeOwner = game.currentPlayerIndex;
+    if (owner !== game.currentPlayerIndex) clear();
+    owner = game.currentPlayerIndex;
     render();
-    dialog.showModal();
-    // showModal() donne le focus à la première touche, « +50 », qui s'ouvrait
-    // cernée de noir comme si elle était choisie. Le focus va à la fenêtre
-    // elle-même (tabindex="-1"), comme pour la fenêtre de valeurs du Yams.
-    dialog.focus();
+    // Sans voile : posée en bas de l'écran (cf. game.ts).
+    dialog.show();
+    // L'ouverture donnerait le focus au premier millier, cerné comme s'il
+    // venait d'être choisi : il va à la saisie elle-même (tabindex="-1").
+    // Sans faire défiler l'écran pour l'amener en vue : la barre du haut
+    // disparaissait (l'écran entier est la page).
+    dialog.focus({ preventScroll: true });
+    showThousand("instant");
   }
 
-  // Le pot de la saisie rapide devient celui du tour — perdu sur « Bust », il
-  // compte pour le record du pot perdu comme celui de la calculette ; ses mains
-  // pleines, pour la plus longue série.
+  // Le score choisi devient le pot du tour — perdu sur « Bust », il compte pour
+  // le record du pot perdu comme celui de la calculette.
   function finish(how: TurnFinish): void {
-    const { hands, pot } = slipOf(tape);
-    enterTurn(game, pot, hands.length);
+    enterTurn(game, value());
     hooks.onFinish(how);
   }
 
   // Oublie le brouillon : fin du tour, main passée, tour repris.
   function clear(): void {
-    tape = [];
-    tapeOwner = null;
+    base = 0;
+    picked = null;
+    owner = null;
+    thousands.scrollLeft = 0;
   }
 
-  // Le pot du brouillon du joueur qui a la main, s'il en a commencé un : un
-  // tour entamé, que changer de joueur ou reprendre un tour ferait perdre.
+  // Le score choisi par le joueur qui a la main, s'il en a choisi un : un tour
+  // entamé, que changer de joueur ou reprendre un tour ferait perdre.
   function draftPot(): number | null {
-    return tapeOwner === game.currentPlayerIndex && tape.length > 0 ? slipOf(tape).pot : null;
+    return owner === game.currentPlayerIndex && picked !== null ? value() : null;
   }
 
   /* ---------- Mise en route ---------- */
 
-  buildChips();
-  bank.addEventListener("click", () => finish("bank"));
+  buildThousands();
+  buildGrid();
+  bank.addEventListener("click", () => {
+    if (!bank.disabled) finish("bank");
+  });
   bust.addEventListener("click", () => finish("bust"));
-  requireEl("quick-cancel").addEventListener("click", () => dialog.close());
-  makeDismissible(dialog);
-  // Fenêtre refermée sans banquer : plus de pot à montrer sur la jauge.
+  requireEl("quick-close").addEventListener("click", () => dialog.close());
+  // Saisie refermée sans banquer : plus de pot à montrer sur la jauge.
   dialog.addEventListener("close", () => hooks.previewPot(0));
 
-  return { open, close: () => dialog.close(), clear, draftPot, dialog };
+  return {
+    open,
+    close: () => dialog.close(),
+    clear,
+    draftPot,
+    // Le Bust de la barre du bas, quand un score est déjà choisi : il est perdu.
+    bust: () => finish("bust"),
+    dialog,
+  };
 }

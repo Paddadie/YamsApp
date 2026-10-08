@@ -65,56 +65,71 @@
       </div>
 
       <div class="action-bar" id="entry-bar">
-        <!-- La calculette guide qui découvre le jeu ; la saisie rapide va plus
-             vite pour qui a déjà compté. Les libellés le disent (07/10). -->
+        <!-- La calculette guide qui découvre le jeu ; la saisie manuelle (les
+             paliers) va plus vite pour qui a déjà compté. Les libellés le
+             disent (07/10). -->
         <button id="play-btn" type="button" class="btn btn-primary"><!--@icon:calc-->Compter mon tour pas à pas</button>
-        <button id="quick-btn" type="button" class="btn btn-primary btn-outline"><!--@icon:pen-->Entrer mon total du tour</button>
+        <!-- Le bust du premier lancer, en une touche : rien à ouvrir. Une
+             erreur se rattrape par « Corriger » (décision de Paul, 08/10). -->
+        <div class="action-pair">
+          <button id="bar-bust" type="button" class="btn btn-danger btn-outline"><!--@icon:burst-->Bust</button>
+          <button id="quick-btn" type="button" class="btn btn-primary btn-outline btn-grow"><!--@icon:pen-->Entrer mon total du tour</button>
+        </div>
       </div>
+
+      <!-- Les deux saisies, posées en bas à la place de la barre le temps d'un
+           tour : un pupitre et non une fenêtre, sans voile — la feuille et le
+           bandeau restent visibles au-dessus (refonte du 08/10). Des <dialog>
+           ouverts par show(), non modaux : ils gardent leur événement `close`. -->
+      <!-- Calculette assistée : on lui donne les faces, elle dit ce qui marque. -->
+      <dialog id="calc-dialog" class="pupitre" aria-labelledby="calc-title" tabindex="-1">
+        <div class="dlg">
+          <!-- En tête : qui joue et où en est son tour, le pot à droite. -->
+          <div class="dlg-head">
+            <span class="dlg-titles">
+              <span class="dlg-title" id="calc-title"></span>
+              <span class="dlg-step" id="calc-sub"></span>
+            </span>
+            <span class="calc-pot"><b id="calc-pot" aria-live="polite">0</b><small>points ce tour</small></span>
+            <button type="button" class="dlg-close" id="calc-close" aria-label="Refermer la calculette (le tour est gardé)"><!--@icon:chevronDown--></button>
+          </div>
+          <div class="dlg-body">
+            <div class="aim" id="calc-targets"></div>
+            <div class="calc-stage" id="calc-stage"></div>
+            <p class="pot-after" id="calc-after"></p>
+          </div>
+          <div class="dlg-foot" id="calc-foot"></div>
+        </div>
+      </dialog>
+
+      <!-- Saisie manuelle, « les paliers » : pour qui a déjà compté son tour.
+           Le millier, puis la case (construits par quickEntry.ts). -->
+      <dialog id="quick-dialog" class="pupitre" aria-labelledby="quick-title" tabindex="-1">
+        <div class="dlg">
+          <div class="dlg-head">
+            <span class="dlg-title" id="quick-title"></span>
+            <button type="button" class="dlg-close" id="quick-close" aria-label="Refermer la saisie (le score choisi est gardé)"><!--@icon:chevronDown--></button>
+          </div>
+          <div class="dlg-body">
+            <div class="pal-thousands" id="quick-thousands" role="radiogroup" aria-label="Milliers"></div>
+            <div class="pal-grid" id="quick-grid" role="radiogroup" aria-label="Score du tour"></div>
+            <p class="pot-after" id="quick-after" aria-live="polite"></p>
+          </div>
+          <div class="dlg-foot">
+            <div class="btn-row pal-foot">
+              <button type="button" id="quick-bust" class="btn btn-danger">Bust</button>
+              <button type="button" id="quick-bank" class="btn btn-primary">Banquer</button>
+            </div>
+          </div>
+        </div>
+      </dialog>
+
       <!-- Consultation depuis l'écran de fin (`?review=1`) : la feuille en
            lecture seule, et le retour au classement à la place des saisies. -->
       <div class="action-bar" id="review-bar" hidden>
         <a href="5000-end.html" class="btn btn-gold"><!--@icon:trophy-->Classement final</a>
       </div>
     </div>
-
-    <!-- Calculette assistée : on lui donne les faces, elle dit ce qui marque. -->
-    <dialog id="calc-dialog" aria-labelledby="calc-title">
-      <div class="dlg">
-        <div class="dlg-head">
-          <span class="dlg-title" id="calc-title"></span>
-          <span class="dlg-sub" id="calc-sub"></span>
-        </div>
-        <div class="dlg-body">
-          <div class="pot">
-            <p class="pot-value" id="calc-pot">0</p>
-            <p class="pot-label">points ce tour</p>
-            <p class="pot-after" id="calc-after"></p>
-          </div>
-          <div class="targets" id="calc-targets"></div>
-          <div id="calc-stage"></div>
-        </div>
-        <div class="dlg-foot" id="calc-foot"></div>
-      </div>
-    </dialog>
-
-    <!-- Remise à zéro du tour, par-dessus la calculette : rien ne s'efface sans
-         montrer ce qui va disparaître. -->
-    <dialog id="restart-dialog">
-      <p class="sheet-title">Recommencer le tour ?</p>
-      <dl id="restart-summary" class="delete-summary"></dl>
-      <p class="delete-warn">
-        Le tour repart de zéro : pot, dés mis de côté et chiffres activés sont
-        oubliés. À utiliser après une erreur de saisie.
-      </p>
-      <div class="delete-actions">
-        <button type="button" id="restart-cancel" class="btn btn-secondary">
-          Garder le tour
-        </button>
-        <button type="button" id="restart-confirm" class="btn btn-danger">
-          Recommencer
-        </button>
-      </div>
-    </dialog>
 
     <!-- Reprendre le dernier tour : la partie revient à l'état d'avant lui. -->
     <dialog id="undo-dialog">
@@ -148,35 +163,7 @@
       </div>
     </dialog>
 
-    <!-- Saisie rapide : pour qui connaît le jeu et sait déjà ce qu'il a marqué. -->
-    <dialog id="quick-dialog" aria-labelledby="quick-title" tabindex="-1">
-      <div class="dlg">
-        <div class="dlg-head">
-          <span class="dlg-title" id="quick-title"></span>
-          <span class="dlg-sub">Saisie rapide</span>
-        </div>
-        <div class="dlg-body">
-          <div class="targets" id="quick-targets"></div>
-          <!-- L'addition posée : une ligne par main pleine, la main en cours
-               sous un trait, le total du tour sous un double trait. -->
-          <div class="slip">
-            <ol class="slip-lines" id="quick-lines" aria-label="Montants du tour"></ol>
-            <div class="slip-total">
-              <p class="pot-after" id="quick-after"></p>
-              <p class="slip-sum" id="quick-pot" aria-live="polite">0</p>
-            </div>
-          </div>
-          <div class="keys" id="quick-chips"></div>
-        </div>
-        <div class="dlg-foot">
-          <button type="button" id="quick-bank" class="btn btn-primary">Banquer</button>
-          <div class="btn-row">
-            <button type="button" id="quick-bust" class="btn btn-danger">Bust — 0 pt</button>
-            <button type="button" id="quick-cancel" class="btn btn-secondary">Annuler</button>
-          </div>
-        </div>
-      </div>
-    </dialog>
+
 
     <!-- Déroulé des redescentes provoquées par un tour. -->
     <dialog id="cascade-dialog" aria-labelledby="cascade-title">

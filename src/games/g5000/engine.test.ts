@@ -24,6 +24,8 @@ import {
   bankOutcome,
   canUndoLastTurn,
   undoLastTurn,
+  canUndoRoll,
+  undoRoll,
 } from "./engine";
 import { combosOf, countsOf, DEFAULT_RULES } from "./rules";
 import type { Face, G5000Game, G5000Rules } from "./types";
@@ -635,6 +637,63 @@ describe("pendant le tour", () => {
     expect(g.turn.openDigits).toEqual([3]);
   });
 
+  it("sans le lancer, rien n'est gardé dans l'historique du tour", () => {
+    const g = game([[1000]]);
+    startTurn(g);
+    keepDice(g, pick(g, [1, 5, 2, 3, 6], "s1x1"));
+    expect(g.turn.history).toBeUndefined();
+    expect(canUndoRoll(g)).toBe(false);
+  });
+
+  it("avec le lancer (calculette), le tour garde son historique", () => {
+    const g = game([[1000]]);
+    startTurn(g);
+    const roll = countsOf([1, 1, 3, 4, 6]);
+    keepDice(g, pick(g, [1, 1, 3, 4, 6], "s1x2"), roll);
+    reroll(g);
+    expect(g.turn.history).toEqual([
+      {
+        roll,
+        picked: ["s1x2"],
+        kept: [1, 1],
+        points: 200,
+        before: { pot: 0, diceLeft: 5, openDigits: [], rolls: 1, hotStreak: 0 },
+      },
+    ]);
+    expect(canUndoRoll(g)).toBe(true);
+  });
+
+  it("revenir au lancer précédent restaure le tour tel quel, Combo et main pleine compris", () => {
+    const g = game([[1000]], { variants: ["combo"] });
+    startTurn(g);
+    const first = countsOf([3, 3, 3, 1, 1]);
+    keepDice(g, pick(g, [3, 3, 3, 1, 1], "g3x3", "s1x2"), first); // main pleine, 3 activé
+    reroll(g);
+    const second = countsOf([3, 5, 2, 2, 6]);
+    keepDice(g, pick(g, [3, 5, 2, 2, 6], "s3x1"), second);
+    reroll(g);
+    expect(g.turn).toMatchObject({ pot: 600, diceLeft: 4, openDigits: [3], rolls: 3, hotStreak: 1 });
+
+    const back = undoRoll(g);
+    expect(back?.roll).toEqual(second);
+    expect(back?.picked).toEqual(["s3x1"]);
+    expect(g.turn).toMatchObject({ pot: 500, diceLeft: 5, openDigits: [3], rolls: 2, hotStreak: 1 });
+    expect(g.turn.history).toHaveLength(1);
+
+    undoRoll(g);
+    expect(g.turn).toEqual({ pot: 0, diceLeft: 5, openDigits: [], rolls: 1, hotStreak: 0 });
+    expect(undoRoll(g)).toBeNull();
+  });
+
+  it("l'historique survit à l'enregistrement de la partie", () => {
+    const g = game([[1000]]);
+    startTurn(g);
+    keepDice(g, pick(g, [1, 5, 2, 3, 6], "s1x1"), countsOf([1, 5, 2, 3, 6]));
+    const reloaded = JSON.parse(JSON.stringify(g)) as G5000Game;
+    expect(undoRoll(reloaded)?.picked).toEqual(["s1x1"]);
+    expect(reloaded.turn.pot).toBe(0);
+  });
+
   it("rend les cinq dés sur une main pleine et allonge la série", () => {
     const g = game([[1000]]);
     startTurn(g);
@@ -701,15 +760,16 @@ describe("fin du tour (finishTurn)", () => {
     expect(g.stats?.longestHotStreak).toEqual({ player: 0, value: 2 });
   });
 
-  it("saisie rapide : le tour annoncé d'un bloc remplace la calculette abandonnée", () => {
+  it("saisie manuelle : le tour annoncé d'un bloc remplace la calculette abandonnée", () => {
     const g = game([[1000], [2000]]);
     startTurn(g);
-    keepDice(g, pick(g, [1, 2, 3, 4, 5], "run")); // calculette ouverte puis fermée
-    enterTurn(g, 1300, 2);
-    expect(g.turn).toEqual({ pot: 1300, diceLeft: 5, openDigits: [], rolls: 1, hotStreak: 2 });
+    keepDice(g, pick(g, [1, 2, 3, 4, 5], "run")); // calculette ouverte puis fermée : une main pleine
+    enterTurn(g, 1300);
+    expect(g.turn).toEqual({ pot: 1300, diceLeft: 5, openDigits: [], rolls: 1, hotStreak: 0 });
     finishTurn(g, "bank");
     expect(liveScores(g.players[0])).toEqual([1000, 2300]);
-    expect(g.stats?.longestHotStreak).toEqual({ player: 0, value: 2 });
+    // La main pleine de la calculette abandonnée ne compte pas.
+    expect(g.stats?.longestHotStreak).toBeUndefined();
   });
 
   it("annonce la fin de partie au dernier tour", () => {
@@ -819,7 +879,7 @@ describe("choisir qui joue", () => {
 describe("corriger le dernier tour (undoLastTurn)", () => {
   // Joue un tour d'un bloc, comme la saisie rapide : `pot` banqué ou perdu.
   const play = (g: G5000Game, pot: number, how: "bank" | "bust" = "bank") => {
-    enterTurn(g, pot, 0);
+    enterTurn(g, pot);
     return finishTurn(g, how);
   };
 

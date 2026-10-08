@@ -41,7 +41,8 @@ function isTurn(value: unknown): value is G5000Turn {
     typeof t.pot === "number" &&
     typeof t.diceLeft === "number" &&
     Array.isArray(t.openDigits) &&
-    typeof t.rolls === "number"
+    typeof t.rolls === "number" &&
+    (t.history === undefined || Array.isArray(t.history))
   );
 }
 

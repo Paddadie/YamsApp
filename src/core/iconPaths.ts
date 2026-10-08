@@ -65,6 +65,9 @@ export const ICON_PATHS = {
     '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.5-3.2 2.7-5 5.5-5s5 1.8 5.5 5"/><circle cx="16.5" cy="9" r="2.5"/><path d="M15.5 14.2c2.5.1 4.4 1.7 4.9 4.8"/>',
   disk: '<path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
   reset: '<path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/>',
+  // Revenir au lancer précédent (calculette du 5000) : une flèche qui repart
+  // en arrière, distincte du cercle de « Recommencer le tour ».
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
   shuffle:
     '<path d="M4 7h3c4 0 6 10 10 10h3M4 17h3c1.6 0 2.8-1.6 3.9-3.6M13.1 9.6C14.2 8.1 15.4 7 17 7h3"/><path d="M18 4.5L20.5 7 18 9.5M18 14.5l2.5 2.5-2.5 2.5"/>',
   grip: `${dot(9, 6)}${dot(15, 6)}${dot(9, 12)}${dot(15, 12)}${dot(9, 18)}${dot(15, 18)}`,

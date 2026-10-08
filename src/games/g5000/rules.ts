@@ -79,6 +79,15 @@ const TARGET_MAX = 20000;
 export const FIGURE_MIN = SCORE_STEP;
 export const FIGURE_MAX = TARGET_MAX;
 export const OPEN_AT_MAX = 5000;
+
+// Le plus haut millier proposé à la saisie manuelle (« les paliers ») : deux
+// fois l'objectif, jamais au-delà de 20 000 — 10 950 au plus à 5 000. Au-delà
+// de l'objectif, un tour ne change plus rien à la partie, seulement au record
+// du plus gros tour : assez pour qui prend tous les risques, sans faire
+// défiler quarante milliers à 20 000 (décision de Paul, 08/10/2026).
+const ENTRY_THOUSANDS_MAX = 20000;
+export const highestThousand = (target: number): number =>
+  Math.min(2 * target, ENTRY_THOUSANDS_MAX);
 export const RUN_MAX = 5000;
 export const BLANK_TURNS_MAX = 9;
 

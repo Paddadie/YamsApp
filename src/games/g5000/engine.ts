@@ -8,12 +8,14 @@
 // lieu de lui faire découvrir des scores changés sans explication.
 
 import type {
+  DiceCounts,
   G5000Game,
   G5000Player,
   G5000Rules,
   G5000Turn,
   SheetEntry,
   Strike,
+  TurnRoll,
 } from "./types";
 import { emptyStats, noteTurn } from "./records";
 import type { Combo } from "./rules";
@@ -69,8 +71,23 @@ export function startTurn(game: G5000Game): void {
 // S'il ne lui reste plus aucun dé, c'est une main pleine : il récupère les
 // cinq, et la série de mains pleines du tour (un record) s'allonge — qu'il
 // relance ensuite ou qu'il banque. Renvoie vrai sur une main pleine.
-export function keepDice(game: G5000Game, picked: Combo[]): boolean {
+// Avec le lancer (`roll`, la calculette), le tour le garde dans son historique
+// pour l'afficher et pouvoir y revenir (undoRoll).
+export function keepDice(game: G5000Game, picked: Combo[], roll?: DiceCounts): boolean {
   const turn = game.turn;
+  if (roll) {
+    const { history = [], ...before } = turn;
+    turn.history = [
+      ...history,
+      {
+        roll: { ...roll },
+        picked: picked.map((c) => c.id),
+        kept: picked.flatMap((c) => c.dice),
+        points: picked.reduce((total, c) => total + c.points, 0),
+        before: structuredClone(before),
+      },
+    ];
+  }
   for (const combo of picked) {
     turn.pot += combo.points;
     turn.diceLeft -= combo.dice.length;
@@ -91,13 +108,28 @@ export function reroll(game: G5000Game): void {
   game.turn.rolls++;
 }
 
-// La saisie rapide annonce le tour d'un bloc : son total et ses mains pleines,
-// qui comptent pour le record de la série comme celles de la calculette. Il
-// remplace ce qu'une calculette ouverte puis fermée aurait laissé en cours.
-export function enterTurn(game: G5000Game, pot: number, fullHands: number): void {
+// Revenir au lancer précédent (calculette) : une erreur au lancer 2 ne
+// demande plus de recommencer tout le tour. Le tour redevient exactement ce
+// qu'il était avant que ce lancer soit gardé ; l'écran rouvre le lancer avec
+// ses faces et ses choix (renvoyés). Null s'il n'y a rien à reprendre.
+export function undoRoll(game: G5000Game): TurnRoll | null {
+  const history = game.turn.history ?? [];
+  const last = history.at(-1);
+  if (!last) return null;
+  const rest = history.slice(0, -1);
+  game.turn = { ...structuredClone(last.before), ...(rest.length > 0 ? { history: rest } : {}) };
+  return last;
+}
+
+export const canUndoRoll = (game: G5000Game): boolean => (game.turn.history?.length ?? 0) > 0;
+
+// La saisie manuelle annonce le tour d'un bloc : son total final, sans le
+// détail des mains pleines (seule la calculette les compte pour le record de
+// la série, décision de Paul du 08/10). Il remplace ce qu'une calculette
+// ouverte puis fermée aurait laissé en cours.
+export function enterTurn(game: G5000Game, pot: number): void {
   startTurn(game);
   game.turn.pot = pot;
-  game.turn.hotStreak = fullHands;
 }
 
 /* ---------- Mouvements de score ---------- */

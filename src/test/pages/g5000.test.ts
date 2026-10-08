@@ -12,6 +12,20 @@ function roll(...faces: number[]): void {
 
 const foot = (): HTMLElement => el("#calc-foot");
 
+// Saisie manuelle (les paliers) : le millier, puis la case.
+function pick(points: number): void {
+  const thousand = Math.floor(points / 1000) * 1000;
+  click(el(`[data-thousand="${thousand}"]`));
+  click(el(`#quick-grid [data-offset="${points - thousand}"]`));
+}
+
+// La case d'un score, son millier affiché.
+const tile = (points: number): HTMLElement => {
+  const thousand = Math.floor(points / 1000) * 1000;
+  click(el(`[data-thousand="${thousand}"]`));
+  return el(`#quick-grid [data-offset="${points - thousand}"]`);
+};
+
 describe("calculette — objectif dépassé avec « Dans le mille »", () => {
   it("c'est un bust : passer la main au lieu de forcer à relancer", async () => {
     g5000Game(["Alice", "Bob"], { target: 5000, variants: ["exact"] }, (g) => {
@@ -60,7 +74,7 @@ describe("calculette — main pleine", () => {
     click(el('[data-combo="g1x3"]'));
     click(el('[data-combo="s5x2"]'));
 
-    expect(button("Main pleine", foot()).classList.contains("btn-outline")).toBe(true);
+    expect(button("Relancer 5 dés", foot()).classList.contains("btn-outline")).toBe(true);
     expect(hasButton("Banquer", foot())).toBe(true);
   });
 });
@@ -106,10 +120,7 @@ describe("feuille de progression", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="100"]');
-    click('[data-chip="100"]');
-    click('[data-chip="100"]');
-    click('[data-chip="100"]');
+    pick(400);
     click("#quick-bank");
 
     expect(column(0)).toEqual(["700", "1 400", "~1 600"]);
@@ -168,11 +179,11 @@ describe("banquer la victoire", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="100"]');
-    click('[data-chip="100"]');
+    pick(200);
     expect(el("#quick-bank").textContent).toBe("Banquer 200");
-    click('[data-chip="100"]');
-    expect(el("#quick-bank").textContent).toBe("Banquer 300 — victoire !");
+    pick(300);
+    // Le trophée l'annonce ; la ligne en or au-dessus le dit en toutes lettres.
+    expect(el("#quick-bank").textContent).toBe("Banquer 300");
     expect(el("#quick-bank svg")?.getAttribute("data-icon")).toBe("trophy");
     expect(el("#quick-after").textContent).toBe("5 000 : objectif atteint !");
   });
@@ -187,9 +198,15 @@ describe("cibles à viser (Sniper)", () => {
       g.players[3].sheet = sheetFrom([500]); // derrière : absent
     });
     await openPage("g5000Game");
-    click("#quick-btn");
+    click("#play-btn");
+    // Replié : une pastille par adversaire devant, avec l'écart exact.
+    const chips = [...document.querySelectorAll("#calc-targets .aim-chip")].map((c) => c.textContent);
+    expect(chips).toEqual(["Zoé +400", "Poulet +600"]);
+    expect(document.querySelector("#calc-targets table")).toBeNull();
+    // « Détail » déplie le tableau d'avant.
+    click(button("Détail", el("#calc-targets")));
 
-    const rows = [...document.querySelectorAll("#quick-targets tbody tr")].map((tr) =>
+    const rows = [...document.querySelectorAll("#calc-targets tbody tr")].map((tr) =>
       [...tr.children].map((td) => td.textContent),
     );
     expect(rows).toEqual([
@@ -198,37 +215,31 @@ describe("cibles à viser (Sniper)", () => {
     ]);
   });
 
-  it("sans Sniper, pas de tableau des cibles", async () => {
+  it("sans Sniper, ni cibles ni pastilles « Devant vous »", async () => {
     g5000Game(["Marlo", "Poulet"], {}, (g) => {
       g.players[0].sheet = sheetFrom([1000]);
       g.players[1].sheet = sheetFrom([1600]);
     });
     await openPage("g5000Game");
-    click("#quick-btn");
-    expect(document.querySelector("#quick-targets table")).toBeNull();
+    click("#play-btn");
+    expect(el("#calc-targets").childElementCount).toBe(0);
   });
 });
 
 describe("variante « Sans demi-mesure »", () => {
-  it("saisie rapide : le +50 reste, mais un total qui finit par 50 ne se banque pas", async () => {
+  it("paliers : les cases en 50 sont hachurées et ne se banquent pas", async () => {
     g5000Game(["Alice", "Bob"], { variants: ["noFifty"] }, (g) => {
       g.players[0].sheet = sheetFrom([1000]);
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    // Une main pleine peut finir par 50 : 500 + 100 + 50.
-    click('[data-chip="500"]');
-    click('[data-chip="100"]');
-    click('[data-chip="fifty"]');
-    click('[data-chip="hand"]');
-    click('[data-chip="100"]');
-    expect(el("#quick-pot").textContent).toBe("750");
+    expect(tile(750).classList.contains("is-blocked")).toBe(true);
+    expect(tile(700).classList.contains("is-blocked")).toBe(false);
+    // Choisie quand même (un bust peut la porter), elle dit pourquoi.
+    pick(750);
     expect(el<HTMLButtonElement>("#quick-bank").disabled).toBe(true);
     expect(el("#quick-after").textContent).toContain("compte rond");
-    // Une relance qui rapporte un 5 : 700, tout rond, se banque.
-    click('[data-chip="back"]');
-    click('[data-chip="fifty"]');
-    expect(el("#quick-pot").textContent).toBe("700");
+    pick(700);
     expect(el<HTMLButtonElement>("#quick-bank").disabled).toBe(false);
   });
 
@@ -585,111 +596,139 @@ describe("Paramètres du 5000", () => {
   });
 });
 
-describe("saisie rapide : l'addition posée", () => {
-  const lines = (): string[] =>
-    [...document.querySelectorAll("#quick-lines .slip-line")].map((li) => li.textContent ?? "");
+describe("saisie manuelle : les paliers", () => {
   const bank = (): HTMLButtonElement => el<HTMLButtonElement>("#quick-bank");
-  const key = (id: string): HTMLButtonElement => el<HTMLButtonElement>(`[data-chip="${id}"]`);
-  const tap = (...ids: string[]): void => ids.forEach((id) => click(key(id)));
-
-  it("la main en cours s'écrit sur une ligne, effacer retire le dernier montant", async () => {
-    g5000Game(["Alice", "Bob"]);
-    await openPage("g5000Game");
-    click("#quick-btn");
-    expect(el("#quick-lines").textContent).toContain("Touchez les montants");
-    expect(key("back").disabled).toBe(true);
-    expect(key("hand").disabled).toBe(true);
-    tap("1000", "100");
-    expect(lines()).toEqual(["+1 000 + 100"]);
-    expect(el("#quick-pot").textContent).toBe("1 100");
-    expect(key("back").textContent).toBe("Effacer 100");
-    tap("back");
-    expect(lines()).toEqual(["+1 000"]);
-    expect(el("#quick-pot").textContent).toBe("1 000");
-  });
-
-  it("« Main pleine » monte la main au-dessus du trait et remet le compteur à zéro", async () => {
-    g5000Game(["Alice", "Bob"], {}, (g) => {
-      g.players[0].sheet = sheetFrom([1000]);
-    });
-    await openPage("g5000Game");
-    click("#quick-btn");
-    // Brelan de 3, puis une paire de 5 : main pleine à 400.
-    tap("100", "100", "100", "100", "hand");
-    expect(lines()).toEqual(["+Main pleine 1400", "+Nouvelle main"]);
-    expect(el("#quick-lines .slip-current").classList.contains("is-after-hands")).toBe(true);
-    expect(el("#quick-pot").textContent).toBe("400");
-    expect(key("hand").disabled).toBe(true);
-
-    tap("100", "fifty");
-    expect(lines()).toEqual(["+Main pleine 1400", "+100 + 50150"]);
-    expect(el("#quick-pot").textContent).toBe("550");
-  });
-
-  it("juste après une main pleine, banquer attend la relance (sauf « Pas de zèle »)", async () => {
-    g5000Game(["Alice", "Bob"], {}, (g) => {
-      g.players[0].sheet = sheetFrom([1000]);
-    });
-    await openPage("g5000Game");
-    click("#quick-btn");
-    tap("500", "100", "100", "hand");
-    expect(bank().disabled).toBe(true);
-    expect(el("#quick-after").textContent).toBe(
-      "Main pleine : relancez les cinq dés avant de banquer.",
+  const after = (): string => el("#quick-after").textContent ?? "";
+  const thousands = (): string[] =>
+    [...document.querySelectorAll<HTMLElement>("#quick-thousands [data-thousand]")].map(
+      (b) => b.dataset.thousand ?? "",
     );
-    tap("100");
-    expect(bank().disabled).toBe(false);
-  });
 
-  it("avec « Pas de zèle », une main pleine se banque", async () => {
-    g5000Game(["Alice", "Bob"], { variants: ["freeHotDice"] }, (g) => {
+  it("deux touches : le millier, puis la case", async () => {
+    g5000Game(["Alice", "Bob"], {}, (g) => {
       g.players[0].sheet = sheetFrom([1000]);
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    tap("500", "100", "100", "hand");
+    expect(after()).toBe("Touchez votre score.");
+    expect(bank().disabled).toBe(true);
+    pick(1500);
+    expect(bank().textContent).toBe("Banquer 1 500");
     expect(bank().disabled).toBe(false);
+    expect(el("#quick-bust").textContent).toBe("Bust · 1 500");
+    expect(after()).toBe("si vous banquez : 2 500");
+    expect(el('#quick-grid [aria-checked="true"]').textContent).toBe("1 500");
   });
 
-  it("effacer rouvre la dernière main pleine, avec ses montants", async () => {
+  it("le millier change, la case reste : 500 puis « 1 000 » donne 1 500", async () => {
+    g5000Game(["Alice", "Bob"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    click(el('#quick-grid [data-offset="500"]'));
+    click(el('[data-thousand="1000"]'));
+    expect(bank().textContent).toBe("Banquer 1 500");
+  });
+
+  it("toucher la case choisie la relâche", async () => {
+    g5000Game(["Alice", "Bob"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    pick(300);
+    pick(300);
+    expect(bank().disabled).toBe(true);
+    expect(after()).toBe("Touchez votre score.");
+  });
+
+  it("sous 1 000, la case « 0 » est vide et ne se touche pas", async () => {
     g5000Game(["Alice", "Bob"]);
     await openPage("g5000Game");
     click("#quick-btn");
-    tap("500", "100", "hand");
-    expect(key("back").textContent).toBe("Rouvrir la main");
-    tap("back");
-    expect(lines()).toEqual(["+500 + 100"]);
-    expect(el("#quick-pot").textContent).toBe("600");
-    tap("back", "back");
-    expect(el("#quick-lines").textContent).toContain("Touchez les montants");
-    expect(key("back").disabled).toBe(true);
+    const zero = el<HTMLButtonElement>('#quick-grid [data-offset="0"]');
+    expect(zero.disabled).toBe(true);
+    expect(zero.textContent).toBe("");
   });
 
-  it("au-delà de trois mains pleines, les premières se replient", async () => {
-    g5000Game(["Alice", "Bob"]);
+  it("les milliers vont jusqu'à deux fois l'objectif, 20 000 au plus", async () => {
+    g5000Game(["Alice", "Bob"], { target: 5000 });
+    await openPage("g5000Game");
+    expect(thousands().at(-1)).toBe("10000");
+    expect(thousands()).toHaveLength(11);
+
+    g5000Game(["Alice", "Bob"], { target: 20000 });
+    await openPage("g5000Game");
+    expect(thousands().at(-1)).toBe("20000");
+  });
+
+  it("Sniper : une case qui tombe pile porte le point de l'adversaire", async () => {
+    g5000Game(["Marlo", "Poulet"], { variants: ["sniper"] }, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+      g.players[1].sheet = sheetFrom([1600]);
+    });
     await openPage("g5000Game");
     click("#quick-btn");
-    for (let i = 0; i < 4; i++) tap("500", "100", "hand");
-    expect(el("#quick-lines .slip-more").textContent).toBe("2 mains pleines plus haut");
-    expect(lines()).toEqual(["+Main pleine 3600", "+Main pleine 4600", "+Nouvelle main"]);
-    expect(el("#quick-pot").textContent).toBe("2 400");
+    const six = tile(600);
+    expect(six.classList.contains("is-aim")).toBe(true);
+    expect(six.querySelector(".pal-dot")).not.toBeNull();
+    expect(six.getAttribute("aria-label")).toContain("pile sur Poulet");
+    expect(tile(550).classList.contains("is-aim")).toBe(false);
+    pick(600);
+    expect(after()).toBe("Pile sur Poulet : redescend !");
   });
 
-  it("les mains pleines comptent pour le record de la série", async () => {
+  it("Dans le mille : la case gagnante porte le trophée, celles au-delà sont des busts", async () => {
+    g5000Game(["Marlo", "Poulet"], { target: 5000, variants: ["exact"] }, (g) => {
+      g.players[0].sheet = sheetFrom([4700]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    expect(tile(300).classList.contains("is-win")).toBe(true);
+    expect(tile(300).querySelector('[data-icon="trophy"]')).not.toBeNull();
+    expect(tile(350).classList.contains("is-over")).toBe(true);
+  });
+
+  it("entrée en jeu : sous le seuil, les cases sont hachurées", async () => {
+    g5000Game(["Alice", "Bob"], { openAt: 500 });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    expect(tile(450).classList.contains("is-blocked")).toBe(true);
+    expect(tile(500).classList.contains("is-blocked")).toBe(false);
+    pick(450);
+    expect(bank().disabled).toBe(true);
+    expect(after()).toContain("pour entrer en jeu");
+  });
+
+  it("Bust porte le score choisi, perdu pour le record du pot", async () => {
+    g5000Game(["Alice", "Bob"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    pick(800);
+    click("#quick-bust");
+    const game = savedG5000()!;
+    expect(game.stats?.biggestBust).toEqual({ player: 0, value: 800 });
+    expect(game.currentPlayerIndex).toBe(1);
+  });
+
+  it("plus de mains pleines : la série ne vient que de la calculette", async () => {
     vi.useFakeTimers(); // la jauge du banquier se remplit avant de passer la main
     g5000Game(["Alice", "Bob"], {}, (g) => {
       g.players[0].sheet = sheetFrom([1000]);
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    tap("500", "100", "hand", "1000", "100", "100", "hand", "100");
+    expect(document.querySelector('[data-chip="hand"]')).toBeNull();
+    pick(2500);
     click(bank());
-    const game = savedG5000()!;
-    expect(liveScores(game.players[0])).toEqual([1000, 2900]);
-    expect(game.stats?.longestHotStreak).toEqual({ player: 0, value: 2 });
+    vi.runAllTimers();
+    expect(savedG5000()!.stats?.longestHotStreak).toBeUndefined();
   });
 
-  it("refermée par erreur, la fenêtre rend le brouillon ; il s'oublie à la fin du tour", async () => {
+  it("refermée par erreur, la saisie garde le score ; il s'oublie à la fin du tour", async () => {
     vi.useFakeTimers(); // la jauge du banquier se remplit avant de passer la main
     g5000Game(["Alice", "Bob"], {}, (g) => {
       g.players[0].sheet = sheetFrom([1000]);
@@ -697,47 +736,34 @@ describe("saisie rapide : l'addition posée", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    tap("500", "100", "hand", "100");
-    click("#quick-cancel");
+    pick(1700);
+    click("#quick-close");
     click("#quick-btn");
-    expect(el("#quick-pot").textContent).toBe("700");
+    expect(bank().textContent).toBe("Banquer 1 700");
     click(bank());
 
     vi.runAllTimers(); // la saisie rouvre une fois le bandeau passé à Bob
     click("#quick-btn");
-    expect(el("#quick-lines").textContent).toContain("Touchez les montants");
+    expect(after()).toBe("Touchez votre score.");
+    expect(el('[data-thousand="0"]').classList.contains("is-on")).toBe(true);
   });
 
-  it("donner la main pendant un brouillon demande confirmation, puis l'oublie", async () => {
+  it("donner la main pendant un score choisi demande confirmation, puis l'oublie", async () => {
     g5000Game(["Alice", "Bob"], {}, (g) => {
       g.players[0].sheet = sheetFrom([1000]);
       g.players[1].sheet = sheetFrom([1000]);
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    tap("500");
-    click("#quick-cancel");
+    pick(500);
+    click("#quick-close");
     click(el("#score-sheet th:not(.is-current) .name-tab"));
     expect(el<HTMLDialogElement>("#switch-dialog").open).toBe(true);
     expect(el("#switch-summary").textContent).toContain("500");
     click("#switch-confirm");
     expect(savedG5000()!.currentPlayerIndex).toBe(1);
     click("#quick-btn");
-    expect(el("#quick-lines").textContent).toContain("Touchez les montants");
-  });
-
-  it("sans Sniper, ceux de devant sont en pastilles", async () => {
-    g5000Game(["Marlo", "Poulet"], {}, (g) => {
-      g.players[0].sheet = sheetFrom([1000]);
-      g.players[1].sheet = sheetFrom([1600]);
-    });
-    await openPage("g5000Game");
-    click("#quick-btn");
-    const chip = el("#quick-targets .ahead-chip");
-    expect(chip.textContent).toContain("Poulet");
-    click('[data-chip="500"]');
-    click('[data-chip="500"]');
-    expect(el("#quick-targets .ahead-chip").classList.contains("is-passed")).toBe(true);
+    expect(after()).toBe("Touchez votre score.");
   });
 });
 
@@ -761,12 +787,19 @@ describe("calculette : le joueur choisit ce qu'il garde", () => {
   });
 });
 
-describe("saisie rapide — ouverture", () => {
+describe("saisie manuelle — ouverture", () => {
   it("le focus va à la fenêtre, pas à la première touche", async () => {
     g5000Game(["Marlo", "Poulet"]);
     await openPage("g5000Game");
     click("#quick-btn");
     expect(document.activeElement).toBe(el("#quick-dialog"));
+  });
+
+  it("la calculette aussi : le focus va au pupitre, pas à sa flèche", async () => {
+    g5000Game(["Marlo", "Poulet"]);
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(document.activeElement).toBe(el("#calc-dialog"));
   });
 });
 
@@ -778,18 +811,20 @@ describe("après « Banquer »", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="500"]');
+    pick(500);
     click("#quick-bank");
 
     // Le bandeau montre encore Marlo, qui vient de banquer.
     expect(el("#turn-name").textContent).toBe("Marlo");
     expect(el<HTMLButtonElement>("#play-btn").disabled).toBe(true);
     expect(el<HTMLButtonElement>("#quick-btn").disabled).toBe(true);
+    expect(el<HTMLButtonElement>("#bar-bust").disabled).toBe(true);
 
     vi.runAllTimers();
     expect(el("#turn-name").textContent).toBe("Poulet");
     expect(el<HTMLButtonElement>("#play-btn").disabled).toBe(false);
     expect(el<HTMLButtonElement>("#quick-btn").disabled).toBe(false);
+    expect(el<HTMLButtonElement>("#bar-bust").disabled).toBe(false);
   });
 });
 
@@ -858,17 +893,19 @@ describe("Sniper : « pile ! » s'allume au moment où le pot tombe juste", () =
       g.players[1].sheet = sheetFrom([1200]);
     });
     await openPage("g5000Game");
-    click("#quick-btn");
-    const row = (): HTMLElement => el("#quick-targets tbody tr");
+    click("#play-btn");
+    const chip = (): HTMLElement => el("#calc-targets .aim-chip");
 
-    click('[data-chip="100"]');
-    expect(row().classList.contains("is-hit")).toBe(false);
-    click('[data-chip="100"]');
-    expect(row().classList.contains("is-hit-new")).toBe(true);
-    // « Main pleine » redessine le tableau sans changer le pot : plus de rebond.
-    click('[data-chip="hand"]');
-    expect(row().classList.contains("is-hit")).toBe(true);
-    expect(row().classList.contains("is-hit-new")).toBe(false);
+    roll(1, 1, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    expect(chip().classList.contains("is-hit")).toBe(false);
+    click(el('[data-combo="s1x2"]'));
+    expect(chip().classList.contains("is-hit-new")).toBe(true);
+    expect(chip().textContent).toBe("Poulet pile !");
+    // Déplier le détail redessine sans changer le pot : plus de rebond.
+    click(button("Détail", el("#calc-targets")));
+    expect(chip().classList.contains("is-hit")).toBe(true);
+    expect(chip().classList.contains("is-hit-new")).toBe(false);
   });
 });
 
@@ -893,8 +930,7 @@ describe("corriger le dernier tour", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="500"]');
-    click('[data-chip="100"]');
+    pick(600);
     click("#quick-bank");
     vi.runAllTimers();
 
@@ -922,7 +958,7 @@ describe("corriger le dernier tour", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="500"]');
+    pick(500);
     click("#quick-bank");
     vi.runAllTimers();
     click("#undo-btn");
@@ -938,14 +974,14 @@ describe("corriger le dernier tour", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="500"]');
+    pick(500);
     click("#quick-bust");
     expect(stripText()).toBe("Marlo : bust, 500 perdus");
 
-    // Poulet commence son tour à la saisie rapide, puis on corrige Marlo.
+    // Poulet commence son tour aux paliers, puis on corrige Marlo.
     click("#quick-btn");
-    click('[data-chip="1000"]');
-    click("#quick-cancel");
+    pick(1000);
+    click("#quick-close");
     click("#undo-btn");
     const summary = el("#undo-summary").textContent ?? "";
     expect(summary).toContain("Bust (500 perdus)");
@@ -961,7 +997,7 @@ describe("corriger le dernier tour", () => {
     });
     await openPage("g5000Game");
     click("#quick-btn");
-    click('[data-chip="500"]');
+    pick(500);
     click("#quick-bank");
     click("#cascade-ok");
     vi.runAllTimers();
@@ -982,5 +1018,415 @@ describe("corriger le dernier tour", () => {
     });
     await openPage("g5000Game", "?review=1");
     expect(strip().hidden).toBe(true);
+  });
+});
+
+describe("le pupitre : les saisies se posent en bas, sans voile", () => {
+  const screen = (): HTMLElement => el("#g5000-screen");
+  const isOpen = (id: string): boolean => el<HTMLDialogElement>(id).open;
+
+  it("ouvrir une saisie range la barre et résume le bandeau ; la flèche les rétablit", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    for (const [opener, panel, closer] of [
+      ["#play-btn", "#calc-dialog", "#calc-close"],
+      ["#quick-btn", "#quick-dialog", "#quick-close"],
+    ]) {
+      click(opener);
+      expect(isOpen(panel)).toBe(true);
+      expect(el("#entry-bar").hidden).toBe(true);
+      expect(screen().classList.contains("is-entering")).toBe(true);
+      click(closer);
+      expect(isOpen(panel)).toBe(false);
+      expect(el("#entry-bar").hidden).toBe(false);
+      expect(screen().classList.contains("is-entering")).toBe(false);
+    }
+  });
+
+  it("plus de bouton « Fermer » ni « Annuler » : refermer garde le tour", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(hasButton("Fermer", foot())).toBe(false);
+    roll(1, 2, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    click(button("Relancer", foot()));
+    click("#calc-close");
+    click("#play-btn");
+    expect(el("#calc-pot").textContent).toBe("100");
+    expect(document.querySelector("#quick-cancel")).toBeNull();
+  });
+
+  it("Échap referme le pupitre, sauf sous une confirmation", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(isOpen("#quick-dialog")).toBe(false);
+    expect(el("#entry-bar").hidden).toBe(false);
+
+    // Une confirmation (donner la main pendant un tour entamé) s'ouvre
+    // par-dessus la calculette : Échap est pour elle.
+    click("#play-btn");
+    roll(1, 2, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    click(button("Relancer", foot()));
+    click(el("#score-sheet th:not(.is-current) .name-tab"));
+    expect(el<HTMLDialogElement>("#switch-dialog").open).toBe(true);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect(isOpen("#calc-dialog")).toBe(true);
+  });
+
+  it("donner la main à un autre referme la saisie de l'ancien joueur", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+      g.players[1].sheet = sheetFrom([800]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    click(el("#score-sheet th:not(.is-current) .name-tab"));
+    expect(savedG5000()!.currentPlayerIndex).toBe(1);
+    expect(isOpen("#quick-dialog")).toBe(false);
+    expect(el("#entry-bar").hidden).toBe(false);
+  });
+});
+
+describe("le Bust de la barre du bas", () => {
+  const stripText = (): string => el("#last-turn-text").textContent ?? "";
+
+  it("une touche : le tour est un bust, la main passe", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#bar-bust");
+    const game = savedG5000()!;
+    expect(game.players[0].blankTurns).toBe(1);
+    expect(game.currentPlayerIndex).toBe(1);
+    expect(stripText()).toBe("Marlo : bust");
+    expect(document.querySelector("dialog[open]")).toBeNull();
+  });
+
+  it("un score choisi aux paliers est perdu avec son pot", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    pick(500);
+    click("#quick-close");
+    click("#bar-bust");
+    expect(stripText()).toBe("Marlo : bust, 500 perdus");
+    expect(savedG5000()!.stats?.biggestBust).toEqual({ player: 0, value: 500 });
+  });
+
+  it("une calculette refermée en cours de tour aussi", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 2, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    click(button("Relancer", foot()));
+    click("#calc-close");
+    click("#bar-bust");
+    expect(stripText()).toBe("Marlo : bust, 100 perdus");
+  });
+});
+
+describe("la calculette au pupitre", () => {
+  it("le pot et le lancer en tête ; des emplacements pour les dés à saisir", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(el("#calc-sub").textContent).toBe("Lancer 1 · 5 dés");
+    expect(el("#calc-pot").textContent).toBe("0");
+    click(el('.face-btn[data-face="1"]'));
+    click(el('.face-btn[data-face="1"]'));
+    expect(document.querySelectorAll(".roll-tray .tray-die")).toHaveLength(2);
+    expect(document.querySelectorAll(".roll-tray .roll-slot")).toHaveLength(3);
+    expect(el('.face-btn[data-face="1"] .face-count').textContent).toBe("2");
+    // Toucher un dé posé le retire.
+    click(el(".roll-tray .tray-die"));
+    expect(document.querySelectorAll(".roll-tray .roll-slot")).toHaveLength(4);
+    click(el('.face-btn[data-face="1"]'));
+    click(el('.face-btn[data-face="3"]'));
+    click(el('.face-btn[data-face="4"]'));
+    click(el('.face-btn[data-face="6"]'));
+    click(button("Valider ces dés"));
+    click(el('[data-combo="s1x2"]'));
+    expect(el("#calc-pot").textContent).toBe("200");
+    // Un pied d'une ligne : relancer, banquer.
+    expect([...foot().querySelectorAll("button")].map((b) => b.textContent)).toEqual([
+      "Relancer 3 dés",
+      "Banquer 200",
+    ]);
+  });
+
+  it("« Recommencer le tour » se confirme sur place", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(hasButton("Recommencer le tour", el("#calc-stage"))).toBe(false);
+    roll(1, 2, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    click(button("Relancer", foot()));
+    click(button("Recommencer le tour", el("#calc-stage")));
+    expect(el(".restart-ask").textContent).toContain("Effacer le tour (100) ?");
+    click(button("Non", el("#calc-stage")));
+    expect(el("#calc-pot").textContent).toBe("100");
+    click(button("Recommencer le tour", el("#calc-stage")));
+    click(button("Oui, recommencer", el("#calc-stage")));
+    expect(el("#calc-pot").textContent).toBe("0");
+    expect(el("#calc-sub").textContent).toBe("Lancer 1 · 5 dés");
+    expect(document.querySelector("#restart-dialog")).toBeNull();
+  });
+
+  it("la victoire : le trophée sur « Banquer », la ligne en or au-dessus", async () => {
+    g5000Game(["Marlo", "Poulet"], { target: 5000 }, (g) => {
+      g.players[0].sheet = sheetFrom([4900]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 2, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    const bank = button("Banquer", foot());
+    expect(bank.textContent).toBe("Banquer 100");
+    expect(bank.querySelector('[data-icon="trophy"]')).not.toBeNull();
+    expect(el("#calc-after").textContent).toBe("5 000 : objectif atteint !");
+  });
+
+  it("un bust au premier lancer ne parle pas de « 0 points perdus »", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(2, 3, 4, 6, 6);
+    expect(el(".bust-msg").textContent).toBe("Aucun dé ne marque : bust.");
+  });
+});
+
+describe("calculette : les lancers déjà gardés, et revenir au précédent", () => {
+  const aside = (): HTMLElement => el("#calc-stage .roll-aside");
+  const keptGroups = (): string[] =>
+    [...document.querySelectorAll("#calc-stage .aside-roll small")].map((s) => s.textContent ?? "");
+
+  it("les dés gardés se posent à gauche de la bande, avec leur gain", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(document.querySelector("#calc-stage .roll-aside")).toBeNull();
+    roll(1, 1, 3, 4, 6);
+    click(el('[data-combo="s1x2"]'));
+    click(button("Relancer", foot()));
+    expect(keptGroups()).toEqual(["+200"]);
+    expect(aside().querySelectorAll(".die")).toHaveLength(2);
+    roll(5, 2, 3);
+    click(el('[data-combo="s5x1"]'));
+    click(button("Relancer", foot()));
+    expect(keptGroups()).toEqual(["+200", "+50"]);
+    expect(el("#calc-sub").textContent).toBe("Lancer 3 · 2 dés");
+  });
+
+  it("la flèche rouvre le lancer précédent tel qu'il était", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 1, 3, 4, 6);
+    click(el('[data-combo="s1x2"]'));
+    click(button("Relancer", foot()));
+    roll(5, 2, 3);
+    click(el('[data-combo="s5x1"]'));
+    click(button("Relancer", foot()));
+    // Au lancer 3, on se rend compte d'une erreur au lancer 2.
+    click(el(".aside-back"));
+    expect(el("#calc-sub").textContent).toBe("Lancer 2 · 3 dés");
+    expect(el("#calc-pot").textContent).toBe("250");
+    expect([...document.querySelectorAll(".combo.picked")].map((c) => c.getAttribute("data-combo"))).toEqual([
+      "s5x1",
+    ]);
+    expect(keptGroups()).toEqual(["+200"]);
+    // On garde autre chose : rien du lancer repris ne reste.
+    click(el('[data-combo="s5x1"]'));
+    expect(el("#calc-pot").textContent).toBe("200");
+    expect(savedG5000()!.turn.history).toHaveLength(1);
+  });
+
+  it("jusqu'au premier lancer : plus de réserve", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 1, 3, 4, 6);
+    click(el('[data-combo="s1x2"]'));
+    click(button("Relancer", foot()));
+    click(el(".aside-back"));
+    expect(el("#calc-sub").textContent).toBe("Lancer 1 · 5 dés");
+    expect(document.querySelector("#calc-stage .roll-aside")).toBeNull();
+    expect(el("#calc-pot").textContent).toBe("200");
+  });
+
+  it("une main pleine finie se résume en une pastille", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 1, 1, 5, 5);
+    click(el('[data-combo="g1x3"]'));
+    click(el('[data-combo="s5x2"]'));
+    click(button("Main pleine", foot()));
+    expect(el("#calc-stage .aside-hand").textContent).toBe("1 100");
+    expect(document.querySelectorAll("#calc-stage .aside-roll")).toHaveLength(0);
+  });
+
+  it("un bust inattendu peut venir d'une erreur au lancer d'avant", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 2, 3, 4, 6);
+    click(el('[data-combo="s1x1"]'));
+    click(button("Relancer", foot()));
+    roll(2, 3, 4, 6);
+    expect(document.querySelector(".bust-msg")).not.toBeNull();
+    click(el(".aside-back"));
+    expect(el("#calc-sub").textContent).toBe("Lancer 1 · 5 dés");
+    expect(document.querySelector(".bust-msg")).toBeNull();
+  });
+
+  it("le tour et sa réserve survivent à un rechargement", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 1, 3, 4, 6);
+    click(el('[data-combo="s1x2"]'));
+    click(button("Relancer", foot()));
+
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(keptGroups()).toEqual(["+200"]);
+    click(el(".aside-back"));
+    expect(el("#calc-pot").textContent).toBe("200");
+  });
+});
+
+describe("la feuille A", () => {
+  const pending = (): HTMLElement | null => document.querySelector("#score-sheet td.is-pending");
+
+  it("les noms sur des intercalaires, les busts d'affilée dedans", async () => {
+    g5000Game(["Marlo", "Poulet"], { blankTurnsPenalty: 3 }, (g) => {
+      g.players[0].sheet = sheetFrom([700]);
+      g.players[0].blankTurns = 1;
+    });
+    await openPage("g5000Game");
+    const tab = el("#score-sheet th .name-tab");
+    expect(tab.querySelector(".name-tab-text")?.textContent).toBe("Marlo");
+    expect(tab.querySelector(".sheet-pips")).not.toBeNull();
+  });
+
+  it("des colonnes réglées sur l'objectif : plus étroites à 5 000", async () => {
+    g5000Game(["Marlo", "Poulet"], { target: 5000 });
+    await openPage("g5000Game");
+    expect(el("#score-sheet").style.getPropertyValue("--num-min")).toBe("4.85rem");
+
+    g5000Game(["Marlo", "Poulet"], { target: 10000 });
+    await openPage("g5000Game");
+    expect(el("#score-sheet").style.getPropertyValue("--num-min")).toBe("5.5rem");
+  });
+
+  it("l'objectif atteint est entouré d'un cercle tracé", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000, 5050]);
+      g.finishedBy = 0;
+      g.toPlay = [1];
+      g.arrivals = [0];
+      g.currentPlayerIndex = 1;
+    });
+    await openPage("g5000Game");
+    expect(el("#score-sheet td.is-goal .entry .goal-circle")).not.toBeNull();
+  });
+
+  it("au repos, pas de case réservée ni de crayon", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+      g.players[1].sheet = sheetFrom([800]);
+    });
+    await openPage("g5000Game");
+    expect(document.querySelector("#score-sheet .pending-cell")).toBeNull();
+    expect(document.querySelectorAll("#score-sheet tbody tr")).toHaveLength(1);
+  });
+
+  it("pendant la saisie, le score s'écrit au crayon dans la colonne", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+      g.players[1].sheet = sheetFrom([800]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    // La case est réservée, vide tant qu'aucun score n'est choisi.
+    expect(document.querySelectorAll("#score-sheet tbody tr")).toHaveLength(2);
+    expect(el("#score-sheet .pending-cell").textContent).toBe("");
+    pick(1500);
+    expect(pending()?.querySelector(".entry")?.textContent).toBe("2 500");
+    expect(pending()?.querySelector(".pending-gain")?.textContent).toBe("+1 500");
+    // Refermée : la case se libère.
+    click("#quick-close");
+    expect(document.querySelector("#score-sheet .pending-cell")).toBeNull();
+  });
+
+  it("la calculette l'écrit aussi, au fil des dés gardés", async () => {
+    g5000Game(["Marlo", "Poulet"], {}, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+    });
+    await openPage("g5000Game");
+    click("#play-btn");
+    roll(1, 1, 3, 4, 6);
+    click(el('[data-combo="s1x2"]'));
+    expect(pending()?.querySelector(".entry")?.textContent).toBe("1 200");
+  });
+
+  it("un pot qui ne se banquerait pas est barré au crayon", async () => {
+    g5000Game(["Marlo", "Poulet"], { openAt: 500 });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    pick(300);
+    expect(pending()?.classList.contains("is-blocked")).toBe(true);
+    pick(500);
+    expect(pending()?.classList.contains("is-blocked")).toBe(false);
+  });
+
+  it("Sniper : le score de l'adversaire visé s'allume « pile ! »", async () => {
+    g5000Game(["Marlo", "Poulet"], { variants: ["sniper"] }, (g) => {
+      g.players[0].sheet = sheetFrom([1000]);
+      g.players[1].sheet = sheetFrom([1200, 1600]);
+    });
+    await openPage("g5000Game");
+    click("#quick-btn");
+    pick(500);
+    expect(document.querySelector("#score-sheet td.is-hit")).toBeNull();
+    pick(600);
+    const hit = el("#score-sheet td.is-hit");
+    expect(hit.querySelector(".entry")?.textContent).toBe("1 600");
   });
 });

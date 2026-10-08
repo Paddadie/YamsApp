@@ -16,9 +16,14 @@ vi.mock("../../core/nav", () => ({
 // enchaînent sur cet événement — et ne rien faire sur un dialogue déjà fermé.
 const dialogProto = HTMLDialogElement.prototype as HTMLDialogElement & {
   showModal(): void;
+  show(): void;
   close(): void;
 };
 dialogProto.showModal = function (this: HTMLDialogElement) {
+  this.open = true;
+};
+// Les saisies du 5000 s'ouvrent sans voile (pupitre) : show() et non showModal().
+dialogProto.show = function (this: HTMLDialogElement) {
   this.open = true;
 };
 dialogProto.close = function (this: HTMLDialogElement) {

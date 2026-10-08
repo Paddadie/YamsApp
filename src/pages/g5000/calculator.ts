@@ -5,12 +5,13 @@
 // C'est elle qui justifie l'application. Un joueur sait compter un brelan, mais
 // pas tenir de tête : les chiffres activés (Combo), le pot du tour, l'écart exact vers
 // le score de chaque adversaire, et ce qu'une main pleine lui permet ou
-// l'oblige à faire. La saisie rapide reste là pour qui n'en a pas besoin.
+// l'oblige à faire. La saisie manuelle (les paliers) reste là pour qui n'en a
+// pas besoin.
 //
 // Le tour est persisté à chaque étape : en MPA rien ne survit à une navigation,
 // et un écran verrouillé au milieu d'un tour ne doit pas le perdre.
 
-import { makeDismissible, plural, requireEl, summaryRow } from "../../core/ui";
+import { plural, requireEl } from "../../core/ui";
 import { dieFace } from "../../core/dice";
 import { icon } from "../../core/icons";
 import {
@@ -33,6 +34,7 @@ import {
   reroll,
   startTurn,
   turnStarted,
+  undoRoll,
   type TurnFinish,
 } from "../../games/g5000/engine";
 import type { DiceCounts, Face, G5000Game } from "../../games/g5000/types";
@@ -70,20 +72,17 @@ const freshStage = (): Stage => ({
 
 // Le bouton « Banquer » annonce la victoire quand ce pot la donne : tomber pile
 // sur l'objectif ne doit pas ressembler à un tour comme un autre (demande de
-// Paul), trophée dessiné compris. Partagé avec la saisie rapide.
+// Paul) — le trophée dessiné devant, et la ligne en or juste au-dessus le dit
+// en toutes lettres (afterLine). « Banquer 1 500 — victoire ! » ne tenait plus
+// à côté de « Relancer » ou du Bust sur un téléphone (pied d'une ligne, 08/10).
+// Partagé par les deux saisies.
 export function bankLabel(
   game: G5000Game,
   pot: number,
   format: (n: number) => string,
 ): (Node | string)[] {
-  switch (bankOutcome(game, pot)) {
-    case "win":
-      return [icon("trophy"), `Banquer ${format(pot)} — victoire !`];
-    case "reached":
-      return [`Banquer ${format(pot)} — objectif atteint`];
-    default:
-      return [pot > 0 ? `Banquer ${format(pot)}` : "Banquer"];
-  }
+  const text = pot > 0 ? `Banquer ${format(pot)}` : "Banquer";
+  return bankOutcome(game, pot) === "win" ? [icon("trophy"), text] : [text];
 }
 
 // La ligne sous le pot, quand le tour peut être banqué : le score qu'on aurait,
@@ -125,7 +124,7 @@ export function unbreakable(text: string): HTMLSpanElement {
 
 // Pourquoi ce pot ne peut pas être banqué tel quel, s'il y a une raison à
 // dire : la ligne sous le pot l'annonce avant que le bouton reste grisé sans
-// explication. Partagé avec la saisie rapide.
+// explication. Partagé avec la saisie manuelle.
 export function potWarning(
   game: G5000Game,
   pot: number,
@@ -137,7 +136,7 @@ export function potWarning(
     return `Au-delà de ${format(game.rules.target)} : ce serait un bust.`;
   }
   // La calculette ne le demande pas : sur une main pleine, son bouton dit
-  // déjà de relancer. La saisie rapide, elle, n'a que cette ligne pour le dire.
+  // déjà de relancer.
   if (hotDice && !hasVariant(game.rules, "freeHotDice")) {
     return "Main pleine : relancez les cinq dés avant de banquer.";
   }
@@ -159,9 +158,15 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
   const targets = requireEl("calc-targets");
   const body = requireEl("calc-stage");
   const foot = requireEl("calc-foot");
-  const restartDialog = requireEl<HTMLDialogElement>("restart-dialog");
 
   let stage: Stage = freshStage();
+  // « Recommencer le tour » demande confirmation sur place, sans seconde
+  // fenêtre par-dessus le pupitre.
+  let confirmRestart = false;
+  // Le dernier dé saisi se pose avec un petit rebond ; le pot tressaute quand
+  // il change. Seulement le temps d'un rendu.
+  let justAdded: Face | null = null;
+  let lastPot = -1;
 
   const player = () => game.players[game.currentPlayerIndex];
   const entered = () => totalDice(stage.counts);
@@ -180,9 +185,30 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
 
   // Les règles du tour (pot, chiffres activés, main pleine) sont dans le
   // moteur : la calculette ne fait que les dérouler à l'écran.
+  // Le lancer accompagne ce qui est gardé : le tour s'en souvient, pour le
+  // montrer à gauche de la bande et pouvoir y revenir.
   function keepPicked(): void {
-    keepDice(game, stage.picked);
+    keepDice(game, stage.picked, stage.counts);
     stage.picked = [];
+  }
+
+  // Revenir au lancer précédent : il se rouvre tel qu'il était, faces et
+  // choix compris, pour en garder autre chose. Le lancer en cours est oublié.
+  function backToPreviousRoll(): void {
+    const roll = undoRoll(game);
+    if (!roll) return;
+    const combos = combosOf(roll.roll, game.turn.openDigits, game.rules);
+    stage = {
+      counts: { ...roll.roll },
+      validated: true,
+      combos,
+      picked: roll.picked
+        .map((id) => combos.find((c) => c.id === id))
+        .filter((c): c is Combo => c !== undefined),
+    };
+    confirmRestart = false;
+    hooks.onChange();
+    render();
   }
 
   function rollAgain(): void {
@@ -209,38 +235,54 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
   }
 
   function open(): void {
-    // Un tour laissé en plan (« Fermer », écran verrouillé, retour arrière) se
+    // Un tour laissé en plan (refermé, écran verrouillé, retour arrière) se
     // reprend là où il en était plutôt que de repartir de zéro.
     if (game.turn.rolls === 0) startTurn(game);
     stage = freshStage();
+    confirmRestart = false;
     hooks.onChange();
     render();
-    dialog.showModal();
+    // Sans voile : posée en bas de l'écran, la feuille reste visible (cf.
+    // game.ts, qui range la barre du bas le temps de la saisie).
+    dialog.show();
+    // L'ouverture donne le focus au premier bouton, la flèche du haut, qui
+    // s'affichait cerclée : il va au pupitre lui-même, comme la saisie
+    // manuelle — sans faire défiler l'écran pour l'amener en vue.
+    dialog.focus({ preventScroll: true });
   }
 
   /* ---------- Recommencer le tour ---------- */
   // Après une erreur de saisie déjà validée (mauvaises faces, mauvais dés
-  // gardés) : le seul moyen de s'en sortir sans fausser le pot.
-
-
-  function askRestart(): void {
-    const summary = requireEl("restart-summary");
-    summary.replaceChildren();
-    summaryRow(summary, "Points du tour", hooks.format(game.turn.pot));
-    summaryRow(summary, "Lancer", String(game.turn.rolls));
-    summaryRow(summary, "Dés en main", String(game.turn.diceLeft));
-    if (activeDigits().length > 0) {
-      summaryRow(summary, "Chiffres activés", activeDigits().join(", "));
-    }
-    restartDialog.showModal();
-  }
+  // gardés) : le seul moyen de s'en sortir sans fausser le pot. Confirmé sur
+  // place, en disant ce qui sera perdu.
 
   function restart(): void {
-    restartDialog.close();
+    confirmRestart = false;
     startTurn(game);
     stage = freshStage();
     hooks.onChange();
     render();
+  }
+
+  function restartControl(): HTMLElement | null {
+    if (!turnStarted(game)) return null;
+    if (!confirmRestart) {
+      return linkButton([icon("reset"), "Recommencer le tour"], "link-plain", () => {
+        confirmRestart = true;
+        render();
+      });
+    }
+    const ask = document.createElement("span");
+    ask.className = "restart-ask";
+    ask.append(
+      game.turn.pot > 0 ? `Effacer le tour (${hooks.format(game.turn.pot)}) ?` : "Effacer le tour ?",
+      linkButton(["Oui, recommencer"], "link-danger", restart),
+      linkButton(["Non"], "link-plain", () => {
+        confirmRestart = false;
+        render();
+      }),
+    );
+    return ask;
   }
 
   /* ---------- Rendu ---------- */
@@ -250,13 +292,22 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     title.textContent = `Tour de ${me.name}`;
     subtitle.textContent = `Lancer ${game.turn.rolls} · ${plural(game.turn.diceLeft, "dé")}`;
 
-    potValue.textContent = hooks.format(shownPot());
+    // Le pot, en tête du pupitre : le chiffre qu'on surveille.
+    const pot = shownPot();
+    potValue.textContent = hooks.format(pot);
+    if (lastPot >= 0 && pot !== lastPot) {
+      potValue.classList.remove("is-tick");
+      void potValue.offsetWidth; // relance le tressautement
+      potValue.classList.add("is-tick");
+    }
+    lastPot = pot;
     renderAfter();
-    hooks.renderTargets(targets, shownPot());
-    hooks.previewPot(shownPot());
+    hooks.renderTargets(targets, pot);
+    hooks.previewPot(pot);
 
     if (stage.validated) renderPick();
     else renderInput();
+    justAdded = null;
   }
 
   function renderAfter(): void {
@@ -278,63 +329,52 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     if (line.win) potAfter.className = "pot-after is-win";
   }
 
+  // La ligne des petites actions, sous le lancer : une consigne ou « Corriger
+  // les dés » à gauche, « Recommencer le tour » à droite.
+  function linksRow(left: HTMLElement): HTMLElement {
+    const row = document.createElement("div");
+    row.className = "calc-links";
+    const restartEl = restartControl();
+    // La question « Effacer le tour ? » prend toute la ligne : à côté, la
+    // consigne s'écrasait en une colonne d'un mot par ligne.
+    if (confirmRestart && restartEl) row.append(restartEl);
+    else row.append(left, ...(restartEl ? [restartEl] : []));
+    return row;
+  }
+
   /* ---------- Saisie des faces ---------- */
-  // On touche les faces obtenues sur le pavé ; elles s'alignent au-dessus, et
-  // toucher un dé saisi le retire. Quand le compte y est, on vérifie d'un coup
-  // d'œil puis on valide.
+  // On touche les faces obtenues sur le pavé ; elles se posent sur la bande du
+  // lancer, et toucher un dé posé le retire. Quand le compte y est, on vérifie
+  // d'un coup d'œil puis on valide.
 
   const complete = (): boolean => entered() === game.turn.diceLeft;
 
   function renderInput(): void {
     const hint = document.createElement("p");
     hint.className = "roll-hint";
-    hint.textContent = complete()
-      ? "Vérifiez vos dés, puis validez."
-      : `Lancez vos ${plural(game.turn.diceLeft, "dé")}, puis touchez les faces obtenues.`;
+    hint.textContent =
+      entered() === 0
+        ? `Lancez vos ${plural(game.turn.diceLeft, "dé")}, puis touchez les faces obtenues.`
+        : complete()
+          ? "Vérifiez vos dés, puis validez."
+          : "Touchez un dé posé pour le retirer.";
 
     const pad = document.createElement("div");
     pad.className = "face-pad";
     for (const face of FACES) pad.appendChild(faceButton(face));
 
-    const line = document.createElement("div");
-    line.className = "roll-line";
-    const count = document.createElement("span");
-    count.className = "roll-count";
-    count.textContent = `${entered()} / ${game.turn.diceLeft} dés saisis`;
-    line.appendChild(count);
-    if (entered() > 0) {
-      const reset = document.createElement("button");
-      reset.type = "button";
-      reset.className = "link-btn";
-      reset.textContent = "tout effacer";
-      reset.addEventListener("click", () => {
-        stage.counts = emptyCounts();
-        render();
-      });
-      line.appendChild(reset);
-    }
+    body.replaceChildren(...comboStrip(), tray(), linksRow(hint), pad);
 
-    body.replaceChildren(...comboStrip(), hint, tray(), pad, line);
-
-    // « Fermer » garde le tour tel quel, pour le reprendre à la réouverture.
-    const close = button("Fermer", "btn-secondary", () => dialog.close());
-    const secondary = turnStarted(game)
-      ? [close, button("Recommencer le tour", "btn-danger btn-outline", askRestart)]
-      : [close];
     // « Valider » reste toujours à la même place et ne s'active qu'une fois le
     // compte de dés atteint : un bouton qui apparaît et disparaît déplace tout
-    // le bas de la fenêtre sous le doigt.
+    // le bas du pupitre sous le doigt.
     const confirm = button([icon("check"), "Valider ces dés"], "btn-primary", validate);
     confirm.disabled = !complete();
-    const row = document.createElement("div");
-    row.className = "btn-row";
-    row.append(...secondary);
-    foot.replaceChildren(confirm, row);
+    foot.replaceChildren(confirm);
   }
 
-  // Variante Combo : le rappel des chiffres activés, en tête de la fenêtre tant
-  // qu'il y en a. Une ligne qui n'apparaît qu'entre deux lancers, jamais sous
-  // le doigt pendant la saisie.
+  // Variante Combo : le rappel des chiffres activés, en tête du pupitre tant
+  // qu'il y en a.
   function comboStrip(): HTMLElement[] {
     const digits = [...activeDigits()].sort((a, b) => a - b);
     if (digits.length === 0) return [];
@@ -352,33 +392,127 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     return [strip];
   }
 
-  // Les dés saisis, du plus petit au plus grand. Un dé touché est retiré : c'est
-  // la correction d'une faute de frappe, sans tout effacer.
-  function tray(): HTMLElement {
+  // Un dé posé sur la bande, un peu de travers comme s'il venait d'être jeté.
+  const TILT = [-7, 5, -3, 6, -5];
+  function placedDie(face: Face, index: number, tag: "button" | "span"): HTMLElement {
+    const die = document.createElement(tag);
+    die.className = isActive(face) ? "tray-die is-boosted" : "tray-die";
+    die.style.setProperty("--t", `${TILT[index % TILT.length]}deg`);
+    die.dataset.face = String(face);
+    die.appendChild(dieFace(face));
+    return die;
+  }
+
+  // Les dés déjà gardés ce tour, posés à gauche de la bande comme à la table :
+  // chaque lancer avec son gain, une main pleine finie résumée en une pastille
+  // (pour que la bande reste courte sur un long tour). En tête, la flèche
+  // pour revenir au lancer précédent. Rien n'ajoute de ligne au pupitre.
+  function aside(): HTMLElement | null {
+    const history = game.turn.history ?? [];
+    if (history.length === 0) return null;
     const el = document.createElement("div");
-    el.className = "roll-tray";
+    el.className = "roll-aside";
+    el.setAttribute("aria-label", "Déjà gardé ce tour");
+
+    const back = document.createElement("button");
+    back.type = "button";
+    back.className = "aside-back";
+    back.setAttribute("aria-label", `Revenir au lancer ${history.length}`);
+    back.title = `Revenir au lancer ${history.length}`;
+    back.appendChild(icon("undo"));
+    back.addEventListener("click", backToPreviousRoll);
+    el.appendChild(back);
+
+    // Une main pleine se ferme quand ce lancer a gardé tous les dés en main.
+    let handsPoints = 0;
+    let hands = 0;
+    let current: typeof history = [];
+    for (const roll of history) {
+      current.push(roll);
+      if (roll.kept.length >= roll.before.diceLeft) {
+        hands++;
+        handsPoints += current.reduce((total, r) => total + r.points, 0);
+        current = [];
+      }
+    }
+    if (hands > 0) {
+      const hand = document.createElement("span");
+      hand.className = "aside-hand";
+      hand.title = hands > 1 ? `${hands} mains pleines` : "1 main pleine";
+      hand.appendChild(icon("flame"));
+      if (hands > 1) {
+        const times = document.createElement("i");
+        times.textContent = `×${hands}`;
+        hand.appendChild(times);
+      }
+      const points = document.createElement("b");
+      points.textContent = hooks.format(handsPoints);
+      hand.appendChild(points);
+      el.appendChild(hand);
+    }
+    for (const roll of current) {
+      const group = document.createElement("span");
+      group.className = "aside-roll";
+      const dice = document.createElement("span");
+      dice.className = "aside-dice";
+      for (const face of [...roll.kept].sort((a, b) => a - b)) {
+        const die = dieFace(face);
+        if (roll.before.openDigits.includes(face) && hasVariant(game.rules, "combo")) {
+          die.classList.add("is-boosted");
+        }
+        dice.appendChild(die);
+      }
+      const points = document.createElement("small");
+      points.textContent = `+${hooks.format(roll.points)}`;
+      group.append(dice, points);
+      el.appendChild(group);
+    }
+    return el;
+  }
+
+  // La bande du lancer : la réserve à gauche s'il y en a une, puis les dés.
+  function band(className: string, dice: HTMLElement[]): HTMLElement {
+    const el = document.createElement("div");
+    el.className = className;
+    const reserve = aside();
+    if (!reserve) {
+      el.append(...dice);
+      return el;
+    }
+    el.classList.add("has-aside");
+    const now = document.createElement("div");
+    now.className = "roll-now";
+    now.append(...dice);
+    el.append(reserve, now);
+    return el;
+  }
+
+  // Le lancer en cours de saisie, du plus petit au plus grand, et en
+  // pointillé les dés qui restent à saisir. Toucher un dé le retire : c'est la
+  // correction d'une faute de frappe, sans tout effacer.
+  function tray(): HTMLElement {
+    const dice: HTMLElement[] = [];
+    let index = 0;
     for (const face of FACES) {
       for (let k = 0; k < stage.counts[face]; k++) {
-        const die = document.createElement("button");
+        const die = placedDie(face, index++, "button") as HTMLButtonElement;
         die.type = "button";
-        die.className = isActive(face) ? "tray-die is-boosted" : "tray-die";
-        die.dataset.face = String(face);
         die.setAttribute("aria-label", `Retirer un ${face}`);
-        die.appendChild(dieFace(face));
+        if (face === justAdded && k === stage.counts[face] - 1) die.classList.add("is-new");
         die.addEventListener("click", () => {
           stage.counts[face]--;
           render();
         });
-        el.appendChild(die);
+        dice.push(die);
       }
     }
-    if (el.children.length === 0) {
-      const empty = document.createElement("span");
-      empty.className = "roll-tray-empty";
-      empty.textContent = "Aucun dé saisi";
-      el.appendChild(empty);
+    for (let k = entered(); k < game.turn.diceLeft; k++) {
+      const slot = document.createElement("span");
+      slot.className = "roll-slot";
+      slot.setAttribute("aria-hidden", "true");
+      dice.push(slot);
     }
-    return el;
+    return band("roll-tray", dice);
   }
 
   function faceButton(face: Face): HTMLButtonElement {
@@ -389,15 +523,18 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     el.dataset.face = String(face);
     el.setAttribute("aria-label", `Ajouter un ${face}`);
     el.disabled = complete();
-
-    const count = document.createElement("span");
-    count.className = "face-count";
-    count.textContent = stage.counts[face] > 0 ? `×${stage.counts[face]}` : "";
-
-    el.append(dieFace(face), count);
+    el.appendChild(dieFace(face));
+    // Combien de dés de cette face sont posés : une pastille d'encre au coin.
+    if (stage.counts[face] > 0) {
+      const count = document.createElement("span");
+      count.className = "face-count";
+      count.textContent = String(stage.counts[face]);
+      el.appendChild(count);
+    }
     el.addEventListener("click", () => {
       if (complete()) return;
       stage.counts[face]++;
+      justAdded = face;
       render();
     });
     return el;
@@ -414,15 +551,10 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
   // Retour à la saisie, faces conservées : l'erreur ne se voit parfois qu'au
   // moment de choisir (une combinaison qui manque, un bust inattendu).
   function correctionLink(): HTMLButtonElement {
-    const link = document.createElement("button");
-    link.type = "button";
-    link.className = "link-btn";
-    link.append(icon("chevronLeft"), "Corriger les dés");
-    link.addEventListener("click", () => {
+    return linkButton([icon("chevronLeft"), "Corriger les dés"], "link-btn", () => {
       stage = { ...stage, validated: false, combos: [], picked: [] };
       render();
     });
-    return link;
   }
 
   /* ---------- Ce qu'on garde ---------- */
@@ -430,38 +562,30 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
   function renderPick(): void {
     if (stage.combos.length === 0) return renderBust();
 
-    const head = document.createElement("div");
-    head.className = "pick-head";
-    const hint = document.createElement("p");
-    hint.className = "roll-hint";
-    hint.textContent = "Touchez ce que vous gardez.";
-    head.append(hint, correctionLink());
-
     const list = document.createElement("div");
     list.className = "combos";
     for (const combo of stage.combos) list.appendChild(comboRow(combo));
 
-    body.replaceChildren(...comboStrip(), keptTray(), head, list);
+    body.replaceChildren(...comboStrip(), keptTray(), linksRow(correctionLink()), list);
     renderPickActions();
   }
 
   // Le lancer, en lecture seule pendant le choix : les dés que prennent les
-  // combinaisons retenues sont cerclés d'or, on voit ce qu'on met de côté et ce
-  // qu'on relancera.
+  // combinaisons retenues se soulèvent, cerclés d'or ; les autres restent sur
+  // la table, pâlis — on voit ce qu'on met de côté et ce qu'on relancera.
   function keptTray(): HTMLElement {
     const kept = emptyCounts();
     for (const die of stage.picked.flatMap((c) => c.dice)) kept[die]++;
-    const el = document.createElement("div");
-    el.className = "roll-tray roll-tray--pick";
+    const dice: HTMLElement[] = [];
+    let index = 0;
     for (const face of FACES) {
       for (let k = 0; k < stage.counts[face]; k++) {
-        const die = document.createElement("span");
-        die.className = k < kept[face] ? "tray-die is-kept" : "tray-die";
-        die.appendChild(dieFace(face));
-        el.appendChild(die);
+        const die = placedDie(face, index++, "span");
+        die.classList.add(k < kept[face] ? "is-kept" : "is-left");
+        dice.push(die);
       }
     }
-    return el;
+    return band("roll-tray roll-tray--pick", dice);
   }
 
   function comboRow(combo: Combo): HTMLButtonElement {
@@ -480,8 +604,8 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     label.className = "combo-label";
     // Le libellé dans un <span> : retenu, c'est lui que le feutre surligne.
     const labelText = document.createElement("span");
-    labelText.textContent = combo.label;
-    if (combo.boosted) label.appendChild(icon("link"));
+    if (combo.boosted) labelText.appendChild(icon("link"));
+    labelText.append(combo.label);
     label.appendChild(labelText);
     // Incompatible avec ce qui est retenu : la toucher remplacera, on le dit
     // avant le toucher (c'est au joueur de choisir, pas à la calculette).
@@ -515,6 +639,15 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     render();
   }
 
+  // Le pied : une seule ligne, deux boutons au plus, l'action principale à
+  // droite sous le pouce.
+  function footRow(...buttons: HTMLButtonElement[]): void {
+    const row = document.createElement("div");
+    row.className = "btn-row calc-row";
+    row.append(...buttons);
+    foot.replaceChildren(row);
+  }
+
   function renderPickActions(): void {
     if (stage.picked.length === 0) {
       const disabled = button("Choisissez au moins un dé", "", () => {});
@@ -535,7 +668,7 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
       return;
     }
 
-    const bank = button(bankLabel(game, pot, hooks.format), "btn-primary", bankTurn);
+    const bank = button(bankLabel(game, pot, hooks.format), "btn-primary calc-bank", bankTurn);
 
     if (hot) {
       // Main pleine : le joueur récupère les 5 dés et relance. C'est obligatoire
@@ -543,12 +676,10 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
       // zèle » permet aussi de banquer, la relance redevient l'action
       // secondaire, en contour.
       if (canBank(game, pot, true)) {
-        const again = button(
-          [icon("flame"), "Main pleine — relancer 5 dés"],
-          "btn-primary btn-outline",
-          rollAgain,
+        footRow(
+          button([icon("flame"), "Relancer 5 dés"], "btn-primary btn-outline", rollAgain),
+          bank,
         );
-        foot.replaceChildren(again, bank);
       } else {
         foot.replaceChildren(
           button([icon("flame"), "Main pleine — relancer 5 dés"], "btn-primary", rollAgain),
@@ -557,9 +688,8 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
       return;
     }
 
-    const again = button(`Relancer ${plural(left, "dé")}`, "btn-primary btn-outline", rollAgain);
     bank.disabled = !canBank(game, pot, false);
-    foot.replaceChildren(again, bank);
+    footRow(button(`Relancer ${plural(left, "dé")}`, "btn-primary btn-outline", rollAgain), bank);
   }
 
   /* ---------- Bust et dépassement ---------- */
@@ -572,12 +702,15 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     const burst = icon("burst", "ic bust-icon");
 
     const text = document.createElement("p");
+    const lost = game.turn.pot;
     text.textContent = overshoot
       ? `Aucun dé gardable sans dépasser ${hooks.format(game.rules.target)} : c'est un bust.`
-      : `Aucun dé ne marque — vous perdez les ${hooks.format(game.turn.pot)} points du tour.`;
+      : lost > 0
+        ? `Aucun dé ne marque : les ${hooks.format(lost)} points du tour sont perdus.`
+        : "Aucun dé ne marque : bust.";
 
-    box.append(burst, text, correctionLink());
-    body.replaceChildren(box);
+    box.append(burst, text);
+    body.replaceChildren(keptTray(), box, linksRow(correctionLink()));
     foot.replaceChildren(
       button("Passer la main", "btn-danger", () => {
         dialog.close();
@@ -600,8 +733,22 @@ export function createCalculator(game: G5000Game, hooks: CalculatorHooks) {
     return el;
   }
 
-  makeDismissible(restartDialog, "restart-cancel");
-  requireEl("restart-confirm").addEventListener("click", restart);
+  // Les petites actions du corps (corriger, recommencer) : des liens, pas des
+  // boutons du pied.
+  function linkButton(
+    content: (Node | string)[],
+    variant: string,
+    onClick: () => void,
+  ): HTMLButtonElement {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = variant;
+    el.append(...content);
+    el.addEventListener("click", onClick);
+    return el;
+  }
+
+  requireEl("calc-close").addEventListener("click", () => dialog.close());
 
   return { open, dialog };
 }

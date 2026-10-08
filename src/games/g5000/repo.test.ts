@@ -87,7 +87,7 @@ describe("règles d'avant les variantes", () => {
 describe("la partie d'avant le dernier tour (« Corriger »)", () => {
   function playedGame() {
     const game = createGame(["Marlo", "Poulet"], ["#FCC1C7", "#A5E4BB"], DEFAULT_RULES);
-    enterTurn(game, 600, 0);
+    enterTurn(game, 600);
     finishTurn(game, "bank");
     saveSavedGame(game);
     return game;

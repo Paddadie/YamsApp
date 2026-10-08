@@ -40,7 +40,7 @@ check` enchaîne les trois.
 | `yams-end.html` | Podium, classement, impact sur le palmarès | `src/pages/yams/end.ts` |
 | `yams-hall.html` | Meilleurs / pires scores (feuilles détaillées) et statistiques | `src/pages/yams/hall.ts` |
 | `5000.html` | Accueil du 5000 : objectif, variantes, partie en cours, palmarès | `src/pages/g5000/home.ts` |
-| `5000-game.html[?review=1]` | Feuille de progression, calculette, saisie rapide, dernier tour à corriger (ou consultation de la feuille en fin de partie) | `src/pages/g5000/game.ts` |
+| `5000-game.html[?review=1]` | Feuille de progression, calculette et saisie manuelle (« les paliers ») dans un pupitre en bas, Bust rapide, dernier tour à corriger (ou consultation de la feuille en fin de partie) | `src/pages/g5000/game.ts` |
 | `5000-end.html` | Podium, classement, records battus, « Revoir la feuille » | `src/pages/g5000/end.ts` |
 | `5000-records.html[?from=end]` | Records du 5000 par objectif, classement des victoires | `src/pages/g5000/records.ts` |
 
@@ -64,10 +64,10 @@ src/
 │   │                   scoreSheet · players · rulesDoc · gameDef · types
 │   │                   legacyLines · storage/
 │   └── g5000/          rules · engine · records · recordLabels · rulesDoc
-│                       variants · gameDef · repo · types · tape
+│                       variants · gameDef · repo · types
 ├── pages/       un module par écran (câblage DOM), + settings/, gameSwitcher,
 │                gameTheme (encre et papier du jeu sur ses pages), g5000/
-│                calculator et quickEntry (les deux saisies du 5000),
+│                calculator et quickEntry (calculette et paliers, les deux saisies du 5000),
 │                gameHero (en-tête d'un accueil, extrait de feuille), targetOption
 │                et endScreen (« Bravo … ! », confettis, lignes de record)
 ├── styles/      la feuille de style, par domaine (cf. Conventions)
@@ -236,17 +236,17 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   qu'elle change :
   - 🎯 **Sniper** — banquer exactement le score d'un adversaire le fait
     redescendre à son score précédent, en **cascade**. Sans elle, pas de
-    tableau des cibles à l'écran.
+    cibles à l'écran.
   - 🏹 **Dans le mille** — il faut l'objectif exactement ; un tour qui le
     dépasse est un **bust** (il compte dans les busts d'affilée).
   - ⭕ **Sans demi-mesure** — un pot qui finit par 50 ne se banque pas
-    (`isUnround`) : pas de touche +50 en saisie rapide, bouton « Banquer » grisé
-    dans la calculette.
+    (`isUnround`) : les cases en 50 des paliers sont hachurées, « Banquer » est
+    grisé.
   - 😌 **Pas de zèle** — une main pleine peut se banquer.
   - 🔗 **Combo** — un brelan (ou mieux) active son chiffre pour le reste du
     tour : chacun de ses dés vaut +100 (un 1 = 200, un 5 = 150, les autres
     100). La calculette met les chiffres activés en valeur (rappel en tête,
-    pavé, plateau, combinaisons).
+    pavé, bande du lancer, dés déjà gardés, combinaisons).
   Une partie lancée avant les variantes les retrouve depuis ses anciens
   interrupteurs (`legacyVariants`) ; les réglages enregistrés, eux, arrivent
   sans variante (`repo.getRules`).
@@ -258,7 +258,7 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   colonne par joueur, à son rythme, scores barrés visibles, score en vigueur
   surligné. Les parties enregistrées avant (`history`) sont converties à la
   lecture (`repo.ts`). L'écran n'appelle que
-  `startTurn`, `keepDice`, `reroll` pendant le tour, puis
+  `startTurn`, `keepDice`, `reroll` (et `undoRoll`) pendant le tour, puis
   `finishTurn(game, "bank" | "bust")` — score, redescentes,
   consignation pour les records, main passée ou fin de partie. Chaque fonction
   renvoie les **mouvements** provoqués, que l'écran déroule (cascade animée).
@@ -288,48 +288,83 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   pastille « C'est à Marie › » qu'au Yams le signale dans la barre du haut et
   lui rend la main d'un toucher.
   En fin de partie, seuls ceux qui doivent encore riposter sont accessibles.
-- **Saisie** : la **calculette** ou la **saisie rapide**.
-  - Calculette : on touche les faces obtenues ; elles s'alignent au‑dessus du
-    pavé, et toucher un dé saisi le retire. Rien ne se passe tant que le joueur
+- **Feuille** (refonte du 08/10) : les noms sur des **intercalaires** de la
+  couleur du joueur, posés sur le trait d'encre, ses busts d'affilée dans
+  l'onglet ; l'en-tête reste collé en haut quand la feuille défile. Les
+  anciens scores en retrait, le score en vigueur plus grand et surligné ;
+  lignes au bleu du quadrillage, rature un peu de travers, objectif entouré
+  d'un cercle tracé à la main. Colonnes réglées sur le plus long nombre de la
+  partie (plus étroites à 5 000 qu'à 10 000) et sur le plus long prénom
+  (mesuré, plafonné) : quatre joueurs tiennent sur un téléphone de 360 px.
+- **Saisie** : trois portes en bas — « Compter mon tour pas à pas » (la
+  **calculette**), puis **Bust** et « Entrer mon total du tour » (la **saisie
+  manuelle**, « les paliers ») sur une ligne.
+  - **Le pupitre** : les deux saisies ne sont pas des fenêtres. Ouvertes par
+    `show()` (non modales), elles se posent en bas à la place de la barre,
+    sans voile ; la feuille rétrécit au-dessus et reste calée sur sa dernière
+    ligne, le bandeau se résume au nom et à la jauge. Le pupitre ne dépasse
+    pas les trois quarts de l'écran (son corps défile, son pied reste). La
+    flèche du haut (ou Échap) le referme en gardant le tour ou le score choisi
+    jusqu'à la fin du tour ; donner la main à un autre le referme.
+  - Pendant la saisie, la **feuille** réserve la case de celui qui joue et y
+    écrit le pot **au crayon** (« +1 500 » en petit, le total souligné en
+    pointillé, barré si ce pot ne se banquerait pas) ; avec Sniper, le score de
+    l'adversaire visé s'allume « pile ! ». La jauge du bandeau montre aussi, en
+    hachuré, où le pot mènerait (`previewPot`). Banquer remplit la jauge du
+    joueur et fait s'envoler le gain (`showBank`) avant de passer la main ; les
+    trois portes attendent la fin de l'animation, pour qu'un toucher rapide
+    n'ouvre pas la saisie du suivant sous le nom de celui qui vient de banquer.
+  - **Bust rapide** : une touche dans la barre du bas, sans rien ouvrir (le
+    bust du premier lancer). Un tour entamé (score choisi aux paliers,
+    calculette refermée en cours de tour) est perdu avec son pot, qui compte
+    pour le record du pot perdu. « Corriger » rattrape une erreur.
+  - **Les paliers** (`pages/g5000/quickEntry.ts`), pour qui a déjà compté son
+    tour : on ne compose pas son score, on le choisit. Une rangée de
+    **milliers** qui défile jusqu'à deux fois l'objectif, jamais au-delà de
+    20 000 (`highestThousand`, `rules.ts`), puis une grille de **vingt scores**
+    de 50 en 50 : deux touches au plus. Le score choisi est entouré au feutre ;
+    changer de millier garde la case (500 puis « 1 000 » = 1 500). Chaque case
+    annonce ce qu'elle ferait : point de couleur = pile sur cet adversaire
+    (Sniper), trophée = victoire, hachures = ne se banque pas (entrée en jeu,
+    Sans demi-mesure ; en rouge, au-delà de l'objectif avec Dans le mille).
+    Pas de mains pleines : on entre son total final (`enterTurn(game, pot)`),
+    et le record de la série ne vient que de la calculette.
+  - **La calculette** : le pot en tête, « Lancer 2 · 3 dés » sous le nom. On
+    touche les faces obtenues ; elles se posent sur une bande de papier, un
+    peu de travers, avec des emplacements en pointillé pour celles qui
+    restent ; toucher un dé posé le retire. Rien ne se passe tant que le joueur
     n'a pas **validé** ses dés (bouton toujours présent, actif une fois le
     compte atteint) ; « Corriger les dés » y ramène depuis le choix des
-    combinaisons ou un bust. Rien n'est retenu d'office : c'est le joueur qui
-    choisit. Toucher une combinaison la retient et lâche celles qui partagent
-    ses dés (`pickCombo`) : on ne garde jamais un dé deux fois (`canKeep`). Une
-    combinaison incompatible l'annonce avant le toucher (« à la place de
-    Brelan de 5 »), et le lancer, rappelé au-dessus, cercle d'or les dés
-    retenus.
+    combinaisons ou un bust. **Toutes les combinaisons sont proposées**, même
+    celles qui valent moins sur les mêmes dés (garder moins peut servir, avec
+    Sniper) ; rien n'est retenu d'office. Toucher une combinaison la retient
+    et lâche celles qui partagent ses dés (`pickCombo`) : on ne garde jamais un
+    dé deux fois (`canKeep`). Une combinaison incompatible l'annonce avant le
+    toucher (« à la place de Brelan de 5 ») ; les dés retenus se soulèvent,
+    cerclés d'or. Pied d'une ligne : [Relancer 3 dés | Banquer 200] ; une main
+    pleine à relancer prend le bouton seul. « Recommencer le tour » se
+    confirme sur place.
+  - **Les lancers déjà gardés** se posent à gauche de la bande, comme à la
+    table : chaque lancer avec son gain, une main pleine finie résumée en une
+    pastille. La flèche en tête **rouvre le lancer précédent** tel qu'il était
+    (faces et choix) : le tour garde l'historique de ses lancers
+    (`G5000Turn.history`, `keepDice(game, picked, roll)`), et `undoRoll`
+    restaure le tour d'avant — pot, dés en main, chiffres activés, série de
+    mains pleines. Enregistré avec la partie, il survit à un rechargement.
   - Dans le mille : dès que les dés retenus font dépasser la cible, relancer
     n'a plus de sens (`canReroll`). La calculette propose « Bust — passer la
     main » au lieu de faire relancer jusqu'au bust ; le joueur peut encore
     toucher une combinaison plus petite avant.
-  - La ligne sous le pot dit pourquoi on ne peut pas banquer (`potWarning` :
-    dépassement, entrée en jeu, compte pas rond).
-  - Saisie rapide (`pages/g5000/quickEntry.ts`) : une « addition posée ».
-    Touches +50 | +100, +500 | +1 000 — de quoi composer tout multiple de 50 —
-    puis « Main pleine » et « Effacer … », dont le libellé dit ce qu'il défait.
-    Les montants de la main en cours s'écrivent sur une ligne ; une main pleine
-    monte au-dessus du trait avec son total (trois visibles, les autres
-    repliées), le total du tour sous un double trait. Juste après une main
-    pleine, on ne banque pas (sauf Pas de zèle). Le calcul (`slipOf`) est dans
-    `games/g5000/tape.ts`. Le brouillon survit à une fenêtre refermée par
-    erreur, jusqu'à la fin du tour.
-  - Pendant la saisie, la jauge du bandeau montre en hachuré où le pot mènerait
-    (`previewPot`). Banquer remplit la jauge du joueur et fait s'envoler le gain
-    (`showBank`) avant de passer la main ; les deux boutons de saisie attendent
-    la fin de l'animation, pour qu'un toucher rapide n'ouvre pas la saisie du
-    suivant sous le nom de celui qui vient de banquer.
-  - Avec Sniper, les deux affichent un tableau de **tous ceux qui sont devant**
-    (hors joueurs arrivés à l'objectif, à l'abri), du plus proche au plus loin :
-    l'écart exact pour tomber pile sur leur score, où ils retomberaient
-    (`TieTarget.fallsTo`) et ce qu'ils perdraient. Ceux que le pot a déjà
-    dépassés passent à la fin, grisés. Au-delà de quatre, le tableau défile.
-    Quand le pot tombe pile sur l'un d'eux, sa ligne s'allume (une fois,
-    `.is-hit-new`). Sans Sniper, une égalité ne fait rien : de simples
-    pastilles disent où en sont ceux de devant (`renderAhead`).
-  - Un pot qui atteint l'objectif change le bouton : « Banquer 300 —
-    victoire ! », trophée dessiné devant (ou « objectif atteint » derrière un
-    joueur arrivé avant avec autant ou plus), selon `bankOutcome`.
+  - La ligne au-dessus du pied dit pourquoi on ne peut pas banquer
+    (`potWarning` : dépassement, entrée en jeu, compte pas rond), ou, en or,
+    que l'objectif est atteint ; le bouton « Banquer » porte alors un trophée
+    (`bankLabel`, `bankOutcome`).
+  - **Sniper**, dans la calculette : une pastille par adversaire devant (hors
+    joueurs arrivés à l'objectif, à l'abri), avec l'écart exact pour tomber
+    pile sur son score ; « Détail » déplie le tableau (où il retomberait,
+    `TieTarget.fallsTo`, et ce qu'il perdrait). La pastille s'allume quand le
+    pot tombe pile (une fois, `.is-hit-new`). Sans Sniper, une égalité ne fait
+    rien : pas de cibles, la feuille dit qui est devant.
 - **Règles (ⓘ)** : depuis l'accueil, la page décrit les réglages actuels et
   **toutes** les variantes ; ouverte pendant une partie (`?from=play`), les
   réglages de la partie et **ses seules** variantes (`GameDef.rulesDoc({ inGame })`).
@@ -337,8 +372,8 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   5000. À la reprise, c'est le joueur dont c'est le tour qui est affiché — au
   5000, le joueur affiché est toujours celui qui joue.
 - **Palmarès** — les records (`records.ts`) : quatre dont on est fier (victoire la plus
-  rapide, plus gros tour banqué, plus de mains pleines en un tour, plus de
-  victoires), quatre dont on rit (plus gros pot perdu, plus grosse chute, plus
+  rapide, plus gros tour banqué, plus de mains pleines en un tour — comptées
+  par la calculette —, plus de victoires), quatre dont on rit (plus gros pot perdu, plus grosse chute, plus
   long temps d'entrée en jeu, partie la plus longue). Un record doit être
   **battu**, pas égalé. Une partie abandonnée ne compte pas. **Chaque objectif
   a ses records** (une victoire en 6 tours à 3 000 ne dit rien d'une partie à
@@ -479,7 +514,11 @@ suivant.
   `dialog`. `makeDismissible(dialog, boutonId?)` ajoute la fermeture au clic sur
   le fond. Une action qui doit suivre une fermeture écoute l'événement `close`
   (Échap et le geste retour ferment aussi). Rien ne s'efface sans une pop‑up
-  qui montre ce qui va disparaître.
+  qui montre ce qui va disparaître — sauf « Recommencer le tour » de la
+  calculette, confirmé sur place. Exception : les deux saisies du 5000 sont des
+  `dialog.pupitre` non modaux (`show()`), posés dans l'écran de jeu (styles
+  dans `g5000-game.css`) ; pas de `makeDismissible` sur eux (un clic sur leur
+  marge les fermerait).
 - **Code couleur des boutons** (détaillé en tête de `styles/buttons.css`) —
   une couleur = un sens : **vert** jouer / faire avancer / valider / ajouter,
   **bleu** revenir ou renoncer sans rien perdre (« Quitter » une partie déjà

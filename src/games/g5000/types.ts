@@ -91,6 +91,22 @@ export interface G5000Turn {
   // Mains pleines enchaînées pendant ce tour, pour les records. Facultatif :
   // absent des parties enregistrées avant lui.
   hotStreak?: number;
+  // Les lancers déjà gardés à la calculette, dans l'ordre : affichés à gauche
+  // du lancer en cours, et de quoi revenir au précédent (undoRoll).
+  // Facultatif : absent tant que rien n'est gardé, et des tours annoncés d'un
+  // bloc (saisie manuelle) ou enregistrés avant lui.
+  history?: TurnRoll[];
+}
+
+// Un lancer gardé : ses faces, ce que le joueur en a retenu, et le tour tel
+// qu'il était juste avant (revenir dessus le restaure tel quel : pot, dés en
+// main, chiffres activés, série de mains pleines).
+export interface TurnRoll {
+  roll: DiceCounts; // les faces saisies
+  picked: string[]; // les combinaisons retenues (Combo.id)
+  kept: Face[]; // les dés mis de côté
+  points: number;
+  before: Omit<G5000Turn, "history">;
 }
 
 export interface G5000Game {

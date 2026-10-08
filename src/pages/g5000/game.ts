@@ -7,9 +7,12 @@
 // et ce qui tombe est barré, pas effacé.
 //
 // Deux portes d'entrée en bas : la calculette assistée pour qui découvre le jeu,
-// la saisie rapide pour qui sait déjà ce qu'il a marqué. Avec Sniper, les deux
-// montent l'écart exact vers chaque adversaire, le seul service qu'un joueur ne
-// peut pas se rendre de tête. Sans Sniper, ce tableau n'apparaît pas.
+// la saisie manuelle (« les paliers ») pour qui sait déjà ce qu'il a marqué,
+// et le Bust rapide. Ouvertes, elles se posent en bas à la place de la barre,
+// sans voile : le « pupitre » (refonte du 08/10). Avec Sniper, l'écart exact
+// vers chaque adversaire — le seul service qu'un joueur ne peut pas se rendre
+// de tête — est au tableau des cibles de la calculette, et sur les cases des
+// paliers (un point de couleur = pile sur cet adversaire).
 //
 // Ordre du module : gardes, constantes, fonctions, puis la mise en route tout
 // en bas (README, « Conventions »).
@@ -28,6 +31,7 @@ import { onHorizontalSwipe } from "../../core/swipe";
 import { keepScreenOn } from "../../core/wakeLock";
 import { getSavedGame, saveSavedGame } from "../../games/g5000/repo";
 import {
+  canBank,
   canPlay,
   canUndoLastTurn,
   choosePlayer,
@@ -35,6 +39,7 @@ import {
   expectedPlayer,
   finishTurn,
   hasOpened,
+  isOvershoot,
   liveEntry,
   tieTargets,
   turnStarted,
@@ -46,7 +51,6 @@ import type { G5000Player, LastTurn, SheetEntry, Strike } from "../../games/g500
 import { formatScore } from "../../core/format";
 import { createCalculator } from "./calculator";
 import { createQuickEntry } from "./quickEntry";
-import { hasVariant } from "../../games/g5000/variants";
 import { G5000 } from "../../games/g5000/gameDef";
 import { applyGameTheme } from "../gameTheme";
 import { icon } from "../../core/icons";
@@ -121,13 +125,26 @@ function renderBanner(): void {
   renderTurnHint();
 }
 
-// Pendant la saisie (calculette ou saisie rapide), la jauge montre en hachuré
+// Pendant la saisie (calculette ou paliers), la jauge montre en hachuré
 // où le pot mènerait le joueur. Effacé à la fermeture de la fenêtre.
 function previewPot(currentPot: number): void {
   const reach = currentScore(player()) + currentPot;
   requireEl("gauge-pot").style.width =
     currentPot > 0 ? `${Math.min(100, (reach / game.rules.target) * 100)}%` : "0";
+  // La feuille aussi : le score au crayon dans la colonne, « pile ! » sur
+  // l'adversaire visé. Redessinée seulement quand le pot change.
+  if (currentPot === pendingPot) return;
+  pendingPot = currentPot;
+  if (entering) {
+    renderSheet();
+    scrollSheetToEnd();
+  }
 }
+
+// Une saisie est ouverte (le pupitre), et le pot qu'elle montre : la feuille
+// réserve la case de celui qui joue et y écrit ce pot au crayon.
+let entering = false;
+let pendingPot = 0;
 
 // Le temps de voir la jauge du joueur qui vient de banquer se remplir, avant
 // que le bandeau passe au joueur suivant.
@@ -210,6 +227,10 @@ interface SheetChanges {
   struck?: Set<SheetEntry>;
 }
 
+// Pendant une saisie : la case de celui qui joue est réservée sur la feuille,
+// et le pot de la saisie s'y écrit au crayon.
+const pendingFor = (): number => (entering && !isReview ? game.currentPlayerIndex : -1);
+
 function renderSheet(changes: SheetChanges = {}): void {
   const thead = document.createElement("thead");
   const headRow = document.createElement("tr");
@@ -218,29 +239,47 @@ function renderSheet(changes: SheetChanges = {}): void {
   game.players.forEach((p, i) => {
     const th = document.createElement("th");
     th.style.setProperty("--col", p.color);
-    // Le nom sur un onglet de sa couleur, le langage du bandeau : il doit se
-    // lire avant les scores, pas après (demande de Paul).
+    // Le nom sur un intercalaire de sa couleur, le langage du bandeau : il
+    // doit se lire avant les scores, pas après (demande de Paul). Ses busts
+    // d'affilée dessous, dans l'onglet.
     const tab = document.createElement("span");
     tab.className = "name-tab";
-    tab.textContent = p.name;
-    th.appendChild(tab);
+    const name = document.createElement("span");
+    name.className = "name-tab-text";
+    name.textContent = p.name;
+    tab.appendChild(name);
     // En consultation, la partie est finie : ni busts en cours, ni main à
     // donner — des onglets neutres.
     const pips = isReview ? null : blankTurnPips(p);
-    if (pips) th.appendChild(pips);
+    if (pips) tab.appendChild(pips);
+    th.appendChild(tab);
     if (!isReview) markTab(th, p, i);
     headRow.appendChild(th);
   });
   thead.appendChild(headRow);
 
   const tbody = document.createElement("tbody");
-  const started = game.players.some((p) => p.sheet.length > 0);
+  const pending = pendingFor();
+  const started = game.players.some((p) => p.sheet.length > 0) || pending >= 0;
   // Un joueur sans score en vigueur a un tiret sous sa colonne : il n'est pas
   // (ou plus) entré en jeu. Il prend une ligne — sauf avant le premier score,
-  // où un message remplace la feuille.
+  // où un message remplace la feuille. Pendant une saisie, la case de celui
+  // qui joue est réservée (elle remplace son tiret).
   const used = started
-    ? Math.max(...game.players.map((p) => p.sheet.length + (hasOpened(p) ? 0 : 1)))
+    ? Math.max(
+        ...game.players.map(
+          (p, i) => p.sheet.length + (i === pending || !hasOpened(p) ? 1 : 0),
+        ),
+      )
     : 0;
+  // Les adversaires sur qui le pot de la saisie tomberait pile (Sniper).
+  const hits = new Set(
+    pending >= 0 && pendingPot > 0
+      ? tieTargets(game, pendingPot)
+          .filter((t) => t.needed === 0)
+          .map((t) => t.index)
+      : [],
+  );
 
   if (!started) {
     const tr = document.createElement("tr");
@@ -257,19 +296,25 @@ function renderSheet(changes: SheetChanges = {}): void {
 
   // Autant de lignes que la plus longue colonne, pas une de plus : la feuille
   // s'allonge au fil de la partie (choix de Paul, 07/10).
-  for (let r = 0; r < used; r++) tbody.appendChild(sheetRow(r, changes));
+  for (let r = 0; r < used; r++) tbody.appendChild(sheetRow(r, changes, hits));
 
   sheet.style.setProperty("--players", String(game.players.length));
+  // Colonnes réglées sur le plus long nombre de la partie : « 5 050 » entouré
+  // à 5 000 (quatre joueurs tiennent sur un téléphone de 360 px), « 10 000 »
+  // au-delà.
+  sheet.style.setProperty("--num-min", game.rules.target >= 10000 ? "5.5rem" : "4.85rem");
   sheet.replaceChildren(thead, tbody);
 
   // Les colonnes s'élargissent pour le plus long prénom : « Mar… » pour Martin
   // à dix joueurs, c'était non (Paul, 07/10). Jusqu'à la largeur d'un prénom
   // de huit lettres larges ; au-delà, le nom est abrégé (…). Mesuré plutôt que
   // compté en lettres : un « M » est trois fois plus large qu'un « i », et la
-  // police dépend de l'appareil. Rien à mesurer hors navigateur (tests).
-  const tabs = [...sheet.querySelectorAll<HTMLElement>(".name-tab")];
+  // police dépend de l'appareil. Rien à mesurer hors navigateur (tests). On
+  // mesure le nom lui-même : l'intercalaire remplit sa colonne, sa largeur
+  // serait celle de la colonne (la CSS ajoute ses marges, cf. --col-min).
+  const names = [...sheet.querySelectorAll<HTMLElement>(".name-tab-text")];
   const widest = Math.min(
-    Math.max(0, ...tabs.map((tab) => tab.scrollWidth)),
+    Math.max(0, ...names.map((name) => name.scrollWidth)),
     longNameWidth(),
   );
   if (widest > 0) sheet.style.setProperty("--tab-width", `${widest}px`);
@@ -296,16 +341,19 @@ function longNameWidth(): number {
   if (longNameWidthCache > 0) return longNameWidthCache;
   const probe = document.createElement("span");
   probe.className = "name-tab";
-  probe.textContent = "Mohammed";
+  const probeText = document.createElement("span");
+  probeText.className = "name-tab-text";
+  probeText.textContent = "Mohammed";
+  probe.appendChild(probeText);
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";
   sheetScroll.appendChild(probe);
-  longNameWidthCache = probe.scrollWidth;
+  longNameWidthCache = probeText.scrollWidth;
   probe.remove();
   return longNameWidthCache;
 }
 
-function sheetRow(r: number, changes: SheetChanges): HTMLTableRowElement {
+function sheetRow(r: number, changes: SheetChanges, hits: Set<number>): HTMLTableRowElement {
   const tr = document.createElement("tr");
   for (const [i, p] of game.players.entries()) {
     const td = document.createElement("td");
@@ -313,6 +361,9 @@ function sheetRow(r: number, changes: SheetChanges): HTMLTableRowElement {
     if (i === game.currentPlayerIndex && !isReview) td.className = "is-current";
     if (r < p.sheet.length) {
       fillEntry(td, p, p.sheet[r], changes);
+      if (hits.has(i) && p.sheet[r] === liveEntry(p)) td.classList.add("is-hit");
+    } else if (r === p.sheet.length && i === pendingFor()) {
+      fillPending(td, p);
     } else if (r === p.sheet.length && !hasOpened(p)) {
       td.classList.add("sheet-out");
       td.textContent = "—";
@@ -332,7 +383,10 @@ function fillEntry(
   const value = document.createElement(entry.struck ? "s" : "span");
   value.className = "entry";
   value.textContent = fmt(entry.score);
-  if (changes.written?.has(entry)) value.classList.add("is-written");
+  if (changes.written?.has(entry)) {
+    value.classList.add("is-written");
+    td.classList.add("has-written"); // le cercle de l'objectif se trace avec lui
+  }
   if (changes.struck?.has(entry)) value.classList.add("is-striking");
   td.appendChild(value);
 
@@ -342,8 +396,50 @@ function fillEntry(
     td.appendChild(strikeMark(entry.struck));
   } else if (entry === liveEntry(p)) {
     td.classList.add("is-live");
-    if (entry.score >= game.rules.target) td.classList.add("is-goal");
+    if (entry.score >= game.rules.target) {
+      td.classList.add("is-goal");
+      value.appendChild(goalCircle());
+    }
   }
+}
+
+// Au crayon, pendant la saisie : où arriverait le joueur, et ce que le tour
+// rapporte en petit. Barré si ce pot ne se banquerait pas. Sans pot, la case
+// reste vide (pas de crayon qui attend : refusé par Paul).
+function fillPending(td: HTMLTableCellElement, p: G5000Player): void {
+  td.classList.add("pending-cell");
+  if (pendingPot <= 0) return;
+  td.classList.add("is-pending");
+  if (isOvershoot(game, pendingPot) || !canBank(game, pendingPot, false)) {
+    td.classList.add("is-blocked");
+  }
+  const gain = document.createElement("span");
+  gain.className = "pending-gain";
+  gain.textContent = `+${fmt(pendingPot)}`;
+  const value = document.createElement("span");
+  value.className = "entry";
+  value.textContent = fmt(currentScore(p) + pendingPot);
+  td.append(gain, value);
+}
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+
+// L'objectif atteint, entouré au feutre comme sur papier (et comme l'objectif
+// sur l'accueil) : le cercle se trace quand le score s'écrit.
+function goalCircle(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("class", "goal-circle");
+  svg.setAttribute("viewBox", "0 0 100 50");
+  svg.setAttribute("preserveAspectRatio", "none");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS(SVG_NS, "path");
+  path.setAttribute("pathLength", "1");
+  path.setAttribute(
+    "d",
+    "M60 5 C 86 4, 97 15, 95 27 C 93 42, 70 47, 46 46 C 20 45, 4 38, 5 24 C 6 12, 25 5, 52 5 C 60 5, 67 7, 72 10",
+  );
+  svg.appendChild(path);
+  return svg;
 }
 
 // Sous le nom, les tours sans marquer du joueur : une pastille par tour
@@ -441,7 +537,7 @@ function neighbour(direction: 1 | -1): number | null {
 // suppression de l'application.
 function requestPlayer(index: number): void {
   if (index === game.currentPlayerIndex || !canPlay(game, index)) return;
-  // Un brouillon de saisie rapide est un tour entamé lui aussi.
+  // Un score choisi aux paliers est un tour entamé lui aussi.
   const started = turnStarted(game);
   const draft = quick.draftPot();
   if (!started && draft === null) return switchTo(index);
@@ -459,6 +555,8 @@ function requestPlayer(index: number): void {
 function switchTo(index: number): void {
   const before = game.currentPlayerIndex;
   if (!choosePlayer(game, index)) return;
+  // La saisie ouverte était celle de l'ancien joueur.
+  closeEntry();
   quick.clear();
   replayOf = null;
   renderLastTurn();
@@ -480,26 +578,77 @@ function animateName(direction: "next" | "prev"): void {
 
 /* ---------- Cibles : la variante Sniper rendue jouable ---------- */
 
-// Les adversaires sur qui le pot tombait déjà pile au rendu précédent : le
-// tableau est redessiné à chaque touche, mais une ligne ne s'allume (rebond)
+// Les adversaires sur qui le pot tombait déjà pile au rendu précédent : les
+// cibles sont redessinées à chaque touche, mais une cible ne s'allume (rebond)
 // qu'au moment où elle DEVIENT pile.
 let hitBefore = new Set<number>();
+// Le tableau détaillé (retombe à, perd) est replié par défaut : la feuille,
+// visible au-dessus du pupitre, montre déjà les scores (décision du 08/10).
+// Déplié une fois, il le reste pour la partie.
+let targetsOpen = false;
 
 // Viser le score exact d'un adversaire est hors de portée de tête : c'est ce
-// que l'application apporte vraiment. L'écart se met à jour à chaque appui.
+// que l'application apporte vraiment. Une pastille par adversaire devant, avec
+// l'écart exact ; « Détail » déplie le tableau. Sans Sniper, une égalité ne
+// fait rien : pas de cibles (la feuille dit qui est devant).
 function renderTargets(container: HTMLElement, currentPot: number): void {
   const rows = tieTargets(game, currentPot);
   container.replaceChildren();
   if (rows.length === 0) {
     hitBefore = new Set();
-    if (!hasVariant(game.rules, "sniper")) renderAhead(container, currentPot);
     return;
   }
+  const hits = new Set(rows.filter((t) => t.needed === 0).map((t) => t.index));
 
-  // Tous ceux qui sont devant, du plus proche au plus loin : ce qu'il manque
-  // pour tomber pile sur leur score, où ils retomberaient, et ce qu'ils y
-  // perdraient (demande de Paul, 07/10). Au-delà de quatre, le tableau défile
-  // (cf. CSS) : la fenêtre ne doit pas grandir avec le nombre de joueurs.
+  const lead = document.createElement("span");
+  lead.className = "aim-lead";
+  lead.textContent = "Viser";
+  // Les pastilles défilent à l'horizontale : « Détail » reste au bout, en vue,
+  // quel que soit le nombre d'adversaires devant.
+  const chips = document.createElement("div");
+  chips.className = "aim-chips";
+  container.append(lead, chips);
+  for (const target of rows) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "aim-chip";
+    chip.style.setProperty("--col", game.players[target.index].color);
+    if (target.needed === 0) {
+      chip.classList.add("is-hit");
+      if (!hitBefore.has(target.index)) chip.classList.add("is-hit-new");
+    } else if (target.needed < 0) chip.classList.add("is-passed");
+    const dot = document.createElement("i");
+    const gap = document.createElement("b");
+    gap.textContent =
+      target.needed === 0 ? "pile !" : target.needed > 0 ? `+${fmt(target.needed)}` : "dépassé";
+    chip.append(dot, target.name, " ", gap);
+    // Toucher un adversaire déplie le détail, comme « Détail ».
+    chip.addEventListener("click", () => toggleTargets(container, currentPot));
+    chips.appendChild(chip);
+  }
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "aim-more";
+  more.textContent = targetsOpen ? "Masquer" : "Détail";
+  more.setAttribute("aria-expanded", String(targetsOpen));
+  more.addEventListener("click", () => toggleTargets(container, currentPot));
+  container.appendChild(more);
+  if (targetsOpen) container.appendChild(targetsTable(rows));
+  hitBefore = hits;
+}
+
+function toggleTargets(container: HTMLElement, currentPot: number): void {
+  targetsOpen = !targetsOpen;
+  // Même pot : rien ne doit rebondir à nouveau.
+  renderTargets(container, currentPot);
+}
+
+// Le tableau d'avant : tous ceux qui sont devant, du plus proche au plus loin,
+// ce qu'il manque pour tomber pile sur leur score, où ils retomberaient, et ce
+// qu'ils y perdraient (demande de Paul, 07/10). Au-delà de quatre, il défile.
+function targetsTable(rows: ReturnType<typeof tieTargets>): HTMLElement {
+  const wrap = document.createElement("div");
+  wrap.className = "targets";
   const table = document.createElement("table");
   table.className = "targets-table";
   const head = document.createElement("tr");
@@ -513,14 +662,10 @@ function renderTargets(container: HTMLElement, currentPot: number): void {
   thead.appendChild(head);
 
   const tbody = document.createElement("tbody");
-  const hits = new Set(rows.filter((t) => t.needed === 0).map((t) => t.index));
   for (const target of rows) {
     const tr = document.createElement("tr");
     tr.className = "target-row";
-    if (target.needed === 0) {
-      tr.classList.add("is-hit");
-      if (!hitBefore.has(target.index)) tr.classList.add("is-hit-new");
-    }
+    if (target.needed === 0) tr.classList.add("is-hit");
     else if (target.needed < 0) tr.classList.add("is-passed");
     else if (target.needed <= 600) tr.classList.add("is-near");
 
@@ -540,8 +685,7 @@ function renderTargets(container: HTMLElement, currentPot: number): void {
       hit.className = "target-hit";
       hit.append(icon("crosshair"), "pile !");
       gap.appendChild(hit);
-    }
-    else gap.textContent = target.needed > 0 ? `+${fmt(target.needed)}` : "dépassé";
+    } else gap.textContent = target.needed > 0 ? `+${fmt(target.needed)}` : "dépassé";
 
     const fallsTo = document.createElement("td");
     fallsTo.className = "target-falls";
@@ -556,38 +700,8 @@ function renderTargets(container: HTMLElement, currentPot: number): void {
   }
 
   table.append(thead, tbody);
-  container.appendChild(table);
-  hitBefore = hits;
-}
-
-// Sans Sniper, une égalité ne fait rien : pas de tableau, seulement des
-// pastilles qui disent où en sont ceux de devant (demande de Paul, 08/10).
-// Celles que le pot dépasse s'effacent.
-function renderAhead(container: HTMLElement, currentPot: number): void {
-  const base = currentScore(player());
-  const ahead = game.players
-    .filter((p) => currentScore(p) > base && currentScore(p) < game.rules.target)
-    .sort((a, b) => currentScore(a) - currentScore(b));
-  if (ahead.length === 0) return;
-
-  const box = document.createElement("div");
-  box.className = "ahead";
-  const lead = document.createElement("span");
-  lead.className = "ahead-lead";
-  lead.textContent = "Devant vous";
-  box.appendChild(lead);
-  for (const p of ahead) {
-    const chip = document.createElement("span");
-    chip.className = "ahead-chip";
-    if (currentPot > currentScore(p) - base) chip.classList.add("is-passed");
-    chip.style.setProperty("--col", p.color);
-    const dot = document.createElement("i");
-    const score = document.createElement("b");
-    score.textContent = fmt(currentScore(p));
-    chip.append(dot, p.name, " ", score);
-    box.appendChild(chip);
-  }
-  container.appendChild(box);
+  wrap.appendChild(table);
+  return wrap;
 }
 
 /* ---------- Fin de tour ---------- */
@@ -634,8 +748,52 @@ function onTurnFinished(how: TurnFinish): void {
 }
 
 function setEntryEnabled(enabled: boolean): void {
-  requireEl<HTMLButtonElement>("play-btn").disabled = !enabled;
-  requireEl<HTMLButtonElement>("quick-btn").disabled = !enabled;
+  for (const id of ["play-btn", "quick-btn", "bar-bust"]) {
+    requireEl<HTMLButtonElement>(id).disabled = !enabled;
+  }
+}
+
+/* ---------- Le pupitre ---------- */
+// Les deux saisies ne sont plus des fenêtres : elles se posent en bas, à la
+// place de la barre, et la feuille reste visible au-dessus — c'est elle que le
+// tour va modifier. Le bandeau se résume à une ligne (nom et jauge) le temps de
+// la saisie, et la ligne « Dernier tour » s'efface (cf. CSS, `.is-entering`).
+
+const entryDialogs = (): HTMLDialogElement[] => [calculator.dialog, quick.dialog];
+
+function openEntry(open: () => void): void {
+  open();
+  setEntering(true);
+}
+
+function closeEntry(): void {
+  for (const dialog of entryDialogs()) dialog.close();
+}
+
+function setEntering(on: boolean): void {
+  screen.classList.toggle("is-entering", on);
+  requireEl("entry-bar").hidden = on;
+  if (on !== entering) {
+    entering = on;
+    // La case de celui qui joue se réserve (ou se libère) sur la feuille.
+    renderSheet();
+  }
+  // La feuille a rétréci : sa dernière ligne et la colonne de celui qui joue
+  // doivent rester en vue au-dessus du pupitre.
+  if (on) {
+    requestAnimationFrame(() => {
+      scrollSheetToEnd();
+      centerCurrentColumn("instant");
+    });
+  }
+}
+
+// Le Bust de la barre du bas : le bust du premier lancer, sans rien ouvrir. Un
+// tour entamé (score choisi aux paliers, ou calculette refermée en cours
+// de tour) est perdu avec son pot, comme s'il avait été déclaré de là.
+function quickBust(): void {
+  if (quick.draftPot() !== null) return quick.bust();
+  onTurnFinished("bust");
 }
 
 function showCascade(moves: Move[]): void {
@@ -701,11 +859,10 @@ function cascadeStep(move: Move, delay: number): HTMLElement {
 }
 
 // La calculette tient l'état du tour (pot, dés restants, chiffres activés) et
-// nous rend la main à la fin du tour, comme la saisie rapide.
-// La saisie rapide aussi (quickEntry.ts) : elle garde le brouillon du tour.
+// nous rend la main à la fin du tour, comme la saisie manuelle (quickEntry.ts,
+// les paliers), qui garde le score choisi jusqu'à la fin du tour.
 const quick = createQuickEntry(game, {
   onFinish: onTurnFinished,
-  renderTargets,
   previewPot,
   format: fmt,
 });
@@ -840,6 +997,7 @@ function requestUndo(): void {
 function confirmUndo(): void {
   const last = game.lastTurn;
   if (!last || !undoLastTurn(game)) return;
+  closeEntry();
   quick.clear();
   replayOf = game.players[last.player].name;
   persist();
@@ -871,10 +1029,6 @@ labelDetail.className = "game-label-detail";
 labelDetail.textContent = ` · ${fmt(game.rules.target)} pts`;
 requireEl("game-label").replaceChildren(G5000.title, labelDetail);
 applyGameTheme(screen, G5000);
-// Les fenêtres de saisie sont hors de l'écran : elles reçoivent aussi l'encre
-// du jeu (les « + » de l'addition posée et des touches).
-applyGameTheme(quick.dialog, G5000);
-applyGameTheme(requireEl("calc-dialog"), G5000);
 
 if (isReview) showReview();
 else renderBanner();
@@ -882,8 +1036,29 @@ renderSheet();
 scrollSheetToEnd();
 if (!isReview) centerCurrentColumn("instant");
 
-requireEl("play-btn").addEventListener("click", () => calculator.open());
-requireEl("quick-btn").addEventListener("click", () => quick.open());
+requireEl("play-btn").addEventListener("click", () => openEntry(calculator.open));
+requireEl("quick-btn").addEventListener("click", () => openEntry(quick.open));
+requireEl("bar-bust").addEventListener("click", quickBust);
+// Refermée (flèche, Échap, banque, bust, main donnée à un autre) : la barre
+// revient. Le pupitre suivant s'ouvrira de toute façon par elle.
+for (const dialog of entryDialogs()) {
+  dialog.addEventListener("close", () => setEntering(entryDialogs().some((d) => d.open)));
+}
+// Le pupitre change de hauteur au fil de la saisie (combinaisons, tableau des
+// cibles) : la feuille, qui rétrécit d'autant, reste calée sur sa dernière
+// ligne, celle que le tour va écrire. Rien à observer sous jsdom (tests).
+if ("ResizeObserver" in window) {
+  new ResizeObserver(() => {
+    if (screen.classList.contains("is-entering")) scrollSheetToEnd();
+  }).observe(sheetScroll);
+}
+// Non modal, le pupitre ne se ferme pas tout seul à Échap. Une fenêtre de
+// confirmation ouverte par-dessus (recommencer, changer de joueur…) garde
+// Échap pour elle.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || document.querySelector("dialog:not(.pupitre)[open]")) return;
+  closeEntry();
+});
 
 // Sur l'événement `close` et non sur le clic : Échap ou le geste retour ferment
 // aussi le dialogue, et une partie finie doit alors quand même mener au podium.
@@ -902,7 +1077,10 @@ onHorizontalSwipe(
   },
   {
     ignore: (target) => {
-      const scroller = (target as Element | null)?.closest?.(".sheet-scroll");
+      const el = target as Element | null;
+      // Sur le pupitre, le doigt touche des touches ou fait défiler un tableau.
+      if (el?.closest?.("dialog.pupitre")) return true;
+      const scroller = el?.closest?.(".sheet-scroll");
       return !!scroller && scroller.scrollWidth > scroller.clientWidth;
     },
   },
@@ -937,7 +1115,7 @@ requireEl("pause-btn").addEventListener("click", () => {
 });
 
 // Calculette refermée sans banquer : plus de pot à montrer sur la jauge (la
-// saisie rapide s'en charge elle-même).
+// saisie manuelle s'en charge elle-même).
 requireEl("calc-dialog").addEventListener("close", () => previewPot(0));
 
 if (!isReview) keepScreenOn();

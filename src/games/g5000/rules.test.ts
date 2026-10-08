@@ -7,6 +7,7 @@ import {
   countsOf,
   DEFAULT_RULES,
   groupValue,
+  highestThousand,
   isBust,
   normalizeRules,
   SCORE_STEP,
@@ -448,3 +449,12 @@ describe("toucher une combinaison (pickCombo)", () => {
   });
 });
 
+
+describe("saisie manuelle : le plus haut millier", () => {
+  it("deux fois l'objectif, jamais au-delà de 20 000", () => {
+    expect(highestThousand(5000)).toBe(10000);
+    expect(highestThousand(10000)).toBe(20000);
+    expect(highestThousand(20000)).toBe(20000);
+    expect(highestThousand(3000)).toBe(6000);
+  });
+});
