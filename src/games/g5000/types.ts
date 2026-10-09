@@ -1,5 +1,3 @@
-import type { Move } from "./engine";
-
 // Types du 5000. Le jeu n'a rien à voir avec la grille fermée du Yams : ici le
 // score est une PROGRESSION, une suite de cumuls successifs, et deux règles
 // (Sniper, tours sans marquer) la font redescendre d'un cran.
@@ -52,6 +50,25 @@ export interface G5000Rules {
   // rejoue une fois. Sinon, on termine seulement le tour de table.
   lastRound: boolean;
   variants: G5000Variant[];
+}
+
+// Un mouvement de score provoqué par un tour (engine.ts) : l'écran les déroule
+// devant les joueurs (cascade), les records y lisent les chutes. Rangé ici et
+// non dans le moteur : la partie le garde (`LastTurn.moves`), et les types ne
+// doivent pas dépendre du moteur qui les manipule.
+export type MoveKind =
+  | "bank" // le joueur a banqué son tour
+  | "tie" // rattrapé par un adversaire : il redescend
+  | "penalty" // trop de tours sans marquer : il redescend
+  | "win";
+
+export interface Move {
+  kind: MoveKind;
+  player: number; // index du joueur concerné
+  from: number;
+  to: number;
+  // Pour `tie` : l'index du joueur qui a provoqué la chute.
+  by?: number;
 }
 
 // Pourquoi un score a été barré : rattrapé par un adversaire (Sniper) ou trop

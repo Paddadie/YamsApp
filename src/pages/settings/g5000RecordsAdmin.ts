@@ -12,6 +12,7 @@ import { icon, type IconName } from "../../core/icons";
 import { makeDismissible, plural, requireEl, summaryRow } from "../../core/ui";
 import { formatDate } from "../../core/dates";
 import { formatScore } from "../../core/format";
+import { ofName } from "../../core/playerName";
 import { getRecords, saveRecords } from "../../games/g5000/repo";
 import {
   clearRecord,
@@ -88,7 +89,7 @@ function render(): void {
           entry.name,
           `${label.format(entry.value)} · à ${formatScore(target)}`,
           () => ask({ kind: "record", target, key }),
-          `Effacer le record « ${label.title} » à ${formatScore(target)} de ${entry.name}`,
+          `Effacer le record « ${label.title} » à ${formatScore(target)} ${ofName(entry.name)}`,
           label.icon,
         ),
       );
@@ -105,7 +106,7 @@ function render(): void {
         name,
         plural(count, "victoire"),
         () => ask({ kind: "wins", name }),
-        `Remettre à zéro les victoires de ${name}`,
+        `Remettre à zéro les victoires ${ofName(name)}`,
       ),
     );
   }

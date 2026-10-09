@@ -3,7 +3,7 @@
 // des éléments, leurs textes, les couleurs posées) ; le rendu se juge sur
 // captures.
 
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { el, openPage } from "./harness";
 import { draft, filledYamsGame, g5000Game, knownPlayers, yamsGame } from "./fixtures";
 import { PLAYER_COLORS } from "../../core/playerColors";
@@ -165,5 +165,65 @@ describe("finitions", () => {
     await openPage("settings");
     expect(el(".score-admin-date").textContent).toBe(formatDate("15/08/2025"));
     expect(el(".score-admin-date").textContent).not.toBe("15/08/2025");
+  });
+});
+
+describe("accueil sans défilement (audit du 09/10, piste B)", () => {
+  it.each([
+    ["yamsHome", () => yamsGame()],
+    ["g5000Home", () => g5000Game()],
+  ] as const)("%s : la partie en cours est dans l'en-tête, à la place des dés", async (page, seed) => {
+    seed();
+    await openPage(page);
+    const card = el("#resume-card");
+    expect(card.hidden).toBe(false);
+    expect(card.closest(".game-hero")).not.toBeNull();
+    expect(el(".screen-body").contains(card)).toBe(false);
+  });
+
+  // jsdom ne mesure rien : la hauteur du contenu est simulée. Il dépasse de
+  // 120 px, la scène en rend 90, le resserrage le reste.
+  // Posées sur HTMLElement, elles masquent celles d'Element (jsdom) : les
+  // retirer suffit à revenir à la normale.
+  afterEach(() => {
+    Reflect.deleteProperty(HTMLElement.prototype, "scrollHeight");
+    Reflect.deleteProperty(HTMLElement.prototype, "clientHeight");
+  });
+
+  function simulate(overflow: (screen: HTMLElement) => number): void {
+    Object.defineProperty(HTMLElement.prototype, "clientHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        return this.classList.contains("screen-body") ? 500 : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "scrollHeight", {
+      configurable: true,
+      get(this: HTMLElement) {
+        const screen = this.closest<HTMLElement>("#home-screen");
+        return this.classList.contains("screen-body") && screen ? 500 + overflow(screen) : 0;
+      },
+    });
+  }
+
+  it("ce qui tient ne bouge pas", async () => {
+    simulate(() => 0);
+    await openPage("g5000Home");
+    expect(el("#home-screen").className).not.toMatch(/is-tight/);
+  });
+
+  it("déborde un peu : seuls les dés s'effacent", async () => {
+    simulate((screen) => (screen.classList.contains("is-tight") ? 0 : 60));
+    await openPage("g5000Home");
+    expect(el("#home-screen").classList.contains("is-tight")).toBe(true);
+    expect(el("#home-screen").classList.contains("is-tighter")).toBe(false);
+  });
+
+  it("déborde encore : tout se resserre d'un cran", async () => {
+    simulate((screen) =>
+      screen.classList.contains("is-tighter") ? 0 : screen.classList.contains("is-tight") ? 30 : 120,
+    );
+    await openPage("g5000Home");
+    expect(el("#home-screen").classList.contains("is-tighter")).toBe(true);
   });
 });

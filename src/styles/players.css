@@ -14,7 +14,7 @@
   box-shadow: inset 0 0 0 1.5px var(--rule-strong);
   background: var(--sheet);
   color: var(--ink);
-  font-size: 1rem;
+  font-size: var(--fs-base);
 }
 
 #player-name:focus-visible {
@@ -50,7 +50,7 @@
 }
 
 #roster-count {
-  font-size: 0.82rem;
+  font-size: var(--fs-s);
   font-weight: 650;
   white-space: nowrap;
   color: var(--ink-soft);
@@ -74,7 +74,7 @@
   box-shadow: inset 0 0 0 1.5px var(--rule-strong);
   padding: 0.35em 0.85em;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--fs-s);
   font-weight: 650;
   color: var(--ink);
   cursor: pointer;
@@ -142,7 +142,7 @@
   height: 1.45rem;
   border-radius: var(--radius-s);
   box-shadow: inset 0 0 0 1.5px var(--rule-strong);
-  font-size: 0.95rem;
+  font-size: var(--fs-body);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
@@ -160,7 +160,7 @@
 
 .roster-row .games {
   flex: none;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   color: var(--ink-faint);
 }
 
@@ -306,7 +306,7 @@
 
 .roster-divider {
   padding: 0.55em 0.9em 0.45em;
-  font-size: 0.66rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;

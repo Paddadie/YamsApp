@@ -59,7 +59,7 @@
 }
 
 .record-hint {
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   color: color-mix(in srgb, var(--ink) 65%, var(--paper-color, var(--sheet)));
 }
 
@@ -72,7 +72,7 @@
 }
 
 .record-holder {
-  font-size: 1.15rem;
+  font-size: var(--fs-l);
   font-stretch: 75%;
   font-weight: 800;
   text-transform: uppercase;
@@ -80,7 +80,7 @@
 }
 
 .record-value {
-  font-size: 1.2rem;
+  font-size: var(--fs-l);
   font-stretch: 75%;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -88,7 +88,7 @@
 }
 
 .record-meta {
-  font-size: 0.76rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -99,7 +99,7 @@
 }
 
 .record-vacant {
-  font-size: 0.85rem;
+  font-size: var(--fs-m);
   color: var(--ink-faint);
 }
 
@@ -147,7 +147,7 @@
 .wins-count {
   min-width: 1.6rem;
   text-align: right;
-  font-size: 1.15rem;
+  font-size: var(--fs-l);
   font-stretch: 75%;
   font-weight: 800;
   font-variant-numeric: tabular-nums;

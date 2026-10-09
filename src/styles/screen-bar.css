@@ -31,7 +31,7 @@
 /* Le titre de la barre : le nom du jeu, en capitales étroites. */
 .screen-bar-title {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--fs-base);
   text-align: left;
   /* Jamais sur deux lignes (« 5000 · 5 000 pts » se coupait au milieu du
      nombre sur un téléphone étroit) : c'est la pastille « C'est à… », au
@@ -40,7 +40,7 @@
 }
 
 .game-label {
-  font-size: 1.65rem;
+  font-size: var(--fs-3xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
@@ -168,7 +168,7 @@
   border-radius: var(--radius-pill);
   background: var(--secondary-color);
   color: var(--white);
-  font-size: 0.85rem;
+  font-size: var(--fs-m);
   font-weight: 650;
   cursor: pointer;
 }

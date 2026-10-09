@@ -72,6 +72,30 @@ export function showResumeCard(resume: ResumeInfo | null): void {
   requireEl("resume-card").hidden = false;
 }
 
+// L'accueil tient sur l'écran, sans défiler (audit du 09/10 : jusqu'à
+// l'iPhone SE, 375 × 667). S'il déborde, les dés de la scène s'effacent ; s'il
+// déborde encore, tout se resserre d'un cran (screens.css). Mesuré plutôt que
+// deviné : la hauteur dépend de l'écran, de la police, de la partie en cours.
+// Remesuré à la rotation et une fois la police chargée. À appeler une fois
+// l'accueil rempli (variantes, partie en cours).
+const FIT_STEPS = ["is-tight", "is-tighter"];
+
+export function fitHomeToScreen(): void {
+  const screen = requireEl("home-screen");
+  const body = screen.querySelector<HTMLElement>(".screen-body");
+  if (!body) return;
+  const fit = (): void => {
+    screen.classList.remove(...FIT_STEPS);
+    for (const step of FIT_STEPS) {
+      if (body.scrollHeight <= body.clientHeight + 1) return;
+      screen.classList.add(step);
+    }
+  };
+  fit();
+  window.addEventListener("resize", fit);
+  void document.fonts?.ready.then(fit);
+}
+
 // Où en est la partie : « Tour 6 sur 13 » ou « Bob mène · 3 100 », et une
 // jauge fine à l'encre du jeu. Carte « Partie en cours » de l'accueil et du
 // menu.

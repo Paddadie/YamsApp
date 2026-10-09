@@ -1,0 +1,253 @@
+/* ========== 5000 — DIALOGUES, PUPITRE, CASCADE ========== */
+/* Suite de g5000-paliers.css. */
+
+/* ---------- Dialogues de partie ---------- */
+
+.dlg {
+  display: flex;
+  flex-direction: column;
+  max-height: 88dvh;
+}
+
+/* En-tête : « TOUR DE BOB » en capitales, sur un trait d'encre. */
+.dlg-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  padding-bottom: 0.45em;
+  margin-bottom: 0.9em;
+  border-bottom: 1.5px solid var(--ink);
+}
+
+.dlg-title {
+  font-size: var(--fs-3xl);
+  font-stretch: 62%;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+
+.dlg-body {
+  overflow-y: auto;
+}
+
+.dlg-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+  padding-top: 0.9em;
+  margin-top: 0.9em;
+  border-top: 1px solid var(--rule);
+}
+
+.dlg-foot .btn-row {
+  display: flex;
+  gap: 0.5em;
+  width: 100%;
+  max-width: 22rem;
+}
+
+.dlg-foot .btn-row .btn {
+  flex: 1;
+}
+
+/* La barre du bas : [Bust | Entrer mon total du tour] sur une ligne. Sur un
+   téléphone étroit (360 px), le libellé passait sur deux lignes : le Bust
+   perd son pictogramme et les marges se resserrent. */
+#quick-btn {
+  white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+  #entry-bar .action-pair .btn {
+    padding-inline: 0.8em;
+  }
+
+  #bar-bust .ic {
+    display: none;
+  }
+}
+
+/* ---------- Le pupitre ---------- */
+/* Les deux saisies ne sont plus des fenêtres : ouvertes par show(), elles se
+   posent en bas de l'écran à la place de la barre (game.ts la masque), sans
+   voile. La feuille rétrécit au-dessus et reste lisible : c'est elle que le
+   tour va écrire. Un feuillet détaché du bloc, perforé en haut sur le papier
+   de l'écran. Plafonné aux trois quarts de l'écran : au-delà, son corps
+   défile, le pied (Banquer, Valider…) reste en place sous le pouce. */
+#g5000-screen dialog.pupitre {
+  --hole: var(--paper);
+  position: relative;
+  inset: auto;
+  z-index: 3;
+  flex: none;
+  width: 100%;
+  max-width: none;
+  max-height: 76%;
+  margin: 0;
+  padding: 0.85rem max(var(--gutter), calc((100% - var(--content-max)) / 2))
+    calc(0.85rem + env(safe-area-inset-bottom, 0px));
+  overflow: hidden;
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  box-shadow: 0 -10px 24px -12px rgba(var(--shade-rgb), 0.45);
+  animation: pupitre-in 0.22s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+#g5000-screen dialog.pupitre[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#g5000-screen dialog.pupitre .dlg {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+}
+
+@keyframes pupitre-in {
+  from {
+    opacity: 0;
+    transform: translateY(30%);
+  }
+}
+
+/* Refermer : la flèche du haut. Le tour (ou le brouillon) est gardé. */
+.dlg-head {
+  align-items: center;
+}
+
+.dlg-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  margin: -0.4rem -0.45rem -0.4rem 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.dlg-close .ic {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.dlg-close:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+/* Pendant la saisie, le bandeau se résume à une ligne : le nom et la jauge.
+   « Au tour de », les busts d'affilée et la ligne « Dernier tour » laissent
+   leur place à la feuille. */
+#g5000-screen.is-entering .turn-banner {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 0.75rem;
+  padding-block: 0.55rem 0.7rem;
+}
+
+#g5000-screen.is-entering .turn-eyebrow,
+#g5000-screen.is-entering .blank-turns,
+#g5000-screen.is-entering .last-turn {
+  display: none;
+}
+
+#g5000-screen.is-entering .turn-name {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  white-space: nowrap;
+}
+
+/* ---------- Cascade des redescentes ---------- */
+/* Déroulée étape par étape : un score qui change tout seul, sans explication,
+   est incompréhensible à la table — et la règle peut en toucher plusieurs. */
+
+.dlg-title .ic {
+  width: 0.85em;
+  height: 0.85em;
+  margin-right: 0.15em;
+  vertical-align: -0.08em;
+  color: var(--danger-hover);
+}
+
+.cascade {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+}
+
+.cascade-step {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.6em 0.7em;
+  border-radius: var(--radius-s);
+  background: color-mix(in srgb, var(--paper) 70%, var(--white));
+  font-size: var(--fs-m);
+  opacity: 0;
+  animation: cascade-in 0.35s ease forwards;
+  animation-delay: var(--d, 0s);
+}
+
+.cascade-step--bank {
+  background: color-mix(in srgb, var(--primary-color) 9%, var(--white));
+}
+
+.cascade-step--tie,
+.cascade-step--penalty {
+  background: color-mix(in srgb, var(--danger-color) 8%, var(--white));
+}
+
+.cascade-name {
+  font-weight: 800;
+}
+
+.cascade-why {
+  flex: 1;
+  color: var(--ink-soft);
+  font-size: var(--fs-s);
+}
+
+.cascade-move {
+  font-stretch: 75%;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.cascade-move s {
+  color: var(--ink-faint);
+  text-decoration-thickness: 1.5px;
+}
+
+.cascade-drop {
+  color: var(--danger-hover);
+  font-weight: 800;
+}
+
+.cascade-arrow {
+  text-align: center;
+  color: var(--ink-faint);
+  opacity: 0;
+  animation: cascade-in 0.3s ease forwards;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes cascade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

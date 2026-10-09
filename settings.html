@@ -375,6 +375,20 @@
               </label>
               <input id="import-input" type="file" accept="application/json,.json" hidden />
             </div>
+            <!-- Installer Cornet (core/pwa/install.ts) : seulement si l'appli
+                 n'est pas installée et qu'on sait dire comment ici. Toujours
+                 là, même après « Ne plus demander » au menu. -->
+            <div id="install-row" class="install-row" hidden>
+              <p class="settings-hint">
+                <strong>Installer Cornet</strong> sur l'écran d'accueil : il s'ouvre
+                comme une application, même hors ligne, et vos données ne risquent
+                plus d'être effacées par le navigateur.
+              </p>
+              <div id="settings-install-steps"></div>
+              <button id="settings-install-go" type="button" class="btn btn-primary btn-outline" hidden>
+                <!--@icon:addSquare-->Installer Cornet
+              </button>
+            </div>
           </section>
         </div>
       </div>

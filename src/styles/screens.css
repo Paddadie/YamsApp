@@ -49,13 +49,6 @@
   gap: clamp(0.9rem, 2.4vh, 1.4rem);
 }
 
-/* La partie en cours et le choix d'une nouvelle partie sont deux choses : un
-   vrai blanc les sépare (collés, demande de Paul du 08/10). La carte reste
-   au-dessus des variantes, qui restent ainsi juste au-dessus de « Commencer ». */
-#home-screen .resume-card {
-  margin-bottom: clamp(0.6rem, 3vh, 1.9rem);
-}
-
 /* Le contenu (partie en cours, variantes) est centré dans la hauteur
    (demande de Paul, 08/10 : plaqué en haut, l'accueil du Yams faisait vide).
    Par deux cales élastiques plutôt que `justify-content: center`, qui rognerait
@@ -76,6 +69,7 @@
     "title actions"
     "tagline sample"
     "choice choice"
+    "resume resume"
     "scene scene";
   align-items: start;
   column-gap: 0.75rem;
@@ -115,7 +109,7 @@
   grid-area: tagline;
   margin: 0.35rem 0 0;
   max-width: 15rem;
-  font-size: 0.9rem;
+  font-size: var(--fs-m);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -135,6 +129,15 @@
 
 .game-hero-choice .section-label::after {
   display: none;
+}
+
+/* La partie en cours et le choix d'une nouvelle partie sont deux choses
+   (demande de Paul du 08/10) : la partie en cours est dans l'en-tête, sur le
+   papier du jeu — elle dit où en est ce jeu —, le choix d'une nouvelle est
+   dessous, seul au-dessus de « Commencer » (audit du 09/10, piste B). */
+.game-hero .resume-card {
+  grid-area: resume;
+  margin: 0.95rem 0.5rem 0 0;
 }
 
 /* Les dés lancés du jeu (core/illustrations.ts), au bas de l'en-tête : la
@@ -182,10 +185,45 @@
   }
 }
 
+/* Sur un téléphone, une partie en cours prend la place des dés. */
+@media (max-width: 899px) {
+  .game-hero:has(> .resume-card:not([hidden])) .game-hero-scene {
+    display: none;
+  }
+}
+
+/* L'accueil tient sur l'écran sans défiler (jusqu'à l'iPhone SE, 375 × 667,
+   choix de Paul du 09/10). Mesuré par fitHomeToScreen (gameHero.ts) : s'il
+   déborde, les dés s'effacent ; s'il déborde encore, tout se resserre d'un
+   cran. */
+#home-screen.is-tight .game-hero-scene {
+  display: none;
+}
+
+#home-screen.is-tighter .game-hero {
+  padding-bottom: 0.9rem;
+}
+
+#home-screen.is-tighter .game-hero-choice {
+  margin-top: 0.6rem;
+}
+
+#home-screen.is-tighter .target-opt {
+  padding: 0.45rem 0 0.35rem;
+}
+
+#home-screen.is-tighter .screen-body {
+  gap: 0.6rem;
+}
+
+#home-screen.is-tighter .variant-row {
+  padding-block: 0.4rem;
+}
+
 /* ---------- Extrait de feuille (cartes du menu, en-tête de l'accueil) ---------- */
 .sheet-sample {
   width: 7rem;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
@@ -227,7 +265,7 @@
 }
 
 .sample-value {
-  font-size: 0.95rem;
+  font-size: var(--fs-body);
   font-stretch: 75%;
   font-weight: 800;
   color: var(--ink);
@@ -273,7 +311,7 @@
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
-  font-size: 0.92rem;
+  font-size: var(--fs-body);
   font-weight: 650;
 }
 
@@ -291,7 +329,7 @@
   gap: 0.5rem;
   min-width: 0;
   margin-top: 0.15rem;
-  font-size: 0.78rem;
+  font-size: var(--fs-s);
   font-weight: 600;
   color: var(--ink-soft);
 }
@@ -364,7 +402,7 @@
 
 .chip-label {
   padding: 0 0.2em;
-  font-size: 1.05rem;
+  font-size: var(--fs-ui);
   font-stretch: 75%;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -452,7 +490,7 @@
 }
 
 .variant-name {
-  font-size: 0.95rem;
+  font-size: var(--fs-body);
   font-weight: 700;
 }
 
@@ -463,7 +501,7 @@
 /* Une phrase sous le nom d'une variante (accueils du Yams et du 5000) : ce
    qu'elle change, lisible sans ouvrir les règles. */
 .chip-hint {
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -521,7 +559,7 @@
 }
 
 .target-num {
-  font-size: 2rem;
+  font-size: var(--fs-4xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;

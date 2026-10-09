@@ -9,7 +9,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.6rem 0.6rem 0.55rem;
+  padding: 0.4rem 0.6rem 0.35rem;
 }
 
 .nav-arrow {
@@ -59,7 +59,7 @@
   min-width: 0;
   text-align: center;
   margin: 0;
-  font-size: 2rem;
+  font-size: var(--fs-4xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
@@ -174,7 +174,7 @@
      sinon la grille se dimensionne pour un écran plus grand que le sien et
      déborde de quelques pixels quand la barre Safari est masquée. Le plancher
      `0.82rem` peut demander un léger défilement sur un très petit écran. */
-  font-size: 0.88rem;
+  font-size: var(--fs-m);
   font-size: clamp(0.76rem, 1.75svh, 1.35rem);
 }
 
@@ -202,10 +202,19 @@
 }
 
 /* Intitulé de section (« Chiffres », « Combinaisons ») : petites capitales
-   suivies d'un trait (.section-label, paper.css). */
+   bleues, sans le trait qui suit les autres (.section-label, paper.css) — les
+   lignes du cahier en tiennent lieu. */
 .score-table .section-head td {
-  padding: 0.55em 0.4em 0.25em;
+  padding: 0.35em 0.4em 0.15em;
   vertical-align: middle;
+}
+
+.score-table .section-head .section-label {
+  color: var(--secondary-color);
+}
+
+.score-table .section-head .section-label::after {
+  display: none;
 }
 
 .score-table .section-head td:first-child {
@@ -215,8 +224,8 @@
 /* 1re ligne de section ("Chiffres") : porte les pastilles de variante
    (ex-<thead>), en plus petit et sur une seule ligne → une rangée gagnée. */
 .score-table .section-head--vars td {
-  padding-top: 0.2em;
-  padding-bottom: 0.2em;
+  padding-top: 0.35em;
+  padding-bottom: 0.15em;
   text-align: center;
 }
 
@@ -226,41 +235,47 @@
 
 /* Passage Chiffres -> Combinaisons : un peu d'air au-dessus. */
 .score-table .section-head--major td {
-  padding-top: 0.8em;
+  padding-top: 0.5em;
 }
 
-/* Lignes de données : un trait par ligne, comme sur un bloc. */
+/* La feuille tenue comme un cahier (09/10, version D choisie par Paul) : une
+   ligne bleue sous chaque rangée, intitulés compris, et la marge rouge après
+   les libellés. Les cases, elles, restent celles d'avant (.score-cell). */
 .score-table tbody td {
-  padding: 0.22em 0.35em;
-  border-bottom: 1px solid var(--rule);
+  padding: 0.16em 0.35em;
+  border-bottom: 1px solid var(--ruling);
   vertical-align: middle;
   text-align: center;
 }
 
-.score-table tbody tr.section-head td {
-  border-bottom: none;
+.score-table tbody td:first-child {
+  width: 40%;
+  padding-left: 0.4em;
+  border-right: 2px solid var(--margin-line);
+  text-align: left;
+  font-weight: 650;
+  color: var(--ink);
 }
 
-.score-table tbody td:first-child {
-  width: 46%;
-  padding-left: 0.4em;
-  text-align: left;
-  font-weight: 600;
-  color: var(--ink);
+/* « Combinaisons » court sur toute la ligne : la marge s'y interrompt, au
+   lieu de la traverser à droite. */
+.score-table tbody tr.section-head:not(.section-head--vars) td:first-child {
+  border-right: none;
 }
 
 /* Indice de bonus : le plan le plus probable pour atteindre 63, posé dans la
    case du plus grand chiffre encore libre (cf. bonusPlan dans scoring.ts).
    Tout est fait pour que la case continue à se lire comme VIDE : bordure
    pointillée inchangée, au crayon pâle et en graisse normale, là où une
-   valeur saisie est écrite à l'encre. */
+   valeur saisie est écrite à l'encre. Taille relative à la case, dont les
+   chiffres ont grandi (09/10) : l'indice, lui, garde la sienne. */
 .cell-hint {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.45em;
   color: var(--ink-faint);
-  font-size: 0.72em;
+  font-size: 0.59em;
   font-weight: 500;
   line-height: 1;
 }
@@ -313,8 +328,8 @@
 }
 
 /* Faces de dé (core/dice.ts) : au trait, à l'encre, comme imprimées sur la
-   feuille. 1.8em : sous le `min-height` de .score-cell (1.95em), donc la
-   rangée garde la hauteur qu'elle aurait avec un chiffre. Cette grille doit
+   feuille. 1.8em : sous la hauteur minimale d'une case (.score-cell, 2,1em de
+   la grille), donc la rangée garde la hauteur qu'elle aurait avec un chiffre. Cette grille doit
    tenir sans défiler, un dé plus grand ferait pousser six lignes sur douze. */
 .die {
   display: block;
@@ -332,9 +347,9 @@
   fill: var(--ink);
 }
 
-/* Lignes calculées (Bonus, Totaux) : en retrait, sur un fond de papier. */
+/* Lignes calculées (Bonus, Totaux) : en retrait, libellé à l'encre pâle, sur
+   la feuille même (plus de fond de papier : les lignes du cahier séparent). */
 .score-table tbody tr.computed td {
-  background: color-mix(in srgb, var(--paper) 55%, var(--sheet));
   font-weight: 700;
   color: var(--ink-soft);
 }
@@ -461,16 +476,18 @@
   border-bottom: none;
 }
 
+/* Le libellé à l'encre pâle, comme les autres lignes calculées : le total, à
+   droite, est le seul chiffre qui crie (maquette validée du 09/10). */
 .score-table tbody tr.final td:first-child {
   font-size: 1.3em;
   font-stretch: 62%;
   font-weight: 900;
   text-transform: uppercase;
-  color: var(--ink);
+  color: var(--ink-soft);
 }
 
 .score-table tbody tr.final td:not(:first-child) {
-  font-size: 1.6em;
+  font-size: 1.9em;
   font-stretch: 62%;
   font-weight: 900;
 }
@@ -483,15 +500,17 @@
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
-  min-height: 1.95em;
-  padding: 0.2em 0.5em;
+  /* Des chiffres plus grands et plus étroits (09/10) : lisibles de l'autre
+     bout de la table, téléphone posé au milieu. */
+  min-height: 1.55em;
+  padding: 0.05em 0.5em;
   border: 1.5px solid transparent;
   border-radius: var(--radius-s);
   background-color: transparent;
   font: inherit;
-  font-size: 1.1em;
-  font-stretch: 75%;
-  font-weight: 800;
+  font-size: 1.35em;
+  font-stretch: 66%;
+  font-weight: 850;
   line-height: 1.15;
   color: var(--ink);
   text-align: center;
@@ -588,16 +607,26 @@
 }
 
 .picker-variant {
-  font-size: 1.05rem;
+  font-size: var(--fs-ui);
 }
 
 .picker-line {
-  font-size: 1.6rem;
+  font-size: var(--fs-3xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
   color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+/* Lignes des chiffres : le dé de la grille devant « Les 6 », à la hauteur
+   des capitales. */
+.picker-line .die {
+  width: 0.95em;
+  height: 0.95em;
 }
 
 /* Flex (et non grid) pour que la dernière ligne, si incomplète, reste
@@ -626,7 +655,7 @@
   border-radius: var(--radius-m);
   background: var(--sheet);
   font: inherit;
-  font-size: 1.1rem;
+  font-size: var(--fs-ui);
   font-stretch: 75%;
   font-weight: 800;
   line-height: 1;
@@ -663,7 +692,7 @@
 .picker-values:not(:has(> :nth-child(4))) .picker-value {
   width: 5.5rem;
   height: 4rem;
-  font-size: 1.7rem;
+  font-size: var(--fs-3xl);
   font-stretch: 62%;
   font-weight: 900;
 }
@@ -733,7 +762,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.12em;
-  font-size: 0.62rem;
+  font-size: var(--fs-2xs);
   font-stretch: 90%;
   font-weight: 700;
   color: var(--ink-soft);

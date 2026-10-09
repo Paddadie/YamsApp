@@ -17,6 +17,7 @@ export const STORAGE_KEYS = {
   knownNames: "yams-player-names", // référentiel des joueurs
   playerGames: "app-player-games", // parties terminées, tous jeux confondus
   lastWin: "app-last-win", //      dernière victoire, tous jeux (post-it du menu)
+  installPrompt: "app-install-prompt", // fenêtre « Installer Cornet » : plus tard / jamais (propre à l'appareil, hors sauvegarde)
 
   /* --- Yams --- */
   savedGame: "yams-saved-game",

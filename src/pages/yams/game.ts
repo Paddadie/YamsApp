@@ -69,10 +69,12 @@ const grid = buildGrid(game.rules);
 const showBonusHint = getPrefs().bonusHint;
 
 // `?review` : consultation depuis l'écran de fin — grille en lecture seule,
-// on ne redirige donc pas une partie terminée vers l'écran de fin.
-const isReview = new URLSearchParams(location.search).has("review");
+// on ne redirige donc pas une partie terminée vers l'écran de fin. Seulement
+// pour une partie finie, comme au 5000 : une partie en cours se joue.
+const finished = isGameFinished(game.players, game.selectedVariants, grid);
+const isReview = finished && new URLSearchParams(location.search).has("review");
 
-if (!isReview && isGameFinished(game.players, game.selectedVariants, grid)) {
+if (finished && !isReview) {
   goTo("yamsEnd");
   throw new Error("Partie déjà terminée : passage à l'écran de fin.");
 }
@@ -150,7 +152,11 @@ function changePlayer(delta: number): void {
 
 // `direction` : sens de l'animation du nom (1 = vers la droite, comme ➡️).
 function showPlayer(index: number, direction: number): void {
-  clearTimeout(autoAdvance); // une navigation manuelle annule l'auto-avance
+  // Une navigation manuelle annule l'auto-avance, sauf une fois la dernière
+  // case remplie : ce minuteur mène alors au podium, et rien ne doit l'en
+  // empêcher. Une flèche touchée dans la foulée laissait la table sur une
+  // grille finie, sans issue (audit du 09/10, choix de Paul).
+  if (!isGameFinished(game.players, game.selectedVariants, grid)) clearTimeout(autoAdvance);
   game.currentPlayerIndex = index;
   persist();
   renderPlayer();
@@ -720,12 +726,21 @@ function openPicker(
   onPickValue: OnPick,
 ): void {
   pickerVariant.replaceChildren(variantBadge(variant));
-  pickerLine.textContent = lineLabel(lineName, game.rules);
 
   // Lignes des chiffres : chaque valeur dit combien de dés elle représente
   // (8 sur la ligne des 4 = « 2 × ⚃ ») — c'est ce qu'on a sous les yeux sur
   // la table, pas le total.
   const face = UPPER_LINES.includes(lineName) ? Number(lineName) : null;
+  // En titre, la ligne comme dans la grille : un « 6 » seul ne se lisait pas
+  // comme le nom d'une ligne. Le dé, puis « Les 6 » (le dé est décoratif, le
+  // texte le dit).
+  if (face !== null) {
+    const die = dieFace(face);
+    die.setAttribute("aria-hidden", "true");
+    pickerLine.replaceChildren(die, `Les ${face}`);
+  } else {
+    pickerLine.textContent = lineLabel(lineName, game.rules);
+  }
   pickerValues.classList.toggle("picker-values--dice", face !== null);
 
   const frag = document.createDocumentFragment();

@@ -13,6 +13,7 @@ import type {
   G5000Player,
   G5000Rules,
   G5000Turn,
+  Move,
   SheetEntry,
   Strike,
   TurnRoll,
@@ -130,23 +131,6 @@ export const canUndoRoll = (game: G5000Game): boolean => (game.turn.history?.len
 export function enterTurn(game: G5000Game, pot: number): void {
   startTurn(game);
   game.turn.pot = pot;
-}
-
-/* ---------- Mouvements de score ---------- */
-
-export type MoveKind =
-  | "bank" // le joueur a banqué son tour
-  | "tie" // rattrapé par un adversaire : il redescend
-  | "penalty" // trop de tours sans marquer : il redescend
-  | "win";
-
-export interface Move {
-  kind: MoveKind;
-  player: number; // index du joueur concerné
-  from: number;
-  to: number;
-  // Pour `tie` : l'index du joueur qui a provoqué la chute.
-  by?: number;
 }
 
 /* ---------- Variante Sniper ---------- */

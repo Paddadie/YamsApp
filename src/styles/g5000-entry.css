@@ -1,0 +1,339 @@
+/* ========== 5000 — SAISIE D'UN TOUR ========== */
+/* Ce que la calculette et les paliers partagent (en-tête, pot, ligne sous
+   le pot). Suite de g5000-sheet.css. */
+
+/* ---------- Saisie d'un tour ---------- */
+
+/* Le pot, en tête du pupitre de la calculette : le chiffre qu'on surveille,
+   à droite du nom ; « Lancer 2 · 3 dés » sous le nom. Il tressaute quand il
+   change. */
+.dlg-titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.dlg-step {
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.calc-pot {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 0.9;
+}
+
+.calc-pot b {
+  font-size: var(--fs-5xl);
+  font-stretch: 62%;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.calc-pot b.is-tick {
+  animation: pot-tick 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pot-tick {
+  from {
+    transform: translateY(-0.12em) scale(1.12);
+    color: var(--accent, var(--ink));
+  }
+}
+
+.calc-pot small {
+  margin-top: 0.15rem;
+  font-size: var(--fs-3xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.pot-after {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  margin: 0.45em 0 0;
+  font-size: var(--fs-m);
+  color: var(--ink-soft);
+  min-height: 1.2em;
+}
+
+.pot-after.is-warning {
+  color: var(--danger-hover);
+  font-weight: 700;
+}
+
+/* L'objectif à portée : or, la couleur des résultats. */
+.pot-after.is-win {
+  color: var(--gold-hover);
+  font-weight: 800;
+}
+
+/* Écart vers le score de chaque adversaire : c'est ce qui rend la règle
+   d'égalité jouable, viser un score exact étant hors de portée de tête.
+   Un tableau à hauteur bornée : au-delà de quatre adversaires devant, il
+   défile, et la fenêtre ne grandit pas (lignes de hauteur fixe pour que le
+   compte tombe juste). */
+.targets {
+  --target-row: 2.5rem;
+  --target-head: 1.6rem;
+  flex: 1 0 100%;
+  max-height: calc(var(--target-head) + 4 * var(--target-row));
+  overflow-y: auto;
+  margin-top: 0.3rem;
+}
+
+.targets:empty {
+  display: none;
+}
+
+/* Une zone qui défile peut recevoir le focus : c'est elle que la fenêtre
+   choisissait à l'ouverture, cernée de noir. Elle n'a rien à activer. Le
+   corps d'un pupitre aussi, sur un écran bas, et les deux pupitres eux-mêmes,
+   qui prennent le focus à l'ouverture (calculator.ts, quickEntry.ts). */
+.targets:focus,
+.dlg-body:focus,
+#quick-dialog:focus,
+#calc-dialog:focus {
+  outline: none;
+}
+
+.targets-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--fs-m);
+  font-variant-numeric: tabular-nums;
+}
+
+.targets-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  height: var(--target-head);
+  padding: 0 0.5em;
+  background: var(--white);
+  border-bottom: 1.5px solid var(--ink);
+  color: var(--ink-soft);
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.targets-table th:first-child {
+  text-align: left;
+}
+
+.target-row td {
+  height: var(--target-row);
+  padding: 0 0.5em;
+  border-bottom: 1px solid var(--rule);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.target-row td:first-child {
+  text-align: left;
+}
+
+/* Le nom, et son score actuel en petit dessous. */
+.target-name {
+  display: block;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.target-score {
+  display: block;
+  color: var(--ink-soft);
+  font-size: var(--fs-xs);
+  line-height: 1.15;
+}
+
+.target-gap {
+  font-size: var(--fs-ui);
+  font-stretch: 75%;
+  font-weight: 800;
+}
+
+.target-gap .ic {
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+}
+
+.target-falls,
+.target-drop {
+  color: var(--ink-soft);
+}
+
+.target-row.is-near td {
+  background: color-mix(in srgb, var(--gold-color) 10%, var(--white));
+}
+
+.target-row.is-near .target-gap {
+  color: var(--gold-hover);
+}
+
+.target-row.is-hit td {
+  background: var(--danger-color);
+  color: var(--white);
+}
+
+.target-row.is-hit .target-score,
+.target-row.is-hit .target-falls,
+.target-row.is-hit .target-drop {
+  color: var(--white);
+}
+
+/* Le pot vient de tomber pile : la ligne s'allume en rouge et « pile ! »
+   rebondit, une seule fois (`.is-hit-new`, posé au rendu où elle le
+   devient). C'est le moment de Sniper. */
+.target-hit {
+  display: inline-flex;
+  align-items: center;
+}
+
+.target-row.is-hit-new td {
+  animation: target-light 0.22s ease-out;
+}
+
+.target-row.is-hit-new .target-hit {
+  animation: target-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes target-light {
+  from {
+    background: color-mix(in srgb, var(--danger-color) 25%, var(--white));
+  }
+}
+
+@keyframes target-pop {
+  0% {
+    transform: scale(0.6);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Le pot l'a déjà dépassé : on ne peut plus tomber pile dessus. */
+.target-row.is-passed td,
+.target-row.is-passed .target-score,
+.target-row.is-passed .target-falls,
+.target-row.is-passed .target-drop {
+  color: var(--ink-faint);
+}
+
+/* Sniper, replié : une pastille par adversaire devant, avec l'écart exact ;
+   « Détail » déplie le tableau (renderTargets). Sans Sniper, rien : la
+   feuille, visible au-dessus, dit qui est devant. */
+.aim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.aim:empty {
+  display: none;
+}
+
+.aim-chips {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  -webkit-mask-image: linear-gradient(90deg, #000 90%, transparent);
+  mask-image: linear-gradient(90deg, #000 90%, transparent);
+}
+
+.aim-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.aim-chip {
+  flex: none;
+}
+
+.aim-lead {
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* Bouton : `padding` et couleur de texte posés (règle globale `button`). */
+.aim-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.3em 0.65em 0.3em 0.4em;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+  color: var(--ink);
+  font-size: var(--fs-s);
+}
+
+.aim-chip i {
+  width: 0.85em;
+  height: 0.85em;
+  border-radius: 50%;
+  background: var(--col);
+  box-shadow: inset 0 0 0 1px var(--rule-strong);
+}
+
+.aim-chip b {
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.aim-chip.is-passed {
+  opacity: 0.4;
+}
+
+/* Le pot tombe pile : la pastille s'allume, et rebondit une fois. */
+.aim-chip.is-hit {
+  background: var(--danger-color);
+  color: var(--white);
+  box-shadow: none;
+}
+
+.aim-chip.is-hit-new {
+  animation: target-pop 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.aim-more {
+  padding: 0.3em 0.6em;
+  border: none;
+  background: transparent;
+  color: var(--secondary-hover);
+  font-size: var(--fs-s);
+  font-weight: 750;
+}
+
+/* Nombres et ponctuations doubles d'un seul tenant (`unbreakable`). */
+.pot-after .keep {
+  white-space: nowrap;
+}

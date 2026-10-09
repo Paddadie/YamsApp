@@ -1,0 +1,271 @@
+/* ========== 5000 — LES PALIERS ========== */
+/* pages/g5000/quickEntry.ts. Suite de g5000-entry.css. */
+
+/* ---------- La saisie manuelle : les paliers ---------- */
+/* Le millier, puis la case : on choisit son score au lieu de le composer.
+   Chaque case annonce ce qu'elle ferait (pile sur un adversaire, victoire,
+   refusée). Mêmes touches en relief que le reste de l'appli. */
+
+/* Les milliers : un bouton segmenté à l'encre (comme les réglages), en une
+   rangée qui défile jusqu'au plus haut millier permis ; le suivant dépasse à
+   moitié et s'efface, pour dire qu'il y a une suite. */
+.pal-thousands {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  border-radius: var(--radius-l);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+  -webkit-mask-image: linear-gradient(90deg, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+
+.pal-thousands::-webkit-scrollbar {
+  display: none;
+}
+
+/* `padding` posé : la règle globale `button` ajoute 1em de chaque côté.
+   Texte foncé explicite : elle écrit en blanc. */
+.pal-th {
+  flex: 0 0 calc(100% / 5.4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  padding: 0.35rem 0.1rem 0.4rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: var(--fs-ui);
+  font-stretch: 66%;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  scroll-snap-align: start;
+}
+
+.pal-th + .pal-th {
+  box-shadow: inset 1.5px 0 0 var(--rule-strong);
+}
+
+.pal-th small {
+  font-size: var(--fs-3xs);
+  font-stretch: 85%;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.pal-th.is-on {
+  background: var(--ink);
+  color: var(--sheet);
+}
+
+.pal-th.is-on small {
+  color: rgba(255, 253, 248, 0.75);
+}
+
+.pal-th:focus-visible,
+.pal-tile:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: -3px;
+}
+
+/* La grille : deux centaines par ligne (x00, x50, y00, y50). */
+.pal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.pal-grid.is-flip .pal-tile {
+  animation: pal-flip 0.22s ease-out both;
+}
+
+@keyframes pal-flip {
+  from {
+    opacity: 0.25;
+    transform: translateY(-4px);
+  }
+}
+
+.pal-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.85rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-l);
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong), inset 0 -4px 0 var(--rule);
+  color: var(--ink);
+  font-size: var(--fs-xl);
+  font-stretch: 66%;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  touch-action: manipulation;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+/* Les « 50 » un cran plus petits, jamais grisés : gris = désactivé. */
+.pal-tile.is-half {
+  font-size: var(--fs-l);
+  font-weight: 800;
+}
+
+.pal-tile:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+}
+
+/* « 0 » sous 1 000 : une case vide, pas un score. */
+.pal-tile:disabled {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--rule);
+  cursor: default;
+}
+
+/* Refusée (entrée en jeu, Sans demi-mesure) : hachurée, mais on peut la
+   choisir — la ligne du dessous dit pourquoi on ne banque pas, et un bust
+   peut porter ce pot. Au-delà de l'objectif avec Dans le mille : en rouge. */
+.pal-tile.is-blocked,
+.pal-tile.is-over {
+  color: var(--ink-faint);
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 5px, rgba(var(--ink-rgb), 0.06) 5px 7px),
+    var(--sheet);
+  box-shadow: inset 0 0 0 1.5px var(--rule);
+}
+
+.pal-tile.is-over {
+  background:
+    repeating-linear-gradient(-45deg, transparent 0 5px, rgba(194, 57, 43, 0.1) 5px 7px),
+    var(--sheet);
+}
+
+/* Pile sur un adversaire (Sniper) : son point de couleur, cerné d'encre comme
+   la marque d'une rature sur la feuille. */
+.pal-marks {
+  position: absolute;
+  top: 0.2rem;
+  right: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.pal-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+.pal-tile.is-aim {
+  box-shadow: inset 0 0 0 2px var(--danger-color), inset 0 -4px 0 rgba(194, 57, 43, 0.25);
+}
+
+.pal-trophy {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: var(--gold-color);
+}
+
+.pal-tile.is-win:not(.is-blocked):not(.is-over) {
+  background: color-mix(in srgb, var(--best-tab) 40%, var(--sheet));
+}
+
+/* Le score choisi : surligné à la couleur du joueur, entouré au feutre. */
+.pal-tile.is-picked {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--player-color, var(--paper)) 55%, var(--sheet));
+  box-shadow: inset 0 0 0 1.5px rgba(var(--ink-rgb), 0.5);
+}
+
+.pal-circle {
+  position: absolute;
+  inset: -0.25rem -0.2rem;
+  width: calc(100% + 0.4rem);
+  height: calc(100% + 0.5rem);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.pal-circle path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+/* Tracé seulement au moment du choix : la grille est redessinée à chaque
+   toucher, une animation permanente repartirait de zéro. */
+.pal-tile.is-drawing {
+  animation: pal-pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.pal-tile.is-drawing .pal-circle path {
+  animation: pal-draw 0.35s ease-out both;
+}
+
+@keyframes pal-pop {
+  from {
+    transform: scale(0.94);
+  }
+}
+
+@keyframes pal-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* La ligne de suite, sous la grille. */
+.pal-grid + .pot-after {
+  margin-top: 0.55rem;
+}
+
+.pot-after.is-hit {
+  color: var(--danger-hover);
+  font-weight: 700;
+}
+
+/* [Bust · 1 500] [Banquer 1 500] : l'action principale à droite, sous le
+   pouce, plus large. */
+.pal-foot #quick-bust {
+  flex: 1;
+  min-width: 0;
+  padding-inline: 0.5em;
+  white-space: nowrap;
+}
+
+.pal-foot #quick-bank {
+  flex: 1.7;
+  min-width: 0;
+  padding-inline: 0.5em;
+  white-space: nowrap;
+}
+
+/* Petit écran (hauteur) : la grille se resserre pour laisser voir la feuille. */
+@media (max-height: 700px) {
+  .pal-tile {
+    height: 2.45rem;
+    font-size: var(--fs-l);
+  }
+
+  .pal-tile.is-half {
+    font-size: var(--fs-ui);
+  }
+}

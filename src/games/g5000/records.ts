@@ -18,9 +18,8 @@
 // ne se mesure qu'aux parties jouées au même objectif. Seules les victoires se
 // comptent tous objectifs confondus.
 
-import type { Move } from "./engine";
 import { compareNames, sameName } from "../../core/playerName";
-import type { G5000Game, G5000GameStats, GameFeat } from "./types";
+import type { G5000Game, G5000GameStats, GameFeat, Move } from "./types";
 import { DEFAULT_RULES } from "./rules";
 
 /* ---------- Pendant la partie ---------- */

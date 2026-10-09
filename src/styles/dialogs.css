@@ -57,7 +57,7 @@ dialog::backdrop {
   margin: 0 0 0.85em;
   padding-bottom: 0.45em;
   border-bottom: 1.5px solid var(--ink);
-  font-size: 1.55rem;
+  font-size: var(--fs-3xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
@@ -89,7 +89,7 @@ dialog::backdrop {
 .sheet-player {
   grid-area: player;
   margin: 0;
-  font-size: 1.9rem;
+  font-size: var(--fs-4xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 0.95;
@@ -104,7 +104,7 @@ dialog::backdrop {
   display: inline-flex;
   align-items: center;
   gap: 0.45em;
-  font-size: 0.66rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -113,7 +113,7 @@ dialog::backdrop {
 .sheet-rank .gommette {
   width: 1.4rem;
   height: 1.4rem;
-  font-size: 0.82rem;
+  font-size: var(--fs-s);
   letter-spacing: 0;
 }
 
@@ -131,7 +131,7 @@ dialog::backdrop {
   align-items: center;
   gap: 0.4em;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   color: var(--ink-soft);
 }
 
@@ -139,13 +139,13 @@ dialog::backdrop {
   grid-area: total;
   margin: 0;
   text-align: right;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--ink-soft);
 }
 
 .sheet-total span {
   display: block;
-  font-size: 2.6rem;
+  font-size: var(--fs-5xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 0.9;
@@ -205,4 +205,70 @@ dialog::backdrop {
    palmarès : elle vient sous un récapitulatif, pas seule dans sa fenêtre. */
 #delete-sheet {
   margin-bottom: 1em;
+}
+
+/* ---------- Installer Cornet ---------- */
+/* Les deux gestes sur iPhone (core/pwa/install.ts), dans la fenêtre du menu et
+   dans Paramètres › Sauvegarde : le pictogramme dessiné comme dans Safari,
+   pour qu'on le reconnaisse dans sa barre. */
+.install-steps {
+  margin: 0 0 1.1em;
+  padding-left: 1.4em;
+  font-size: var(--fs-body);
+  line-height: 1.7;
+  color: var(--ink);
+  text-align: left;
+}
+
+.install-steps .ic {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.25em;
+  color: var(--secondary-color);
+}
+
+.install-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9em;
+}
+
+/* L'icône d'appli, arrondie comme sur l'écran d'accueil. */
+.install-icon {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 22%;
+  box-shadow: 0 2px 6px rgba(var(--shade-rgb), 0.3);
+}
+
+/* « Ne plus demander » : sous les deux boutons, en retrait — c'est la
+   réponse qu'on ne doit pas donner par mégarde. Deux classes : .link-plain
+   (g5000-calc.css, importé après) poserait sinon son inline-flex. */
+.link-plain.install-never {
+  display: block;
+  margin: 0.8em auto 0;
+}
+
+/* Le focus est posé sur la fenêtre à l'ouverture (home.ts) : pas d'anneau
+   autour de toute la fenêtre. */
+#install-dialog:focus {
+  outline: none;
+}
+
+.install-row {
+  margin-top: 1.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.install-row .install-steps {
+  font-size: var(--fs-m);
+  margin-bottom: 0.6em;
+}
+
+.install-row .btn {
+  width: 100%;
+  max-width: none;
+  margin: 0;
 }

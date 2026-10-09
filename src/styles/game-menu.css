@@ -126,7 +126,7 @@
 }
 
 .game-tagline {
-  font-size: 0.85rem;
+  font-size: var(--fs-m);
   line-height: 1.35;
   color: var(--ink-soft);
 }
@@ -140,7 +140,7 @@
   padding: 0.65rem 0.9rem 0.75rem 1rem;
   border-top: 1.5px dashed var(--rule);
   color: var(--ink);
-  font-size: 0.88rem;
+  font-size: var(--fs-m);
   text-decoration: none;
 }
 
@@ -177,14 +177,14 @@
   align-self: center;
   width: min(100%, 21rem);
   margin: 0.5rem 0 0.3rem;
-  font-size: 0.95rem;
+  font-size: var(--fs-body);
   line-height: 1.35;
 }
 
 .last-win-label {
   display: block;
   margin-bottom: 0.15rem;
-  font-size: 0.66rem;
+  font-size: var(--fs-2xs);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -192,13 +192,13 @@
 }
 
 .last-win-who {
-  font-size: 1.15rem;
+  font-size: var(--fs-l);
   font-stretch: 75%;
   font-weight: 900;
 }
 
 .last-win-date {
   display: block;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   color: var(--ink-soft);
 }

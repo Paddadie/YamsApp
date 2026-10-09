@@ -14,7 +14,8 @@ const pkg = JSON.parse(readFileSync(fromRoot("package.json"), "utf-8")) as {
 // Fragments communs des pages (<head>, pictogrammes) : voir htmlFragments.ts.
 // Seuls <title> et <meta charset> restent dans chaque fichier.
 // `order: "pre"` : l'injection doit passer AVANT le traitement HTML de Vite,
-// sinon le chemin absolu /de.png ne serait pas réécrit avec `base`.
+// sinon les chemins absolus des icônes (/favicon.svg…) ne seraient pas
+// réécrits avec `base`.
 const sharedHead = (): Plugin => ({
   name: "cornet-shared-head",
   transformIndexHtml: {
@@ -59,7 +60,7 @@ export default defineConfig({
     VitePWA({
       registerType: "prompt", // on gère nous-mêmes le bandeau "Mettre à jour"
       injectRegister: false, // enregistrement fait à la main dans src/core/pwa/updatePrompt.ts
-      includeAssets: ["de.png"],
+      includeAssets: ["favicon.svg", "favicon-48.png", "apple-touch-icon.png"],
       manifest: {
         lang: "fr",
         name: "Cornet — jeux de dés",
@@ -71,8 +72,12 @@ export default defineConfig({
         start_url: "/YamsApp/",
         scope: "/YamsApp/",
         icons: [
-          { src: "de.png", sizes: "192x192", type: "image/png" },
-          { src: "de.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          // Le cornet du menu, sur le papier de l'appli, fond opaque. La
+          // version « maskable » garde le dessin dans le cercle qu'Android
+          // découpe.
+          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+          { src: "icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
       workbox: {

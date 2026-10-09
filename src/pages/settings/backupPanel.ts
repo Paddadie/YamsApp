@@ -14,6 +14,7 @@ import {
 import { formatDate } from "../../core/dates";
 import { isStorageError } from "../../core/storageAlert";
 import { showMessage } from "./dialogs";
+import { installNow, installWay, iosSteps, watchInstall } from "../../core/pwa/install";
 
 const importDialog = requireEl<HTMLDialogElement>("import-dialog");
 
@@ -35,6 +36,25 @@ export function setupBackupPanel(): void {
     importInput.value = "";
     if (file) void restore(file);
   });
+
+  setupInstallRow();
+}
+
+// « Installer Cornet » : sauvegarder protège d'une perte, installer l'évite
+// (Safari n'efface plus rien). La ligne suit l'état : elle disparaît une fois
+// l'appli installée, et le bouton n'apparaît que si le navigateur sait faire.
+function setupInstallRow(): void {
+  const row = requireEl("install-row");
+  const go = requireEl<HTMLButtonElement>("settings-install-go");
+  const render = (): void => {
+    const way = installWay();
+    row.hidden = way === null;
+    go.hidden = way !== "native";
+    requireEl("settings-install-steps").replaceChildren(...(way === "ios" ? [iosSteps()] : []));
+  };
+  go.addEventListener("click", () => void installNow().then(render));
+  watchInstall(render);
+  render();
 }
 
 // Rien ne disait que l'export avait eu lieu : sur iPhone le fichier part sans

@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5em;
-  font-size: 1.05rem;
+  font-size: var(--fs-ui);
   font-stretch: 90%;
   font-weight: 700;
   line-height: 1.2;
@@ -47,7 +47,7 @@
   width: auto;
   flex: none;
   padding: 0.5em 0.85em;
-  font-size: 0.92rem;
+  font-size: var(--fs-body);
 }
 
 /* CODE COULEUR DES BOUTONS — une couleur = un sens, dans toute l'application :

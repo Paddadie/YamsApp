@@ -1,5 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { compareNames, foldName, sameName } from "./playerName";
+import { compareNames, foldName, ofName, sameName } from "./playerName";
+
+describe("ofName", () => {
+  it("élide « de » devant une voyelle, accentuée ou non", () => {
+    expect(ofName("Alice")).toBe("d'Alice");
+    expect(ofName("Émile")).toBe("d'Émile");
+    expect(ofName("océane")).toBe("d'océane");
+  });
+
+  it("garde « de » devant une consonne, un h ou un y", () => {
+    expect(ofName("Bob")).toBe("de Bob");
+    expect(ofName("Hugo")).toBe("de Hugo");
+    expect(ofName("Yann")).toBe("de Yann");
+  });
+});
 
 describe("foldName", () => {
   it("ignore la casse et les espaces de bord", () => {

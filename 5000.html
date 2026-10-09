@@ -44,11 +44,9 @@
           <!-- Objectifs générés par src/pages/g5000/home.ts -->
           <div class="target-seg" id="target-options"></div>
         </section>
-        <!-- Les dés lancés du jeu (gameHero.ts) : la place libre devient une scène. -->
-        <div class="game-hero-scene" id="game-scene"></div>
-      </header>
-
-      <div class="screen-body">
+        <!-- La partie en cours, quand il y en a une (home.ts) : dans l'en-tête, à
+             la place des dés — elle dit où en est ce jeu ; dessous, on en lance
+             une autre (audit du 09/10, piste B). -->
         <section class="resume-card sheet" id="resume-card" hidden>
           <div class="resume-text">
             <h2 class="section-label">Partie en cours</h2>
@@ -63,6 +61,11 @@
             <!--@icon:play-->Reprendre
           </button>
         </section>
+        <!-- Les dés lancés du jeu (gameHero.ts) : la place libre devient une scène. -->
+        <div class="game-hero-scene" id="game-scene"></div>
+      </header>
+
+      <div class="screen-body">
         <section class="variants">
           <h2 class="section-label">Variantes</h2>
           <!-- Lignes générées par src/pages/g5000/home.ts -->

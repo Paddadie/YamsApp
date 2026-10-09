@@ -18,7 +18,7 @@ import {
 import { variantBadge } from "../../games/yams/variantBadge";
 import { getBestScores, getWorstScores } from "../../games/yams/storage/hallOfFameRepo";
 import { getPlayerStats } from "../../games/yams/storage/playerStatsRepo";
-import { compareNames } from "../../core/playerName";
+import { compareNames, ofName } from "../../core/playerName";
 import { scoreSheetBody } from "../../games/yams/scoreSheet";
 import { formatDate } from "../../core/dates";
 import type { ScoreEntry } from "../../games/yams/types";
@@ -87,7 +87,7 @@ function renderRecordCard(): void {
     go.className = "record-go";
     go.appendChild(icon("chevronRight"));
     card.appendChild(go);
-    makeActivatable(card, `Voir la feuille de ${top.name}`, () =>
+    makeActivatable(card, `Voir la feuille ${ofName(top.name)}`, () =>
       openSheet(top, { kind: "best", position: 1 }),
     );
   }
@@ -127,7 +127,7 @@ function renderScoreTable(
     tr.append(cell(formatDate(entry.date)), cell(String(entry.score), true));
     if (entry.sheet && entry.lineOrder) {
       tr.classList.add("clickable");
-      makeActivatable(tr, `Voir la feuille de ${entry.name}`, () =>
+      makeActivatable(tr, `Voir la feuille ${ofName(entry.name)}`, () =>
         openSheet(entry, { kind, position: i + 1 }),
       );
     }

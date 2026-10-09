@@ -29,17 +29,16 @@
   box-shadow: var(--shadow-sheet);
 }
 
-/* Bord perforé, en haut ou en bas d'un feuillet : des demi-trous de la couleur
-   de ce qui est dessous (--hole). */
-.perf-top,
-.perf-bottom {
+/* Bord perforé en haut d'un feuillet : des demi-trous de la couleur de ce qui
+   est dessous (--hole). */
+.perf-top {
   position: relative;
 }
 
-.perf-top::before,
-.perf-bottom::after {
+.perf-top::before {
   content: "";
   position: absolute;
+  top: -5px;
   left: 0;
   right: 0;
   z-index: 3;
@@ -47,14 +46,6 @@
   pointer-events: none;
   background: radial-gradient(circle at 6px 5px, var(--hole) 2.6px, transparent 3.1px)
     0 0 / 12px 10px repeat-x;
-}
-
-.perf-top::before {
-  top: -5px;
-}
-
-.perf-bottom::after {
-  bottom: -5px;
 }
 
 /* ---------- En-tête d'un écran hors partie ---------- */
@@ -92,7 +83,7 @@
   align-items: center;
   gap: 0.6em;
   margin: 0;
-  font-size: 0.7rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -123,7 +114,7 @@
   gap: 0.75em;
   margin: 0;
   text-align: left;
-  font-size: 0.68rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -186,7 +177,7 @@
   border-radius: 50%;
   background: var(--gom);
   color: var(--white);
-  font-size: 0.92rem;
+  font-size: var(--fs-body);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
@@ -242,7 +233,7 @@
 .gommette--big {
   width: 2.4rem;
   height: 2.4rem;
-  font-size: 1.35rem;
+  font-size: var(--fs-xl);
 }
 
 /* Un pictogramme sur la pastille, droit (fiches des records du 5000). */
@@ -301,7 +292,7 @@
   padding: 0.28rem 0.7rem 0.2rem 0.55rem;
   border-radius: var(--radius-m) var(--radius-m) 0 0;
   background: var(--tab-color, var(--paper));
-  font-size: 0.66rem;
+  font-size: var(--fs-2xs);
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;

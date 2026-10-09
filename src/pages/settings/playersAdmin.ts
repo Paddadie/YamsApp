@@ -7,6 +7,7 @@
 // dans setupPlayersAdmin().
 
 import { icon } from "../../core/icons";
+import { ofName } from "../../core/playerName";
 import {
   makeDismissible,
   plural,
@@ -64,7 +65,7 @@ function playerRow(name: string, games: number): HTMLLIElement {
   const edit = document.createElement("button");
   edit.type = "button";
   edit.className = "score-admin-edit";
-  edit.setAttribute("aria-label", `Modifier le nom de ${name}`);
+  edit.setAttribute("aria-label", `Modifier le nom ${ofName(name)}`);
   edit.appendChild(icon("pen"));
   edit.addEventListener("click", () => openEdit(name));
 

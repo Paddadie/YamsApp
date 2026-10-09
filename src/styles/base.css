@@ -31,6 +31,10 @@
   --rule: rgba(var(--ink-rgb), 0.13);
   --rule-strong: rgba(var(--ink-rgb), 0.28);
   --grid-line: rgba(54, 92, 170, 0.075);
+  /* La grille du Yams tenue comme un cahier (09/10) : lignes bleues, marge
+     rouge d'écolier après les libellés. */
+  --ruling: rgba(54, 92, 170, 0.24);
+  --margin-line: rgba(194, 57, 43, 0.5);
   --shadow-sheet: 0 1px 0 rgba(var(--shade-rgb), 0.07),
     0 12px 22px -18px rgba(var(--shade-rgb), 0.55);
   /* Couleur de ce qu'on voit à travers les perforations d'un feuillet : le
@@ -89,6 +93,27 @@
   --radius-l: 8px;
   --radius-xl: 10px;
   --radius-pill: 999px;
+  /* Tailles de texte : une échelle, comme les rayons (octobre 2026 : 45
+     tailles en rem s'étaient accumulées, 0,78 / 0,8 / 0,82 côte à côte),
+     ramenées ici au plus proche, 5 % d'écart au plus sauf trois grands
+     écarts assumés. Un composant ajouté prend une taille de la liste. Les
+     tailles en em (proportionnelles à leur composant) et les clamp() des
+     grands titres restent à part. */
+  --fs-3xs: 0.6rem; /* marques minuscules : « pile ! », gain au crayon */
+  --fs-2xs: 0.66rem; /* capitales espacées : surtitres, intitulés, en-têtes de tableau */
+  --fs-xs: 0.74rem; /* légendes, détails sous un nombre */
+  --fs-s: 0.8rem; /* notes, aides, liens discrets */
+  --fs-m: 0.88rem; /* texte secondaire, tableaux denses */
+  --fs-body: 0.95rem; /* libellés, noms dans une liste */
+  --fs-base: 1rem; /* texte courant, tableaux */
+  --fs-ui: 1.05rem; /* boutons, puces, touches */
+  --fs-l: 1.15rem; /* noms et nombres mis en avant */
+  --fs-xl: 1.3rem; /* score en vigueur, grandes touches */
+  --fs-2xl: 1.45rem; /* titres de section des Paramètres */
+  --fs-3xl: 1.6rem; /* titres de fenêtre */
+  --fs-4xl: 2rem; /* titres d'écran, nom du joueur */
+  --fs-5xl: 2.3rem; /* grands nombres : pot, record */
+  --fs-hero: 4.5rem; /* le nom du jeu sur l'accueil, sur ordinateur */
   --transition: 0.3s ease;
 
   /* Gabarits de contenu, élargis sur tablette (voir @media plus bas). */

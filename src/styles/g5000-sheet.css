@@ -1,0 +1,496 @@
+/* ========== 5000 — LA FEUILLE ========== */
+/* Suite de g5000-game.css (découpé le 09/10, ordre des imports inchangé).
+   Dessinée par pages/g5000/sheet.ts. */
+
+/* ---------- La feuille de progression ---------- */
+
+/* Même raison qu'au Yams (#game-screen) : sans `pan-y pinch-zoom`, le
+   navigateur garde le geste horizontal pour lui et le glissement qui change de
+   joueur (core/swipe.ts) ne se déclenche jamais. */
+#g5000-screen {
+  --hole: var(--player-color, var(--paper));
+  touch-action: pan-y pinch-zoom;
+}
+
+/* La feuille défile seule, et non tout le corps de l'écran : les noms restent
+   collés en haut (sticky) — un ancêtre qui défile à sa place les emporterait. */
+#g5000-screen .screen-body {
+  padding: 0;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* « Dernier tour · Bob +650 → 2 050 [Corriger] » : une bande de feuillet au
+   bord de la feuille, à sa largeur. Elle confirme chaque saisie d'un coup
+   d'œil, et c'est d'elle qu'on reprend un tour mal saisi (bust compris, qui
+   n'écrit rien sur la feuille). */
+.last-turn {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: calc(100% - 1rem);
+  max-width: calc(var(--content-max) - 1rem);
+  margin-top: 0.9rem;
+  padding: 0.35rem 0.4rem 0.35rem 0.65rem;
+  background: var(--sheet);
+  border-radius: var(--radius-s);
+  box-shadow: var(--shadow-sheet);
+  font-size: var(--fs-m);
+}
+
+.last-turn:not([hidden]) + .sheet-scroll .g5000-sheet {
+  margin-top: 0.6rem;
+}
+
+.last-turn-label {
+  flex: none;
+  font-size: var(--fs-2xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Un nom long ou une cascade se coupent (…) plutôt que de pousser le bouton. */
+.last-turn-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Téléphone étroit : le texte avant l'étiquette (cf. « C'est à », même
+   seuil). */
+@media (max-width: 400px) {
+  .last-turn-label {
+    display: none;
+  }
+}
+
+.last-turn-text b {
+  font-stretch: 75%;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.last-turn-dot {
+  display: inline-block;
+  width: 0.65em;
+  height: 0.65em;
+  margin-right: 0.3em;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(var(--ink-rgb), 0.35);
+}
+
+/* Rouge en contour : il ouvre une confirmation avant d'effacer (code couleur
+   des boutons). Pas un `.btn` : couleur et marges posées ici. */
+.last-turn-fix {
+  flex: none;
+  padding: 0.25em 0.8em;
+  border: 1.5px solid var(--danger-color);
+  border-radius: var(--radius-pill);
+  background: var(--sheet);
+  color: var(--danger-hover);
+  font-size: var(--fs-s);
+  font-weight: 750;
+}
+
+.last-turn-fix:active {
+  background: color-mix(in srgb, var(--danger-color) 10%, var(--sheet));
+}
+
+.last-turn-fix:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+.sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: var(--content-max);
+  overflow: auto;
+  /* Marges latérales courtes (demande de Paul) : juste de quoi voir l'ombre.
+     Pas de marge haute ici : les noms collés (sticky) s'arrêtent au bord de
+     cette zone, et les lignes qui défilent repasseraient dans la marge,
+     au-dessus d'eux — visible dès que la feuille défile sous le pupitre.
+     L'air au-dessus (perforation du bandeau) est porté par la feuille. */
+  padding: 0 0.5rem 0.75rem;
+}
+
+/* Une feuille de cahier posée sur la table : un feuillet blanc sur le papier
+   de l'écran, qui s'allonge ligne après ligne. Lignes au bleu du quadrillage
+   (le cahier de toute l'appli), traits fins translucides ; chaque colonne est
+   teintée de la couleur de son joueur, séparée de la suivante par un filet
+   neutre — dix filets de couleur faisaient « cage ». Chiffres centrés, comme
+   écrits à la main au milieu de la colonne, en capitales étroites, lisibles de
+   loin autour d'une table. Redessinée le 08/10 (« feuille A »). */
+.g5000-sheet {
+  margin-top: 1rem;
+  /* Un seul trait pour toutes les lignes, translucide : il assombrit d'autant
+     la teinte de la colonne, quelle qu'elle soit. Opaque, il ressortait sur
+     le rose et se fondait dans le vert : les lignes semblaient inégales. */
+  --rule: rgba(54, 92, 170, 0.17);
+  --sep: rgba(var(--ink-rgb), 0.08);
+  background: var(--sheet);
+  border-radius: 0 0 var(--radius-m) var(--radius-m);
+  box-shadow: var(--shadow-sheet);
+  width: 100%;
+  /* Colonnes égales, réglées sur le plus long nombre de la partie (« 5 050 »
+     entouré à 5 000, « 10 000 » au-delà : `--num-min`, posé par game.ts) —
+     quatre joueurs tiennent ainsi sur un téléphone de 360 px —, et jamais
+     plus étroites que le plus long prénom (`--tab-width`, le nom seul, mesuré
+     et plafonné par game.ts, + les marges de l'onglet et de sa case). Au-delà, la feuille défile à
+     l'horizontale. `--players` est posé par game.ts. */
+  --col-min: max(var(--num-min, 5.5rem), calc(var(--tab-width, 0px) + 1rem));
+  min-width: calc(var(--players, 2) * var(--col-min));
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-variant-numeric: tabular-nums;
+}
+
+.g5000-sheet th,
+.g5000-sheet td {
+  padding: 0 0.2em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Les traits sont des ombres internes, pas des bordures : une ombre interne
+   se peint sur la teinte de SA case — le même trait translucide l'assombrit
+   alors d'autant dans toutes les colonnes. */
+.g5000-sheet tbody td {
+  box-shadow: inset 0 -1px 0 var(--rule);
+}
+
+.g5000-sheet tbody td + td {
+  box-shadow:
+    inset 1px 0 0 var(--sep),
+    inset 0 -1px 0 var(--rule);
+}
+
+/* L'en-tête entier reste en haut quand la feuille défile : collé case par
+   case, les lignes repassaient devant les onglets. */
+.g5000-sheet thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Les noms sur des intercalaires de la couleur de chaque joueur, posés sur le
+   trait d'encre qui les sépare des scores — comme les onglets des Paramètres
+   et du palmarès. */
+.g5000-sheet thead th {
+  padding: 0.55rem 0.15rem 0;
+  background: var(--paper);
+  box-shadow: inset 0 -1.5px 0 var(--ink);
+  vertical-align: bottom;
+}
+
+/* L'onglet : le nom, plus gros que les scores (c'est lui qu'on cherche des
+   yeux), et sous lui les busts d'affilée. */
+.name-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  max-width: 100%;
+  margin: 0 auto;
+  /* Marges courtes : à 360 px, c'est la largeur des onglets, pas celle des
+     nombres, qui décidait si quatre joueurs tenaient sans défiler. */
+  padding: 0.35rem 0.3rem 0.32rem;
+  border-radius: var(--radius-l) var(--radius-l) 0 0;
+  background: var(--col);
+  box-shadow: inset 0 -1px 0 rgba(var(--ink-rgb), 0.15);
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-stretch: 72%;
+  font-weight: 850;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.name-tab-text {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Celui qui a la main : son onglet dépasse plus haut, cerné d'encre (sauf en
+   bas, où il rejoint sa colonne). */
+.g5000-sheet thead th.is-current .name-tab {
+  padding-top: 0.6rem;
+  box-shadow: 0 0 0 2px var(--ink);
+  clip-path: inset(-3px -3px 0 -3px);
+}
+
+.g5000-sheet tbody td {
+  position: relative; /* pour la marque d'une rature, contre le bord droit */
+  height: 2.25rem;
+  background: color-mix(in srgb, var(--col) 11%, var(--sheet));
+}
+
+/* La colonne de celui qui joue, un ton plus soutenu : le bandeau coloré du
+   haut ne suffit pas quand l'oeil est dans le tableau. */
+.g5000-sheet tbody td.is-current {
+  background: color-mix(in srgb, var(--col) 24%, var(--sheet));
+}
+
+/* Les noms en tête de colonne sont des onglets : toucher un joueur lui donne
+   la main. Ceux-là sont de vrais boutons : ils remplissent leur colonne comme
+   les autres onglets (un bouton se règle sinon sur son contenu), et la règle
+   globale `button` (fond bleu, texte blanc) est déjà couverte par .name-tab. */
+.g5000-sheet thead th.is-choosable {
+  cursor: pointer;
+}
+
+.g5000-sheet button.name-tab {
+  width: 100%;
+  cursor: pointer;
+}
+
+.g5000-sheet thead th.is-choosable:active .name-tab {
+  filter: brightness(0.92);
+}
+
+/* En fin de partie : le vainqueur et ceux qui ont déjà riposté ne rejouent pas. */
+.g5000-sheet thead th.is-out .name-tab {
+  opacity: 0.5;
+}
+
+/* Une hiérarchie : les anciens scores en retrait, le score en vigueur plus
+   grand, surligné au feutre de la couleur du joueur — avec les ratures, il
+   n'est pas forcément le dernier de sa colonne, et il doit se repérer de loin
+   à n'importe quelle hauteur. */
+.g5000-sheet .entry {
+  position: relative;
+  display: inline-block;
+  font-size: var(--fs-base);
+  font-stretch: 75%;
+  font-weight: 650;
+  color: var(--ink-soft);
+}
+
+.g5000-sheet .is-live .entry {
+  padding: 0 0.18em;
+  font-size: var(--fs-xl);
+  font-weight: 900;
+  color: var(--ink);
+  background: linear-gradient(
+      100deg,
+      transparent 3%,
+      var(--col) 6%,
+      var(--col) 94%,
+      transparent 97%
+    )
+    no-repeat 0 72% / 100% 64%;
+}
+
+/* Objectif atteint : entouré au feutre, d'un cercle tracé à la main (comme
+   l'objectif sur l'accueil), qui se trace quand le score s'écrit. */
+.g5000-sheet .is-goal .entry {
+  background: none;
+}
+
+.goal-circle {
+  position: absolute;
+  inset: -0.35rem -0.45rem;
+  width: calc(100% + 0.9rem);
+  height: calc(100% + 0.7rem);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.goal-circle path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+}
+
+.g5000-sheet .has-written .goal-circle path {
+  animation: goal-draw 0.5s ease-out 0.45s both;
+}
+
+@keyframes goal-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+
+/* Score barré : il reste lisible, mais passe au second plan. Le trait est un
+   pseudo-élément et non un text-decoration, pour pouvoir se tracer ; un peu
+   de travers, comme à la main. */
+.g5000-sheet s.entry {
+  color: var(--ink-faint);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.g5000-sheet s.entry::after {
+  content: "";
+  position: absolute;
+  left: -0.2em;
+  right: -0.2em;
+  top: 50%;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ink);
+  transform: rotate(-6deg);
+  transform-origin: left center;
+}
+
+/* Contre le bord droit de la case, à l'écart du score centré (demande de
+   Paul) : elle explique la rature sans se confondre avec elle. Le chiffre
+   barré se décale d'autant, sinon les deux se chevauchent sur une colonne
+   étroite. */
+.strike-mark {
+  position: absolute;
+  right: 0.25rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--fs-2xs);
+  font-stretch: 85%;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.g5000-sheet td:has(.strike-mark) s.entry {
+  margin-right: 0.85rem;
+}
+
+/* Rattrapé : un point à la couleur de celui qui a égalisé, cerné d'encre
+   pour se détacher du fond teinté de la colonne. */
+.strike-mark--tie {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+/* Trop de busts d'affilée : « 3× » sur une petite étiquette blanche. */
+.strike-mark--penalty {
+  padding: 0.12em 0.28em;
+  border-radius: var(--radius-s);
+  background: var(--white);
+  box-shadow: 0 0 0 1px var(--rule-strong);
+}
+
+/* Dans l'onglet, sous le nom : les busts d'affilée, mêmes pastilles que le
+   bandeau, en plus petit. */
+.sheet-pips {
+  display: flex;
+  justify-content: center;
+  gap: 0.2rem;
+}
+
+.sheet-pips .pip {
+  width: 0.42rem;
+  height: 0.42rem;
+}
+
+/* Pas (ou plus) entré en jeu. */
+.g5000-sheet .sheet-out {
+  color: var(--ink-faint);
+}
+
+.g5000-sheet .sheet-empty {
+  padding: 1.4em 0.5em;
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: var(--fs-m);
+  font-stretch: 100%;
+  font-weight: 400;
+  white-space: normal;
+}
+
+/* Pendant la saisie, au crayon : la case où s'écrira le score montre où
+   arriverait le joueur (« +1 500 » en petit), souligné en pointillé — au
+   feutre une fois banqué. Barré si ce pot ne se banquerait pas. */
+.g5000-sheet td.is-pending {
+  box-shadow: inset 0 0 0 1.5px rgba(var(--ink-rgb), 0.35);
+}
+
+.g5000-sheet td.is-pending .entry {
+  color: var(--ink-soft);
+  font-weight: 750;
+  border-bottom: 1.5px dashed rgba(var(--ink-rgb), 0.45);
+  line-height: 1.15;
+}
+
+.g5000-sheet td.is-pending.is-blocked .entry {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+}
+
+.pending-gain {
+  position: absolute;
+  left: 0.2rem;
+  top: 0.12rem;
+  font-size: var(--fs-3xs);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--ink-faint);
+}
+
+/* Le pot tomberait pile sur cet adversaire (Sniper) : son score s'allume. */
+.g5000-sheet td.is-hit .entry {
+  border-radius: var(--radius-s);
+  background: var(--danger-color);
+  color: var(--white);
+}
+
+.g5000-sheet td.is-hit::after {
+  content: "pile !";
+  position: absolute;
+  right: 0.12rem;
+  top: 0.08rem;
+  font-size: var(--fs-3xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--danger-hover);
+}
+
+/* Ce que le dernier tour a changé : le score s'écrit de gauche à droite, puis
+   le trait barre ce qui est tombé. */
+.g5000-sheet .is-written {
+  animation: sheet-write 0.45s ease-out both;
+}
+
+.g5000-sheet .is-striking::after {
+  animation: sheet-strike 0.35s ease-in 0.45s both;
+}
+
+/* Pendant la cascade, les animations attendent : sous le dialogue, personne ne
+   les verrait. Elles partent quand il se referme. */
+body:has(#cascade-dialog[open]) .g5000-sheet .is-written,
+body:has(#cascade-dialog[open]) .g5000-sheet .is-striking::after {
+  animation-play-state: paused;
+}
+
+@keyframes sheet-write {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* Le trait de rature, un peu de travers, se trace de gauche à droite. */
+@keyframes sheet-strike {
+  from {
+    transform: rotate(-6deg) scaleX(0);
+  }
+  to {
+    transform: rotate(-6deg) scaleX(1);
+  }
+}

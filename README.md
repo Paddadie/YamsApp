@@ -31,8 +31,8 @@ check` enchaîne les trois.
 
 | Fichier | Écran | Entrée TS |
 |---|---|---|
-| `index.html` | Menu des jeux : une carte par jeu (avec un extrait de sa feuille), reprise d'une partie en cours, Paramètres | `src/pages/home.ts` |
-| `players.html` | Joueurs de la partie, **commun aux jeux** (liste à cocher, ordre en faisant glisser un joueur coché, mélange) | `src/pages/players.ts` |
+| `index.html` | Menu des jeux : une carte par jeu (avec un extrait de sa feuille), reprise d'une partie en cours, Paramètres, fenêtre « Installer Cornet » tant que l'appli n'est pas installée | `src/pages/home.ts` |
+| `players.html` | Joueurs de la partie, **commun aux jeux** (liste à cocher, ordre en faisant glisser un joueur coché, mélange, « Mêmes joueurs » que la dernière partie ; un nom tient en 20 caractères) | `src/pages/players.ts` |
 | `rules.html?game=…[&from=play]` | « ⓘ Règles » du jeu, générées depuis ses réglages | `src/pages/rules.ts` |
 | `settings.html[?game=…]` | Paramètres : communs, plus ceux du jeu d'où l'on vient | `src/pages/settings.ts` |
 | `yams.html` | Accueil du Yams : variantes, partie en cours, palmarès | `src/pages/yams/home.ts` |
@@ -53,9 +53,10 @@ src/
 │   ├── bootstrap · nav · ui · playerName · playerColors · dates · dice
 │   │   illustrations (cornet du menu, dés des accueils)
 │   │   iconPaths (tracés, sans DOM) · icons (SVG, tampons de rang)
-│   │   format · ranking · swipe · wakeLock · storageAlert · pwa/
+│   │   format · ranking · swipe · wakeLock · storageAlert
+│   │   pwa/ (updatePrompt : mise à jour · install : installer sur l'écran d'accueil)
 │   └── storage/ localStore · keys · migrate · backup · persist · lastWinRepo
-│                knownPlayersRepo · playerGamesRepo · draftRepo
+│                knownPlayersRepo · playerGamesRepo · draftRepo · installPromptRepo
 ├── games/
 │   ├── registry.ts     LA liste des jeux
 │   ├── types.ts        GameDef : ce qu'un jeu déclare au reste de l'appli
@@ -68,6 +69,7 @@ src/
 ├── pages/       un module par écran (câblage DOM), + settings/, gameSwitcher,
 │                gameTheme (encre et papier du jeu sur ses pages), g5000/
 │                calculator et quickEntry (calculette et paliers, les deux saisies du 5000),
+│                potText (ce qu'elles disent du pot), sheet (la feuille), targets (cibles Sniper),
 │                gameHero (en-tête d'un accueil, extrait de feuille), targetOption
 │                et endScreen (« Bravo … ! », confettis, lignes de record)
 ├── styles/      la feuille de style, par domaine (cf. Conventions)
@@ -159,7 +161,13 @@ progression ouverte du 5000 n'ont rien à partager.
   Les lignes 1 à 6 portent une face de dé dessinée en SVG. En haut, la même
   barre qu'au 5000 : ⓘ Règles et la pause (retour à l'accueil du Yams, partie
   gardée), hors de la ligne des flèches pour ne pas s'y confondre.
-- **Saisie** : sur les lignes 1 à 6, chaque valeur de la fenêtre dit son nombre
+- **La grille, un cahier** (09/10) : lignes bleues (`--ruling`), marge rouge
+  après les libellés (`--margin-line`), chiffres étroits et grands, lisibles
+  de l'autre bout de la table ; les cases gardent leur habit (pointillé vide,
+  teinte du joueur remplie). Bornée à 30 rem de large (`--grid-max`) : le
+  score final reste à l'écran jusqu'à 375 × 667, et sur ordinateur.
+- **Saisie** : la fenêtre est titrée par sa ligne (pour un chiffre, le dé et
+  « Les 4 »). Sur les lignes 1 à 6, chaque valeur dit son nombre
   de dés (8 sur la ligne des 4 = « 2× ⚃ »). La valeur choisie s'écrit dans sa
   case (seule la case qu'on vient de remplir s'anime), un 0 se barre. Un Yams
   marqué reste entouré ; à la saisie, confettis et tampon « YAMS ! »
@@ -174,18 +182,23 @@ progression ouverte du 5000 n'ont rien à partager.
   barre du haut le rappelle et y ramène d'un toucher — dans la barre, pour ne
   rien prendre à la grille. Sur un écran étroit, « C'est à » saute et le nom
   reste.
+- **Fin de partie** : la dernière case remplie mène au podium après la même
+  attente que l'avance automatique ; changer de grille pendant ce temps
+  (flèche, glissement, pastille) ne l'annule plus — on restait sinon sur une
+  grille finie, sans issue.
 - **Indice de bonus** (désactivable) : à une variante, à quatre chiffres
   restants ou moins ; à deux variantes, à trois ou moins (colonnes plus
   étroites) ; au-delà, jamais. La case du plus grand chiffre libre montre la
   combinaison la plus probable pour atteindre 63 (`bonusPlan`). La ligne du
-  bonus affiche sa valeur réglée, « Bonus (35) », comme « Full (25) ». Les plans sont classés par `DICE_ODDS`, la
-  probabilité d'obtenir au moins *k* dés d'un chiffre en un tour
+  bonus affiche sa valeur réglée, « Bonus (35) », comme « Full (25) ».
+  Les plans sont classés par `DICE_ODDS`, la probabilité d'obtenir au moins *k* dés d'un chiffre en un tour
   (`B(5, 1 − (5/6)³)`) ; à probabilité égale, le moins de dés ; à effort égal,
   le plus de points. Ce dernier départage n'est pas cosmétique : sans lui, deux
   plans équivalents étaient choisis au hasard d'un arrondi. Le tri du plus gros
   dé au plus petit n'est qu'un tri d'affichage.
 - **Mode consultation** : depuis l'écran de fin, `yams-game.html?review=1`
-  montre les grilles en lecture seule.
+  montre les grilles en lecture seule. Ignoré tant que la partie n'est pas
+  finie, comme au 5000.
 - **Palmarès** (`hallOfFame.ts` dans le code) : top 5 des **meilleurs** scores toutes variantes confondues
   (un même joueur peut occuper plusieurs places), top 5 des **pires**
   **en Classique seulement** — les autres variantes produisent trop souvent des
@@ -295,7 +308,13 @@ chiffre). Tout est figé au lancement (`G5000Game.rules`).
   lignes au bleu du quadrillage, rature un peu de travers, objectif entouré
   d'un cercle tracé à la main. Colonnes réglées sur le plus long nombre de la
   partie (plus étroites à 5 000 qu'à 10 000) et sur le plus long prénom
-  (mesuré, plafonné) : quatre joueurs tiennent sur un téléphone de 360 px.
+  (mesuré, plafonné) : quatre joueurs tiennent sur un téléphone de 360 px,
+  sauf prénoms très longs (au plafond, « Mohammed », quatre joueurs débordent
+  de 14 px à 390 px). La mesure se fait dans la police de l'appli : la feuille
+  est remesurée une fois la police chargée (mesurée dans la police de
+  secours, elle débordait de 100 px). Un onglet à qui l'on peut donner la
+  main est un vrai `<button>` dans l'en-tête de colonne. Dessinée par
+  `pages/g5000/sheet.ts`.
 - **Saisie** : trois portes en bas — « Compter mon tour pas à pas » (la
   **calculette**), puis **Bust** et « Entrer mon total du tour » (la **saisie
   manuelle**, « les paliers ») sur une ligne.
@@ -412,6 +431,11 @@ par les écrans de fin, elle suit les renommages et suppressions de joueurs
 (`games/playerAdmin.ts`) ; elle n'est pas sauvegardée (un rappel, pas une
 donnée).
 
+La fenêtre **« Installer Cornet »** (`app-install-prompt`,
+`core/storage/installPromptRepo.ts`) retient « Plus tard » (une semaine) ou
+« Ne plus demander ». Propre à l'appareil, elle n'est pas sauvegardée non
+plus.
+
 Toutes les lectures passent par un contrôle de forme (`readJson(key, guard)`)
 ou une normalisation tolérante : un contenu abîmé est ignoré au lieu de faire
 planter une page.
@@ -472,6 +496,9 @@ suivant.
 - **La feuille de style est découpée par domaine** (`src/styles/`, importés
   par `src/style.css`, la police Archivo en premier). L'ordre des imports
   compte : des règles de même spécificité se départagent par leur position.
+  L'écran du 5000 en six fichiers consécutifs (`g5000-game`, `-sheet`,
+  `-entry`, `-paliers`, `-dialogs`, `-calc`), découpés le 09/10 sans changer
+  d'un octet le CSS compilé.
 - **Direction visuelle « Bloc de score »** (octobre 2026) : Cornet remplace la
   feuille de score, l'identité part de là. Le fond est un **papier quadrillé**
   (`body`), le contenu est posé dessus en **feuillets** blancs (`.sheet`, bord
@@ -494,7 +521,12 @@ suivant.
   **Illustrations** (`core/illustrations.ts`, des dessins et non des
   pictogrammes) : le cornet renversé à côté du nom au menu, cinq dés lancés au
   bas de l'en-tête de chaque accueil (`GameDef.sceneDice` : un Yams de 6, un
-  brelan de 1 et un 5), masqués sur un écran bas. **Passage d'un écran à
+  brelan de 1 et un 5), masqués sur un écran bas. Une partie en cours prend
+  leur place dans l'en-tête (`#resume-card`, piste B du 09/10) : la partie en
+  cours dit où en est ce jeu, le feuillet dessous sert à en lancer une autre.
+  L'accueil tient sans défiler jusqu'à 375 × 667 (`fitHomeToScreen`,
+  `pages/gameHero.ts`) : s'il déborde, les dés s'effacent ; s'il déborde
+  encore, tout se resserre d'un cran (`.is-tight`, `.is-tighter`). **Passage d'un écran à
   l'autre** : View Transitions entre documents, en CSS seul (`animations.css`) —
   l'en-tête se fond sur place (`view-transition-name: app-header`, donc UN seul
   en-tête par page), le contenu arrive en glissant ; sans effet sur Firefox.
@@ -546,6 +578,13 @@ suivant.
 - **Rayons d'angle : l'échelle de `base.css`** (`--radius-xs` 2 px, `-s` 4,
   `-m` 6, `-l` 8, `-xl` 10, `-pill`), pas de valeur en dur ; les ronds gardent
   `50%`.
+- **Tailles de texte : l'échelle de `base.css`** (`--fs-3xs` 0,6 rem, `-2xs`
+  0,66, `-xs` 0,74, `-s` 0,8, `-m` 0,88, `-body` 0,95, `-base` 1, `-ui` 1,05,
+  `-l` 1,15, `-xl` 1,3, `-2xl` 1,45, `-3xl` 1,6, `-4xl` 2, `-5xl` 2,3,
+  `-hero` 4,5), jamais une taille en rem en dur. Les em (proportionnels à leur
+  composant) et les `clamp()` des grands titres restent à part.
+- **Un prénom après « de » passe par `ofName`** (`core/playerName.ts`) :
+  « le tour d'Alice », « le tour de Bob ».
 - **Accessibilité** : un anneau de focus au clavier seulement
   (`:focus-visible`), jamais de `blur()` pour le cacher au doigt ; une zone
   touchable de 44 px pour les pictogrammes de la barre du haut ; le joueur qui
@@ -566,6 +605,24 @@ suivant.
   installée affiche le menu des jeux à leur place. Invisible en développement.
 - Les écrans de jeu gardent **l'écran allumé** (`core/wakeLock.ts`) : le
   téléphone reste posé sur la table entre deux tours.
+
+## Installation et icônes
+
+Tant que Cornet n'est pas installé, le menu propose de l'installer
+(`core/pwa/install.ts`, `pages/home.ts`) : sur iPhone, Safari efface les
+données d'un site non installé après sept jours sans visite. Android et
+Chrome annoncent qu'ils savent installer (`beforeinstallprompt`) : la fenêtre
+porte alors un bouton « Installer » qui ouvre leur boîte. Sur iPhone, aucune
+page ne peut déclencher l'installation : la fenêtre montre les deux gestes
+(Partager › Sur l'écran d'accueil). Au menu seulement, jamais en partie ;
+« Plus tard » (ou un clic à côté) la repropose une semaine après. La même
+aide reste dans Paramètres › Sauvegarde.
+
+Icônes : le cornet du menu sur le papier de l'appli pour l'écran d'accueil
+(`public/icon-192.png`, `icon-512.png`, `icon-maskable-512.png` pour la
+découpe d'Android, `apple-touch-icon.png` pour iOS) ; le dé seul dans l'onglet
+du navigateur (`favicon.svg`, `favicon-48.png`), où le cornet ne se lirait
+plus.
 
 ## Mise à jour de l'application
 
@@ -604,7 +661,8 @@ avec les vrais dépôts. Il attrape ce que ni `tsc` ni la logique ne voient :
 constante en zone morte, `id` manquant, garde de redirection cassée, parcours
 (saisie, calculette, fin de partie, retours) et l'habillage (`look.test.ts` :
 couleurs posées, illustrations, états vides), le glisser-déposer des joueurs
-(`players.test.ts`) et les Paramètres (`settings.test.ts`). jsdom reste en
+(`players.test.ts`), les Paramètres (`settings.test.ts`) et l'invitation à
+installer (`install.test.ts`). jsdom reste en
 version 25 : la 27 exige Node ≥ 22.12. Il n'a ni `PointerEvent` (le harnais
 fournit `pointer(cible, type, { x, y, id })`) ni `File.text()`, ne calcule
 aucune mise en page (`getBoundingClientRect` à fixer dans le scénario qui

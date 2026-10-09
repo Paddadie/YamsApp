@@ -15,7 +15,7 @@ import { goTo } from "../../core/nav";
 import { requireEl } from "../../core/ui";
 import { formatScore } from "../../core/format";
 import { getDraft, saveDraft } from "../../core/storage/draftRepo";
-import { setupGameHero, showResumeCard } from "../gameHero";
+import { fitHomeToScreen, setupGameHero, showResumeCard } from "../gameHero";
 import { targetOption } from "../targetOption";
 import { icon } from "../../core/icons";
 import { G5000, G5000_ID } from "../../games/g5000/gameDef";
@@ -112,6 +112,8 @@ if (hasSavedGame()) {
   resumeBtn.disabled = false;
   resumeBtn.addEventListener("click", () => goTo("g5000Game"));
 }
+// Une fois tout posé (variantes, partie en cours) : l'accueil tient sur l'écran.
+fitHomeToScreen();
 
 startBtn.addEventListener("click", () => {
   const draft = getDraft();

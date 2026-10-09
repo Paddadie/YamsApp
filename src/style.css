@@ -28,4 +28,9 @@
 @import "./styles/tablet.css";
 @import "./styles/animations.css";
 @import "./styles/g5000-game.css";
+@import "./styles/g5000-sheet.css";
+@import "./styles/g5000-entry.css";
+@import "./styles/g5000-paliers.css";
+@import "./styles/g5000-dialogs.css";
+@import "./styles/g5000-calc.css";
 @import "./styles/g5000-records.css";

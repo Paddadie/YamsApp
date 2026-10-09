@@ -74,6 +74,10 @@ export const ICON_PATHS = {
   erase: '<path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/>',
   download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
   upload: '<path d="M12 16V5M7 10l5-5 5 5M5 20h14"/>',
+  // Le bouton Partager de Safari et l'entrée « Sur l'écran d'accueil » :
+  // les deux gestes de l'installation sur iPhone, dessinés comme là-bas.
+  share: '<path d="M12 14V3.5M8 7.5l4-4 4 4"/><path d="M8.5 10.5H6v10h12v-10h-2.5"/>',
+  addSquare: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/>',
 } as const satisfies Record<string, string>;
 
 export type IconName = keyof typeof ICON_PATHS;

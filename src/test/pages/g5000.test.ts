@@ -361,9 +361,10 @@ describe("records par objectif", () => {
 });
 
 describe("à qui c'est le tour, en suivant la table", () => {
+  // L'onglet lui-même : c'est lui, bouton dans l'en-tête, qui donne la main.
   const nameTab = (name: string): HTMLElement =>
-    [...document.querySelectorAll<HTMLElement>("#score-sheet thead th")].find(
-      (th) => th.textContent === name,
+    [...document.querySelectorAll<HTMLElement>("#score-sheet thead .name-tab")].find(
+      (tab) => tab.textContent === name,
     )!;
 
   it("rien à signaler quand le joueur qui joue est celui attendu", async () => {
@@ -1428,5 +1429,30 @@ describe("la feuille A", () => {
     pick(600);
     const hit = el("#score-sheet td.is-hit");
     expect(hit.querySelector(".entry")?.textContent).toBe("1 600");
+  });
+});
+
+describe("onglets et titres", () => {
+  it("un onglet à qui donner la main est un vrai bouton, l'en-tête reste un en-tête", async () => {
+    g5000Game(["Alice", "Bob"]);
+    await openPage("g5000Game");
+    const [current, other] = document.querySelectorAll<HTMLElement>("#score-sheet thead th");
+    expect(current.hasAttribute("role")).toBe(false);
+    expect(other.hasAttribute("role")).toBe(false);
+    expect(current.querySelector(".name-tab")?.tagName).toBe("SPAN");
+    const tab = other.querySelector<HTMLButtonElement>("button.name-tab")!;
+    expect(tab.getAttribute("aria-label")).toBe("Donner la main à Bob");
+    click(tab);
+    expect(el("#turn-name").textContent).toBe("Bob");
+  });
+
+  it("« Tour d'Alice » : « de » s'élide devant une voyelle", async () => {
+    g5000Game(["Alice", "Bob"]);
+    await openPage("g5000Game");
+    click("#play-btn");
+    expect(el("#calc-title").textContent).toBe("Tour d'Alice");
+    click("#calc-close");
+    click("#quick-btn");
+    expect(el("#quick-title").textContent).toBe("Tour d'Alice");
   });
 });

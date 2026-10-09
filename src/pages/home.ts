@@ -8,7 +8,13 @@
 import { bootstrap } from "../core/bootstrap";
 import { icon } from "../core/icons";
 import { cornetIllustration } from "../core/illustrations";
-import { playerDots, requireEl } from "../core/ui";
+import { makeDismissible, playerDots, requireEl } from "../core/ui";
+import { installNow, installWay, iosSteps, watchInstall } from "../core/pwa/install";
+import {
+  neverOfferInstall,
+  shouldOfferInstall,
+  snoozeInstall,
+} from "../core/storage/installPromptRepo";
 import { GAMES, gameById } from "../games/registry";
 import { getLastWin } from "../core/storage/lastWinRepo";
 import { formatDate } from "../core/dates";
@@ -99,8 +105,51 @@ function renderLastWin(): void {
   box.hidden = false;
 }
 
+// « Installer Cornet » (core/pwa/install.ts) : tant que l'appli n'est pas
+// installée, une fois par semaine au plus. Sur Android / Chrome, l'invitation
+// du navigateur arrive après le chargement : la fenêtre attend qu'elle soit
+// là. Fermée sans répondre (fond, Échap), c'est « Plus tard ».
+function offerInstall(): void {
+  const dialog = requireEl<HTMLDialogElement>("install-dialog");
+  let answered = false;
+  const show = (): void => {
+    const way = installWay();
+    if (!way || dialog.open || answered || !shouldOfferInstall()) return;
+    requireEl("install-steps").replaceChildren(...(way === "ios" ? [iosSteps()] : []));
+    requireEl("install-go").hidden = way !== "native";
+    dialog.showModal();
+    // showModal() donne le focus au premier bouton, qui s'affichait cerclé
+    // comme s'il était déjà choisi : il va à la fenêtre elle-même, comme la
+    // saisie du Yams.
+    dialog.focus();
+  };
+  const answer = (then: () => void): void => {
+    answered = true;
+    then();
+    dialog.close();
+  };
+  makeDismissible(dialog);
+  dialog.addEventListener("close", () => {
+    if (!answered) snoozeInstall();
+    answered = true;
+  });
+  requireEl("install-later").addEventListener("click", () => answer(() => snoozeInstall()));
+  requireEl("install-never").addEventListener("click", () => answer(neverOfferInstall));
+  requireEl("install-go").addEventListener("click", () =>
+    answer(() => {
+      // Refusée dans la boîte du navigateur : on redemandera dans une semaine.
+      void installNow().then((accepted) => {
+        if (!accepted) snoozeInstall();
+      });
+    }),
+  );
+  watchInstall(show);
+  show();
+}
+
 /* ---------- Mise en route ---------- */
 
 requireEl("brand-mark").appendChild(cornetIllustration());
 list.replaceChildren(...GAMES.map(buildTile));
 renderLastWin();
+offerInstall();

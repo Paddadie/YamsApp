@@ -94,7 +94,7 @@
   max-width: var(--content-max);
   margin: 0 auto;
   border-collapse: collapse;
-  font-size: 1rem;
+  font-size: var(--fs-base);
   text-align: center;
   background: var(--sheet);
   border-radius: var(--radius-s) var(--radius-s) var(--radius-m) var(--radius-m);
@@ -105,7 +105,7 @@
 #best-scores-table th,
 #worst-scores-table th {
   padding: 0.75em 0.6em 0.45em;
-  font-size: 0.66rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   letter-spacing: 0.13em;
   text-transform: uppercase;
@@ -139,7 +139,7 @@
 
 /* Les pastilles de variante en tête de colonne (classement du Yams). */
 #ranking-table th .badge {
-  font-size: 0.85rem;
+  font-size: var(--fs-m);
 }
 
 /* Colonne du rang : le tampon. */
@@ -226,7 +226,7 @@
 /* Aide sous l'en-tête : les lignes des tableaux sont cliquables. */
 .hall-hint {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--fs-s);
   color: var(--ink-soft);
 }
 
@@ -263,12 +263,12 @@
 }
 
 .record-line-what {
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   color: color-mix(in srgb, var(--ink) 75%, var(--postit));
 }
 
 .record-line-who {
-  font-size: 1.15rem;
+  font-size: var(--fs-l);
   font-stretch: 75%;
   font-weight: 800;
 }
@@ -280,7 +280,7 @@
   flex-wrap: wrap;
   gap: 0.3rem 1rem;
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--fs-s);
   color: var(--ink-soft);
 }
 
@@ -343,13 +343,13 @@ table.is-empty thead {
 .hall-empty-title {
   display: block;
   margin-bottom: 0.15rem;
-  font-size: 1.05rem;
+  font-size: var(--fs-ui);
   color: var(--ink);
 }
 
 .hall-note {
   margin: -0.25rem 0 0;
-  font-size: 0.78rem;
+  font-size: var(--fs-s);
   color: var(--ink-soft);
   text-align: left;
 }
@@ -385,7 +385,7 @@ table.is-empty thead {
 }
 
 .record-label {
-  font-size: 0.64rem;
+  font-size: var(--fs-2xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.15em;
@@ -393,7 +393,7 @@ table.is-empty thead {
 }
 
 .record-name {
-  font-size: 1.6rem;
+  font-size: var(--fs-3xl);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 1;
@@ -407,7 +407,7 @@ table.is-empty thead {
   display: flex;
   align-items: center;
   gap: 0.4em;
-  font-size: 0.78rem;
+  font-size: var(--fs-s);
   color: color-mix(in srgb, var(--ink) 70%, var(--postit));
 }
 
@@ -419,14 +419,14 @@ table.is-empty thead {
 
 .record-score strong {
   display: block;
-  font-size: 2.3rem;
+  font-size: var(--fs-5xl);
   font-stretch: 62%;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
 .record-score span {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: color-mix(in srgb, var(--ink) 70%, var(--postit));
 }
 
@@ -531,7 +531,7 @@ table.is-empty thead {
 }
 
 .stats-sub {
-  font-size: 0.78rem;
+  font-size: var(--fs-s);
   color: var(--ink-soft);
 }
 
@@ -601,7 +601,7 @@ table.is-empty thead {
   border-radius: var(--radius-m);
   background: var(--ink);
   color: #f6f6f8;
-  font-size: 1.02rem;
+  font-size: var(--fs-base);
   line-height: 1.45;
   text-align: center;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5),

@@ -43,12 +43,9 @@
         </div>
         <p class="game-hero-tagline" id="game-tagline"></p>
         <div class="game-hero-sample" id="game-sample" aria-hidden="true"></div>
-        <!-- Les dés lancés du jeu (gameHero.ts) : la place libre devient une scène. -->
-        <div class="game-hero-scene" id="game-scene"></div>
-      </header>
-
-      <div class="screen-body">
-        <!-- Présente seulement quand une partie est en cours (home.ts). -->
+        <!-- La partie en cours, quand il y en a une (home.ts) : dans l'en-tête, à
+             la place des dés — elle dit où en est ce jeu ; dessous, on en lance
+             une autre (audit du 09/10, piste B). -->
         <section class="resume-card sheet" id="resume-card" hidden>
           <div class="resume-text">
             <h2 class="section-label">Partie en cours</h2>
@@ -63,6 +60,11 @@
             <!--@icon:play-->Reprendre
           </button>
         </section>
+        <!-- Les dés lancés du jeu (gameHero.ts) : la place libre devient une scène. -->
+        <div class="game-hero-scene" id="game-scene"></div>
+      </header>
+
+      <div class="screen-body">
         <section class="variants">
           <h2 class="section-label">Choisissez les variantes</h2>
           <!-- Tuiles générées par src/pages/yams/home.ts d'après src/games/yams/variants.ts -->

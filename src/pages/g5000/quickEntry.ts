@@ -14,6 +14,7 @@
 // son brouillon quand la main change.
 
 import { requireEl } from "../../core/ui";
+import { ofName } from "../../core/playerName";
 import { icon } from "../../core/icons";
 import {
   bankOutcome,
@@ -25,7 +26,7 @@ import {
 } from "../../games/g5000/engine";
 import { highestThousand, SCORE_STEP } from "../../games/g5000/rules";
 import type { G5000Game } from "../../games/g5000/types";
-import { afterLine, bankLabel, potWarning, unbreakable } from "./calculator";
+import { afterLine, bankLabel, potWarning, unbreakable } from "./potText";
 
 export interface QuickEntryHooks {
   // Le tour se termine, sur le pot de `game.turn` (cf. finishTurn du moteur).
@@ -206,7 +207,7 @@ export function createQuickEntry(game: G5000Game, hooks: QuickEntryHooks) {
   function render(): void {
     const me = game.players[game.currentPlayerIndex];
     const pot = value();
-    requireEl("quick-title").textContent = `Tour de ${me.name}`;
+    requireEl("quick-title").textContent = `Tour ${ofName(me.name)}`;
 
     for (const button of thousands.querySelectorAll<HTMLButtonElement>(".pal-th")) {
       const on = Number(button.dataset.thousand) === base;

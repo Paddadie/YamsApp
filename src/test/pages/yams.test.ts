@@ -1,8 +1,8 @@
 // Écrans du Yams : barème, saisie, feuilles du Hall of Fame.
 
 import { describe, expect, it, vi } from "vitest";
-import { button, click, el, openPage } from "./harness";
-import { g5000Game, savedYams, yamsGame } from "./fixtures";
+import { button, click, el, navigations, openPage } from "./harness";
+import { filledYamsGame, g5000Game, savedYams, yamsGame } from "./fixtures";
 import { DEFAULT_RULES, normalizeRules } from "../../games/yams/scoring";
 
 // Ouvre la fenêtre de saisie de la ligne dont le libellé commence par `label`.
@@ -200,6 +200,131 @@ describe("Montante / Descendante : la prochaine case", () => {
     yamsGame();
     await openPage("yamsGame");
     expect(marker()).toBeNull();
+  });
+});
+
+describe("fin de partie depuis la grille", () => {
+  // La dernière case vide du dernier joueur : c'est à lui de jouer.
+  function fillLastCell(): void {
+    click(el("#score-tables .score-cell.is-empty"));
+    const values = el("#picker-values").querySelectorAll<HTMLButtonElement>("button");
+    click(values[values.length - 1]);
+  }
+
+  it("la dernière case remplie mène au podium", async () => {
+    vi.useFakeTimers();
+    filledYamsGame(["Alice", "Bob"], ["Classique"], 1);
+    await openPage("yamsGame");
+    expect(el("#current-player-name").textContent).toBe("Bob");
+    fillLastCell();
+    vi.advanceTimersByTime(3000);
+    expect(navigations()).toEqual(["yamsEnd"]);
+  });
+
+  it("une flèche touchée dans la foulée n'empêche plus d'y aller", async () => {
+    vi.useFakeTimers();
+    filledYamsGame(["Alice", "Bob"], ["Classique"], 1);
+    await openPage("yamsGame");
+    fillLastCell();
+    vi.advanceTimersByTime(250);
+    click("#next-player-btn"); // réflexe : on regarde la grille d'Alice
+    vi.advanceTimersByTime(3000);
+    // Avant : l'auto-avance était annulée, la table restait sur une grille finie.
+    expect(navigations()).toEqual(["yamsEnd"]);
+  });
+
+  it("partie en cours : une flèche annule toujours l'auto-avance", async () => {
+    vi.useFakeTimers();
+    yamsGame(["Alice", "Bob", "Chloé"]);
+    await openPage("yamsGame");
+    openLine("Chance");
+    click(button("20", el("#picker-values")));
+    click("#prev-player-btn"); // on regarde Chloé
+    vi.advanceTimersByTime(3000);
+    expect(el("#current-player-name").textContent).toBe("Chloé");
+  });
+});
+
+describe("l'auto-avance laisse le temps de la fête", () => {
+  it("après un Yams, la main ne passe qu'une fois le tampon parti", async () => {
+    vi.useFakeTimers();
+    yamsGame(["Alice", "Bob"]);
+    await openPage("yamsGame");
+    openLine("Yams");
+    click(button("50", el("#picker-values")));
+    vi.advanceTimersByTime(1000); // une saisie ordinaire serait déjà passée
+    expect(el("#current-player-name").textContent).toBe("Alice");
+    vi.advanceTimersByTime(800);
+    expect(el("#current-player-name").textContent).toBe("Bob");
+  });
+
+  it("après le bonus décroché, la main attend la fin de la jauge", async () => {
+    vi.useFakeTimers();
+    const game = yamsGame(["Alice", "Bob"]);
+    for (const player of game.players) {
+      Object.assign(player.scores.Classique!, { "1": 3, "2": 6, "3": 9, "4": 12, "5": 15 });
+    }
+    localStorage.setItem("yams-saved-game", JSON.stringify(game));
+    await openPage("yamsGame");
+    click(document.querySelectorAll<HTMLButtonElement>("#score-tables .score-cell")[5]);
+    click(button("18", el("#picker-values"))); // 63 : bonus
+    vi.advanceTimersByTime(1500);
+    expect(el("#current-player-name").textContent).toBe("Alice");
+    vi.advanceTimersByTime(1000);
+    expect(el("#current-player-name").textContent).toBe("Bob");
+  });
+});
+
+describe("Montante / Descendante : l'ordre imposé", () => {
+  const enabledLines = (): string[] =>
+    [...document.querySelectorAll<HTMLButtonElement>("#score-tables .score-cell")]
+      .filter((cell) => !cell.disabled)
+      .map((cell) => cell.getAttribute("aria-label") ?? "");
+
+  it("Montante : seule la case du Yams s'ouvre au départ", async () => {
+    yamsGame(["Alice"], ["Montante"]);
+    await openPage("yamsGame");
+    expect(enabledLines()).toEqual(["Yams (50), Montante"]);
+  });
+
+  it("Descendante : seule la ligne des 1 s'ouvre, puis la suivante", async () => {
+    yamsGame(["Alice"], ["Descendante"]);
+    await openPage("yamsGame");
+    expect(enabledLines()).toEqual(["1, Descendante"]);
+    click(document.querySelectorAll<HTMLButtonElement>("#score-tables .score-cell")[0]);
+    click(button("3", el("#picker-values")));
+    // La case remplie reste corrigeable, la suivante s'ouvre.
+    expect(enabledLines()).toEqual(["1, Descendante", "2, Descendante"]);
+  });
+});
+
+describe("consultation (?review)", () => {
+  it("partie finie : grilles en lecture seule, retour au classement", async () => {
+    filledYamsGame(["Alice", "Bob"]);
+    await openPage("yamsGame", "?review=1");
+    expect(navigations()).toEqual([]);
+    expect(el("#review-bar").hidden).toBe(false);
+    expect(el("#pause-btn").hidden).toBe(true);
+    expect(el<HTMLButtonElement>("#score-tables .score-cell").tabIndex).toBe(-1);
+  });
+
+  it("partie en cours : le paramètre est ignoré, on joue", async () => {
+    yamsGame(["Alice", "Bob"]);
+    await openPage("yamsGame", "?review=1");
+    expect(el("#review-bar").hidden).toBe(true);
+    expect(el("#pause-btn").hidden).toBe(false);
+    click(el("#score-tables .score-cell"));
+    expect(el<HTMLDialogElement>("#value-picker").open).toBe(true);
+  });
+});
+
+describe("la fenêtre de saisie dit sa ligne", () => {
+  it("un chiffre : le dé dessiné et « Les 4 »", async () => {
+    yamsGame();
+    await openPage("yamsGame");
+    click(document.querySelectorAll<HTMLButtonElement>("#score-tables .score-cell")[3]);
+    expect(el("#picker-line").textContent).toBe("Les 4");
+    expect(el("#picker-line").querySelector("svg.die")?.getAttribute("aria-hidden")).toBe("true");
   });
 });
 

@@ -18,7 +18,7 @@ describe("renommer un joueur", () => {
     yamsGame(["Alice", "Bob"]);
     await openPage("settings");
 
-    click(byLabel("Modifier le nom de Alice"));
+    click(byLabel("Modifier le nom d'Alice"));
     expect(dialog("player-edit-dialog").open).toBe(true);
     el<HTMLInputElement>("#player-edit-input").value = "Alicia";
     click("#player-edit-save");
@@ -33,7 +33,7 @@ describe("renommer un joueur", () => {
     knownPlayers("Alice", "Bob");
     await openPage("settings");
 
-    click(byLabel("Modifier le nom de Alice"));
+    click(byLabel("Modifier le nom d'Alice"));
     el<HTMLInputElement>("#player-edit-input").value = "bob";
     click("#player-edit-save");
 

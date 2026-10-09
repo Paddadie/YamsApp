@@ -9,7 +9,7 @@ import { goTo } from "../../core/nav";
 import { VARIANTS } from "../../games/yams/variants";
 import { icon } from "../../core/icons";
 import { requireEl } from "../../core/ui";
-import { setupGameHero, showResumeCard } from "../gameHero";
+import { fitHomeToScreen, setupGameHero, showResumeCard } from "../gameHero";
 import { hasSavedGame } from "../../games/yams/storage/savedGameRepo";
 import { getDraft, saveDraft } from "../../core/storage/draftRepo";
 import { YAMS, yamsConfigOf } from "../../games/yams/gameDef";
@@ -94,6 +94,8 @@ if (hasSavedGame()) {
   resumeBtn.disabled = false;
   resumeBtn.addEventListener("click", () => goTo("yamsGame"));
 }
+// Une fois tout posé (variantes, partie en cours) : l'accueil tient sur l'écran.
+fitHomeToScreen();
 
 startBtn.addEventListener("click", () => {
   const selected = selectedVariants();

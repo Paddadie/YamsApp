@@ -31,6 +31,31 @@
       </div>
     </div>
 
+    <!-- Proposée au menu tant que Cornet n'est pas installé (home.ts,
+         core/pwa/install.ts). « Plus tard » ou un clic à côté : dans une
+         semaine. Le bouton « Installer » n'existe que là où le navigateur sait
+         installer (Android, Chrome) ; sur iPhone, les deux gestes. -->
+    <dialog id="install-dialog" aria-labelledby="install-title" tabindex="-1">
+      <p class="sheet-title" id="install-title">Installer Cornet</p>
+      <!-- L'icône qui arrivera sur l'écran d'accueil. -->
+      <div class="install-intro">
+        <img class="install-icon" src="/apple-touch-icon.png" alt="" width="56" height="56" />
+        <p class="message-text">
+          Sur l'écran d'accueil, Cornet s'ouvre comme une application, même hors
+          ligne, et vos joueurs et palmarès ne risquent plus d'être effacés par le
+          navigateur.
+        </p>
+      </div>
+      <div id="install-steps"></div>
+      <div class="delete-actions">
+        <button type="button" id="install-later" class="btn btn-secondary">Plus tard</button>
+        <button type="button" id="install-go" class="btn btn-primary" hidden>Installer</button>
+      </div>
+      <button type="button" id="install-never" class="link-plain install-never">
+        Ne plus demander
+      </button>
+    </dialog>
+
     <script type="module" src="/src/pages/home.ts"></script>
   </body>
 </html>

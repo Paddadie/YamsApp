@@ -1,0 +1,541 @@
+/* ========== 5000 — LA CALCULETTE ========== */
+/* pages/g5000/calculator.ts. Suite de g5000-dialogs.css. */
+
+/* ---------- Calculette du 5000 ---------- */
+/* On saisit les faces obtenues, puis on touche ce qu'on garde. Deux temps
+   volontairement séparés : mélangés, on ne sait plus si l'on décrit son lancer
+   ou si l'on décide. Dans le pupitre depuis le 08/10 : même habit que les
+   paliers (touches en relief, papier ligné, gestes du marqueur). */
+
+.calc-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.calc-stage:empty {
+  display: none;
+}
+
+#calc-targets:not(:empty) {
+  margin-bottom: 0.55rem;
+}
+
+/* Le lancer posé sur une bande de papier ligné : chaque dé un peu de travers,
+   comme jeté, et des emplacements en pointillé pour ceux qui restent à
+   saisir. Hauteur fixe : la bande ne bouge pas au premier dé. */
+.roll-tray {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 3.7rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-m);
+  background:
+    linear-gradient(transparent calc(50% + 1.1rem), rgba(54, 92, 170, 0.18) calc(50% + 1.1rem) calc(50% + 1.1rem + 1px), transparent 0),
+    var(--sheet);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+
+/* Un bouton (on le touche pour le retirer) : `padding` et fond posés, la
+   règle globale `button` en ajouterait. */
+.tray-die,
+.roll-slot {
+  flex: none;
+  width: 2.55rem;
+  height: 2.55rem;
+}
+
+.tray-die {
+  display: block;
+  padding: 0;
+  border: none;
+  border-radius: 22%;
+  background: transparent;
+  transform: rotate(var(--t, 0deg));
+  filter: drop-shadow(0 2px 0 rgba(var(--shade-rgb), 0.18));
+  transition: transform 0.18s ease, opacity 0.18s ease;
+  touch-action: manipulation;
+}
+
+button.tray-die:active {
+  transform: rotate(var(--t, 0deg)) scale(0.88);
+}
+
+.tray-die .die {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Le dé qu'on vient de saisir tombe sur la bande. */
+.tray-die.is-new {
+  animation: die-drop 0.34s cubic-bezier(0.25, 1.4, 0.5, 1) both;
+}
+
+@keyframes die-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-1.1rem) rotate(calc(var(--t, 0deg) + 28deg)) scale(1.15);
+  }
+}
+
+.roll-slot {
+  border-radius: 22%;
+  box-shadow: inset 0 0 0 2px rgba(var(--ink-rgb), 0.16);
+  background: repeating-linear-gradient(-45deg, transparent 0 4px, rgba(var(--ink-rgb), 0.04) 4px 6px);
+}
+
+/* Pendant le choix : les dés gardés se soulèvent, cerclés d'or ; les autres
+   restent sur la table, pâlis. */
+.roll-tray--pick .tray-die.is-kept {
+  transform: translateY(-0.2rem);
+  box-shadow: 0 0 0 3px var(--gom-gold);
+}
+
+.roll-tray--pick .tray-die.is-left {
+  opacity: 0.38;
+}
+
+/* Les dés déjà gardés ce tour, à gauche de la bande (comme les dés qu'on met
+   de côté à la table) : petits, cerclés d'or, le gain de chaque lancer
+   dessous ; une main pleine finie résumée en pastille. Un trait en pointillé
+   les sépare du lancer en cours. En tête, la flèche (bleue : on revient sans
+   rien perdre) pour revenir au lancer précédent. */
+.roll-tray.has-aside {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding-left: 0.4rem;
+}
+
+.roll-aside {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.5rem;
+  border-right: 1.5px dashed rgba(var(--ink-rgb), 0.28);
+}
+
+.aside-back {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--secondary-color) 10%, var(--sheet));
+  color: var(--secondary-hover);
+}
+
+.aside-back .ic {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.aside-back:focus-visible {
+  outline: 3px solid var(--secondary-color);
+  outline-offset: 2px;
+}
+
+.aside-roll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.aside-dice {
+  display: flex;
+  gap: 0.12rem;
+}
+
+.aside-dice .die {
+  width: 1.05rem;
+  height: 1.05rem;
+  border-radius: 22%;
+  box-shadow: 0 0 0 1.5px var(--gom-gold);
+}
+
+.aside-dice .die.is-boosted .die-face {
+  fill: #fff1e3;
+  stroke: #c25e00;
+}
+
+.aside-roll small,
+.aside-hand b {
+  font-size: var(--fs-xs);
+  font-stretch: 75%;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.aside-hand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem 0.45rem 0.2rem 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-paper, var(--paper));
+}
+
+.aside-hand .ic {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--accent, var(--ink));
+}
+
+.aside-hand i {
+  font-size: var(--fs-2xs);
+  font-style: normal;
+  font-weight: 800;
+  color: var(--accent, var(--ink));
+}
+
+/* Le lancer en cours reste sur une ligne à côté de la réserve : ses dés
+   rétrécissent un peu au besoin (cinq dés et une main pleine à 360 px). */
+.roll-now {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.has-aside .tray-die,
+.has-aside .roll-slot {
+  flex: 0 1 2.3rem;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  aspect-ratio: 1;
+}
+
+.has-aside .tray-die .die {
+  height: auto;
+}
+
+/* La ligne des petites actions : consigne ou « Corriger les dés » à gauche,
+   « Recommencer le tour » à droite. */
+.calc-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  min-height: 1.6rem;
+  font-size: var(--fs-s);
+}
+
+.roll-hint {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--fs-s);
+  color: var(--ink-soft);
+}
+
+.link-btn,
+.link-plain,
+.link-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  flex: none;
+  padding: 0.25em 0.1em;
+  border: none;
+  background: transparent;
+  font-size: var(--fs-s);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.link-btn {
+  color: var(--secondary-hover);
+}
+
+.link-plain {
+  color: var(--ink-soft);
+}
+
+.link-danger {
+  color: var(--danger-hover);
+}
+
+.link-btn .ic,
+.link-plain .ic {
+  width: 1em;
+  height: 1em;
+  stroke-width: 2.4;
+}
+
+/* « Effacer le tour (400) ? Oui, recommencer · Non » : confirmé sur place. */
+.restart-ask {
+  flex: 1 0 100%;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.2rem 0.6rem;
+  color: var(--danger-hover);
+  font-weight: 700;
+}
+
+/* Le pavé : six dés en touches, en relief comme celles des paliers. Le
+   nombre de dés saisis en pastille d'encre, au coin. */
+.face-pad {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.face-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1 / 1.08;
+  padding: 0.5rem;
+  border: none;
+  border-radius: var(--radius-l);
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong), inset 0 -4px 0 var(--rule);
+  color: var(--ink);
+  touch-action: manipulation;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.face-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 1.5px var(--rule-strong);
+}
+
+.face-btn .die {
+  width: 100%;
+  height: auto;
+}
+
+/* Pavé complet : les touches pâlissent (désactivé = gris). */
+.face-btn:disabled {
+  background: color-mix(in srgb, var(--paper) 60%, var(--sheet));
+  box-shadow: inset 0 0 0 1.5px var(--rule);
+  cursor: default;
+}
+
+.face-btn:disabled .die {
+  opacity: 0.4;
+}
+
+.face-count {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.3rem;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--ink);
+  color: var(--sheet);
+  font-size: var(--fs-s);
+  font-stretch: 75%;
+  font-weight: 900;
+  line-height: 1.25rem;
+  text-align: center;
+}
+
+/* Les combinaisons : un tableau réglé ; les dés dessinés à gauche pour qu'on
+   reconnaisse sa main sans lire le libellé. Toutes sont proposées, même
+   celles qui valent moins sur les mêmes dés : garder moins peut servir
+   (Sniper, demande de Paul). */
+.combos {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-m);
+  background: var(--sheet);
+  box-shadow: inset 0 0 0 1px var(--rule);
+  overflow: hidden;
+}
+
+.combo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 2.6rem;
+  padding: 0.35rem 0.7rem;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  /* Explicite : la règle globale `button` écrit en blanc, ce qui rendait le
+     libellé invisible (blanc sur blanc). */
+  color: var(--ink);
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.combo + .combo {
+  box-shadow: inset 0 1px 0 var(--rule);
+}
+
+.combo-dice {
+  display: flex;
+  gap: 0.15rem;
+  flex: none;
+}
+
+.combo-dice .die {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.combo-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fs-body);
+  line-height: 1.2;
+}
+
+.combo-label > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25em;
+  align-self: flex-start;
+}
+
+.combo-label .ic {
+  width: 0.95em;
+  height: 0.95em;
+  color: #c25e00;
+}
+
+.combo-points {
+  flex: none;
+  font-size: var(--fs-l);
+  font-stretch: 72%;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Retenue : un liseré et le libellé surligné au feutre de la couleur du
+   joueur, le gain entouré. L'ancien surligné vert sur un texte pâle se
+   lisait mal. */
+.combo.picked {
+  background: color-mix(in srgb, var(--player-color, var(--paper)) 9%, var(--sheet));
+  box-shadow: inset 4px 0 0 var(--player-color, var(--ink));
+}
+
+.combo.picked .combo-label > span {
+  padding: 0 0.2em;
+  font-weight: 800;
+  background: linear-gradient(
+      100deg,
+      transparent 2%,
+      var(--player-color, var(--paper)) 5%,
+      var(--player-color, var(--paper)) 95%,
+      transparent 98%
+    )
+    no-repeat 0 75% / 100% 65%;
+}
+
+.combo.picked .combo-points {
+  padding: 0 0.45em;
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* « à la place de Brelan de 5 » : la toucher remplacera ce qui est retenu. */
+.combo-swap {
+  display: block;
+  font-size: var(--fs-xs);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+/* Variante Combo : les chiffres activés ressortent, dans l'orange de la
+   variante, partout où on les touche — rappel en tête, pavé, bande,
+   combinaisons. Leurs dés valent 100 de plus : c'est ce qu'on oublie de tête. */
+.combo-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  margin: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: #fff1e3;
+  color: #8a4300;
+  font-size: var(--fs-s);
+  font-weight: 750;
+}
+
+.combo-strip .ic {
+  width: 1rem;
+  height: 1rem;
+}
+
+.combo-strip-dice {
+  display: inline-flex;
+  gap: 0.15em;
+}
+
+.combo-strip-dice .die {
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.face-btn.is-boosted {
+  background: #fff1e3;
+  box-shadow: inset 0 0 0 2px #c25e00, inset 0 -4px 0 rgba(194, 94, 0, 0.25);
+}
+
+.tray-die.is-boosted .die-face,
+.combo-strip-dice .die-face {
+  fill: #fff1e3;
+  stroke: #c25e00;
+}
+
+.combo.is-boosted:not(.picked) {
+  background: #fff8f0;
+}
+
+/* Bust : on dit ce qu'on perd, sans mise en scène (réaction au bust écartée,
+   08/10). */
+.bust-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.9rem 0.8rem;
+  border-radius: var(--radius-m);
+  background: color-mix(in srgb, var(--danger-color) 8%, var(--sheet));
+  color: var(--danger-hover);
+  text-align: center;
+  font-weight: 700;
+}
+
+.bust-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.bust-msg p {
+  margin: 0;
+}
+
+/* Le pied : une ligne, [Relancer 3 dés] [Banquer 400], l'action principale à
+   droite, un peu plus large. */
+.calc-row .btn {
+  min-width: 0;
+  padding-inline: 0.5em;
+  white-space: nowrap;
+}
+
+.calc-row .calc-bank {
+  flex: 1.25;
+}
